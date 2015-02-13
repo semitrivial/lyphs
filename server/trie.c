@@ -12,7 +12,6 @@ trie *lyphedge_ids;
 trie *lyphedge_names;
 trie *lyphedge_fmas;
 
-trie *subclasses;
 trie *superclasses;
 
 void populate_void_buffer( void ***ptr, trie *t );

@@ -15,7 +15,6 @@ void init_labels(void)
   lyphedge_names = blank_trie();
   lyphedge_fmas = blank_trie();
 
-  subclasses = blank_trie();
   superclasses = blank_trie();
 
   init_html_codes();
@@ -98,18 +97,19 @@ void add_to_data( trie ***dest, trie *datum )
 
 void add_subclass_entry( char *child_ch, char *parent_ch )
 {
-  trie *child = trie_strdup( child_ch, superclasses );
-  trie *parent_iri = trie_search( parent_ch, iri_to_labels );
+  char *child_shortform = get_url_shortform( child_ch );
+  char *parent_shortform = get_url_shortform( parent_ch );
+  trie *child, *parent;
 
-  if ( !parent_iri )
-  {
-    char *warning = strdupf( "Warning: Could not find superclass %s (of subclass %s) in IRI trie.", parent_ch, child_ch );
-    log_string( warning );
-    free( warning );
-    return;
-  }
+  if ( !child_shortform )
+    child_shortform = child_ch;
+  if ( !parent_shortform )
+    parent_shortform = parent_ch;
 
-  add_to_data( &child->data, parent_iri );
+  child = trie_strdup( child_shortform, superclasses );
+  parent = trie_strdup( parent_shortform, superclasses );
+
+  add_to_data( &child->data, parent );
 }
 
 void add_labels_entry( char *iri_ch, char *label_ch )

@@ -81,6 +81,8 @@ struct LYPH
   trie *id;
   int type;
   layer **layers;
+  lyph **direct_supers;
+  lyph **direct_subs;
 };
 
 typedef enum
@@ -187,7 +189,6 @@ extern trie *lyphedge_ids;
 extern trie *lyphedge_fmas;
 extern trie *lyphedge_names;
 
-extern trie *subclasses;
 extern trie *superclasses;
 
 /*
