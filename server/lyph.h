@@ -187,6 +187,9 @@ extern trie *lyphedge_ids;
 extern trie *lyphedge_fmas;
 extern trie *lyphedge_names;
 
+extern trie *subclasses;
+extern trie *superclasses;
+
 /*
  * Function prototypes
  */
@@ -197,6 +200,7 @@ extern trie *lyphedge_names;
 void init_labels(void);
 void parse_labels_file(FILE *fp);
 void add_labels_entry( char *iri_ch, char *label_ch );
+void add_subclass_entry( char *child_ch, char *parent_ch );
 trie **get_labels_by_iri( char *iri_ch );
 trie **get_iris_by_label( char *label_ch );
 trie **get_iris_by_label_case_insensitive( char *label_ch );

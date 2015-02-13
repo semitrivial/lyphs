@@ -15,6 +15,9 @@ void init_labels(void)
   lyphedge_names = blank_trie();
   lyphedge_fmas = blank_trie();
 
+  subclasses = blank_trie();
+  superclasses = blank_trie();
+
   init_html_codes();
 
   load_lyphs();
@@ -36,8 +39,19 @@ void got_triple( char *subj, char *pred, char *obj )
 
       add_labels_entry( &subj[1], &obj[1] );
     }
+    goto got_triple_cleanup;
   }
 
+  if ( !strcmp( pred, "<http://www.w3.org/2000/01/rdf-schema#subClassOf>" )
+  ||   !strcmp( pred, "<rdfs:subClassOf>" ) )
+  {
+    obj[strlen(obj)-1] = '\0';
+    subj[strlen(subj)-1] = '\0';
+
+    add_subclass_entry( &subj[1], &obj[1] );
+  }
+
+  got_triple_cleanup:
   free( subj );
   free( pred );
   free( obj );
@@ -80,6 +94,22 @@ void add_to_data( trie ***dest, trie *datum )
     free( *dest );
     *dest = data;
   }
+}
+
+void add_subclass_entry( char *child_ch, char *parent_ch )
+{
+  trie *child = trie_strdup( child_ch, superclasses );
+  trie *parent_iri = trie_search( parent_ch, iri_to_labels );
+
+  if ( !parent_iri )
+  {
+    char *warning = strdupf( "Warning: Could not find superclass %s (of subclass %s) in IRI trie.", parent_ch, child_ch );
+    log_string( warning );
+    free( warning );
+    return;
+  }
+
+  add_to_data( &child->data, parent_iri );
 }
 
 void add_labels_entry( char *iri_ch, char *label_ch )

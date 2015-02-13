@@ -84,14 +84,21 @@ public class Convert
 
       for ( OWLClass c : classes )
       {
-        String cID = c.toString().trim();
+        String cID = prepare_class_id(c.toString());
+        boolean fLabel = false;
 
         Set<OWLAnnotation> annots = c.getAnnotations(o, df.getRDFSLabel() );
         for ( OWLAnnotation a : annots )
         {
           if ( a.getValue() instanceof OWLLiteral )
+          {
+            fLabel = true;
             writer.print( cID + " <http://www.w3.org/2000/01/rdf-schema#label> \"" + escape(((OWLLiteral)a.getValue()).getLiteral().trim()) + "\" .\n" );
+          }
         }
+
+        if ( !fLabel )
+          continue;
 
         NodeSet<OWLClass> subClasses = r.getSubClasses(c, true);
 
@@ -99,8 +106,10 @@ public class Convert
         {
           OWLClass sub = subnode.getEntities().iterator().next();
 
-          if ( !sub.isOWLNothing() )
-            writer.print( sub.toString().trim() + " <http://www.w3.org/2000/01/rdf-schema#subClassOf> " + cID + " .\n" );
+          if ( sub.isOWLNothing() )
+            continue;
+
+          writer.print( prepare_class_id(sub.toString()) + " <http://www.w3.org/2000/01/rdf-schema#subClassOf> " + cID + " .\n" );
         }
       }
     }
@@ -108,6 +117,16 @@ public class Convert
     writer.close();
 
     return;
+  }
+
+  String prepare_class_id(String id)
+  {
+    String retval = id.trim();
+
+    if ( retval.startsWith( "owl:" ) )
+      retval = "<http://www.w3.org/2002/07/owl#" + retval.substring(4) + ">";
+
+    return retval;
   }
 
   String escape(String x)
