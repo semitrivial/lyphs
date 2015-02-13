@@ -1,0 +1,190 @@
+<html>
+  <head>
+    <title>ApiNATOMY 2 API Demo (draft)</title>
+
+    <link rel='stylesheet' href='//open-physiology.org/Skeleton/stylesheets/base.css'>
+    <link rel='stylesheet' href='//open-physiology.org/Skeleton/stylesheets/skeleton.css'>
+
+    <meta charset='utf-8'>
+    <meta name='author' content='The Farr Institute'>
+    <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1'>
+    <meta name='description' content='ApiNATOMY 2 API Demo'>
+
+    <!--[if lt IE 9]>
+      <script type='text/javascript' src='http://html5shim.googlecode.com/svn/trunk/html5.js'></script>
+    <![endif]-->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type='text/javascript' src='/lyphjs/'></script>
+
+  </head>
+
+  <body>
+    <div class='container'>
+
+      <div class='sixteen columns'>
+        <h1>ApiNATOMY 2 API Demo (Draft)</h1>
+        <hr>
+      </div>
+
+      <div class='ten columns' style='overflow-x: scroll'>
+        <div class='area home_area'>
+          <h2>What would you like to do?</h2>
+          <p>
+            Choose a destination from the menu on the right.
+          </p>
+        </div>
+
+        <div class='area all_edges_area' style='display:none'>
+          <h2>View all edges</h2>
+          <div>
+            <a target='_blank' href='/all_lyphedges/'>Click Here</a> to view them in a new window.
+          </div>
+        </div>
+
+        <div class='area all_nodes_area' style='display:none'>
+          <h2>View all nodes</h2>
+          <div>
+            <a target='_blank' href='/all_lyphnodes/'>Click here</a> to view all lyphnodes in a new window</a>
+          </div>
+        </div>
+
+        <div class='area all_views_area' style='display:none'>
+          <h2>View all views</h2>
+          <div>
+            <a target='_blank' href='/all_lyphviews/'>Click here</a> to view all views in a separate window.  (A "view" is what we talked about at the last meeting with Syed: a set of nodes together with x- and y-coordintes)
+          </div>
+        </div>
+
+        <div class='area all_lyphs_area' style='display:none'>
+          <h2>View all lyphs in database</h2>
+          <button onclick="inputkey(13,'view_all_lyphs');" style='width:100%'>
+            Click here to view all lyphs in the database
+          </button>
+          <div>
+            Or <a target='_blank' href='/all_lyphs/'>Click Here</a> to view them in a new window.
+          </div>
+          <hr>
+          <div id='view_all_lyphs_result'>
+          </div>
+        </div>
+
+        <div class='area new_edge_area' style='display:none'>
+          <h2>Create new edges</h2>
+          <input style='width:100%' placeholder='From (or "new" to create new node)' id='edgefrombox'>
+          <input style='width:100%' placeholder='To (or "new" to create new node)' id='edgetobox'>
+          <input style='width:100%' placeholder='Lyph (or leave blank for no lyph)' id='edgelyphbox'>
+          <input style='width:100%' placeholder='Type (1, 2, 3, or 4)' id='edgetypebox'>
+          <input style='width:100%' placeholder='Name (or Description)' id='edgenamebox'>
+          <input style='width:100%' placeholder='FMA reference (optional)' id='edgefmabox'>
+          <button style='width:100%' onclick='inputkey(13,"new_edge")'>
+            Create new edge
+          </button>
+          <hr>
+          <div id='new_edge_results'>
+            Resulting edge will be displayed here.
+          </div>
+        </div>
+
+        <div class='area shortest_path_area' style='display:none'>
+          <h2>Shortest Path</h2>
+          <input id='frombox' style='width:100%' placeholder='From'>
+          <input id='tobox' style='width:100%' placeholder='To'>
+          <button style='width:100%' onclick='inputkey(13,"shortest_path")'>
+            Find the shortest path between the nodes indicated above
+          </button>
+          <hr>
+          <div id='shortest_path_results'>
+            Results will appear here.
+          </div>
+        </div>
+
+        <div class='area layers_area' style='display:none'>
+          <h2>Layers Viewer/Editor</h2>
+          <hr>
+
+          <div id='lyph_id'>
+            Lyph ID: N/A ("Create Lyph" to assign ID)
+          </div>
+
+          <div id='layer_controls'>
+            <input id='layer_material' placeholder='Material' onKeyUp="inputkey(event,'layer_adder');" style='width:100%'>
+            <input id='thickness' placeholder='Thickness (optional)' onKeyUp="inputkey(event,'layer_adder');" style='width:100%'>
+            <input id='color' placeholder='Color (optional)' onKeyUp="inputkey(event,'layer_adder');" style='width:100%'>
+            <button onclick="inputkey(13,'layer_adder');" style="width:100%">Add Layer</button>
+          </div>
+
+          <div id='layers'>
+            <ul id='layers_list'>
+            </ul>
+          </div>
+
+          <div id='lyphmaker_controls'>
+            <input id='lyphname' placeholder='Proposed name for new lyph' style='width:100%'>
+            <input id='lyphtype' placeholder='Lyph type (either MIX or SHELL)' style='width:100%'>
+            <button onclick="inputkey(13,'lyph_adder');" style="width:100%">Create Lyph</button>
+            <button onclick="clear_display();" style="width:100%">Restart</button>
+            <input type='hidden' style='display:none' id='display_lyph_by_id'>
+          </div>
+
+        </div>
+
+      </div>  <!-- ten columns -->
+
+      <div class='six columns'>
+
+        <div class='menu_area'>
+          <ul>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("home")'>Home</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("layers")'>Lyphs/Layers</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("all_lyphs")'>View all lyphs</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("all_edges")'>View all edges</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("all_nodes")'>View all nodes</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("all_views")'>View all views</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("shortest_path")'>Shortest Path</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("new_edge")'>Create edge</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class='area layers_area' style='display:none'>
+          <h2>Materials Palette</h2>
+          <hr>
+
+          <div id='palette_controls'>
+            <input id='material_lookup' placeholder='Lyph ID or Ontology IRI' onKeyUp="inputkey(event,'material_lookup');" style='width:100%'>
+            <button onclick="inputkey(13,'material_lookup');" style="width:100%">Add Material to Palette</button>
+          </div>
+
+          <ul id='palette_list'>
+          </ul>
+        </div>
+
+      </div>  <!-- six columns -->
+
+    </div>
+  </body>
+</html>

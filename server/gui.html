@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <title>LOLS (Local Ontology Lookup Service) GUI</title>
+
+    <link rel='stylesheet' href='//open-physiology.org/Skeleton/stylesheets/base.css'>
+    <link rel='stylesheet' href='//open-physiology.org/Skeleton/stylesheets/skeleton.css'>
+
+    <meta charset='utf-8'>
+    <meta name='author' content='The Farr Institute'>
+    <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1'>
+    <meta name='description' content='Graphical User Interface for LOLS (the Local Ontology Lookup Service)'>
+
+    <!--[if lt IE 9]>
+      <script type='text/javascript' src='http://html5shim.googlecode.com/svn/trunk/html5.js'></script>
+    <![endif]-->
+
+    <script type='text/javascript' src='/js/'></script>
+
+  </head>
+
+  <body>
+    <div class='container'>
+
+      <div class='sixteen columns'>
+        <h1>LOLS (Local Ontology Lookup Service) GUI</h1>
+        <hr>
+      </div>
+
+      <div class='six columns'>
+        <h2>Control Panel</h2>
+        <hr>
+        <p>
+          What kind of lookup do you want to perform?
+        </p>
+        <select id='pulldown' onChange='pulldownchange();' style='width:100%'>
+          <option value='label' selected='selected'>Find full IRI from label (case sensitive)</option>
+          <option value='label-shortiri'>Find short IRI from label (case sensitive)</option>
+          <option value='label-case-insensitive'>Find full IRI from label (case insensitive)</option>
+          <option value='label-shortiri-case-insensitive'>Find short IRI from label (case insensitive)</option>
+          <option value='iri'>Find label from IRI</option>
+          <option value='autocomplete'>Autocomplete (case sensitive)</option>
+          <option value='autocomplete-case-insensitive'>Autocomplete (case insensitive)</option>
+        </select>
+        <hr>
+        <input type=radio id='formatted' checked='checked' onClick='formatted_clicked();'>Formatted Results</input>
+        <input type=radio id='jsonoption' onClick='jsonoption_clicked();'>Raw Results</input>
+      </div>
+
+      <div class='ten columns'>
+        <h2>Lookup</h2>
+        <hr>
+        <input id='inputbox' onKeyUp='inputkey(event);' style='width:100%' placeholder='Enter label to look up'>
+        <div>
+          <button onclick='ajax_run();' style='width:100%'>Enter</button>
+        </div>
+
+        <h3>Results</h3>
+
+        <p id='formatted_results' style='display:block;'>
+          Results will be displayed here.
+        </p>
+
+        <p id='raw_results' style='display:none;'>
+          Results will be displayed here.
+        </p>
+      </div>
+
+    </div>
+  </body>
+</html>
