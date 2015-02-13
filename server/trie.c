@@ -451,13 +451,7 @@ void populate_void_buffer( void ***ptr, trie *t )
     (*ptr)++;
   }
 
-  if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      populate_void_buffer( ptr, *child );
-  }
+  TRIE_RECURSE( populate_void_buffer( ptr, *child ) );
 }
 
 int count_nontrivial_members( trie *t )
@@ -469,13 +463,7 @@ int count_nontrivial_members( trie *t )
   else
     cnt = 0;
 
-  if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      cnt += count_nontrivial_members( *child );
-  }
+  TRIE_RECURSE( cnt += count_nontrivial_members( *child ) );
 
   return cnt;
 }

@@ -29,6 +29,19 @@ do\
   (flags) &= ~(bit);\
 while(0)
 
+#define TRIE_RECURSE( code )\
+do\
+{\
+  if ( t->children )\
+  {\
+    trie **child;\
+    for ( child = t->children; *child; child++ )\
+    {\
+      code ;\
+    }\
+  }\
+}\
+while(0)
 
 /*
  * Link object into singly-linked list

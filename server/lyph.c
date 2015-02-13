@@ -536,13 +536,7 @@ void save_lyphedges_recurse( trie *t, FILE *fp )
     fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
   }
 
-  if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      save_lyphedges_recurse( *child, fp );
-  }
+  TRIE_RECURSE( save_lyphedges_recurse( *child, fp ) );
 }
 
 int load_lyphedges_one_line( char *line, char **err )
@@ -1033,18 +1027,13 @@ lyph *missing_layers( trie *t )
       return L;
   }
 
-  if ( t->children )
-  {
-    trie **child;
+  TRIE_RECURSE
+  (
+    lyph *L = missing_layers( *child );
 
-    for ( child = t->children; *child; child++ )
-    {
-      lyph *L = missing_layers( *child );
-
-      if ( L )
-        return L;
-    }
-  }
+    if ( L )
+      return L;
+  );
 
   return NULL;
 }
@@ -1072,15 +1061,10 @@ void handle_loaded_layers( trie *t )
     L->layers = lyrs;
   }
 
+  TRIE_RECURSE( handle_loaded_layers( *child ) );
+
   if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      handle_loaded_layers( *child );
-
     free( t->children );
-  }
 
   if ( t->label )
     free( t->label );
@@ -1150,13 +1134,7 @@ void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     free( id );
   }
 
-  if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      save_lyphs_recurse( *child, fp, avoid_dupes );
-  }
+  TRIE_RECURSE( save_lyphs_recurse( *child, fp, avoid_dupes ) );
 }
 
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes )
@@ -1244,19 +1222,13 @@ lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t )
       return L;
   }
 
-  if ( t->children )
-  {
-    trie **child;
-    lyph *L;
+  TRIE_RECURSE
+  (
+    lyph *L = lyph_by_layers_recurse( type, layers, *child );
 
-    for ( child = t->children; *child; child++ )
-    {
-      L = lyph_by_layers_recurse( type, layers, *child );
-
-      if ( L )
-        return L;
-    }
-  }
+    if ( L )
+      return L;
+  );
 
   return NULL;
 }
@@ -1361,17 +1333,12 @@ layer *layer_by_description_recurse( const lyph *L, const float thickness, const
   if ( t->data && layer_matches( (layer *)t->data, L, thickness, color ) )
       return (layer *)t->data;
 
-  if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-    {
-      layer *lyr = layer_by_description_recurse( L, thickness, color, *child );
-      if ( lyr )
-        return lyr;
-    }
-  }
+  TRIE_RECURSE
+  (
+    layer *lyr = layer_by_description_recurse( L, thickness, color, *child );
+    if ( lyr )
+      return lyr;
+  );
 
   return NULL;
 }
@@ -1630,15 +1597,10 @@ void sort_layers( layer **layers )
 
 void free_lyphdupe_trie( trie *t )
 {
+  TRIE_RECURSE( free_lyphdupe_trie( *child ) );
+
   if ( t->children )
-  {
-    trie **child;
-
-    for ( child = t->children; *child; child++ )
-      free_lyphdupe_trie( *child );
-
     free( t->children );
-  }
 
   if ( t->label )
     free( t->label );
@@ -1852,18 +1814,13 @@ lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, ly
       return e;
   }
 
-  if ( t->children )
-  {
-    trie **child;
+  TRIE_RECURSE
+  (
+    lyphedge *e = find_duplicate_lyphedge_recurse( *child, type, from, to, L, fma, name );
 
-    for ( child = t->children; *child; child++ )
-    {
-      lyphedge *e = find_duplicate_lyphedge_recurse( *child, type, from, to, L, fma, name );
-
-      if ( e )
-        return e;
-    }
-  }
+    if ( e )
+      return e;
+  );
 
   return NULL;
 }
