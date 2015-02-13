@@ -29,6 +29,9 @@ do\
   (flags) &= ~(bit);\
 while(0)
 
+/*
+ * Generic trie recursion
+ */
 #define TRIE_RECURSE( code )\
 do\
 {\
