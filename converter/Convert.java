@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.Set;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -16,6 +17,8 @@ import org.semanticweb.owlapi.util.AnnotationValueShortFormProvider;
 import org.semanticweb.owlapi.util.OWLOntologyImportsClosureSetProvider;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
 import org.semanticweb.owlapi.expression.ShortFormEntityChecker;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+
 
 public class Convert
 {
@@ -34,11 +37,11 @@ public class Convert
     File kbfile;
     OWLOntology ont;
 
-    if ( args.length != 1 )
+    if ( args.length != 2 )
     {
-      System.err.println( "Syntax: java Convert (owlfile) >(outputfile)" );
+      System.err.println( "Syntax: java Convert (owlfile) (outputfile)" );
       System.err.println( "..." );
-      System.err.println( "For example: java Convert /home/ricordo/ontology/ricordo.owl >ricordo.nt" );
+      System.err.println( "For example: java Convert /home/ricordo/ontology/ricordo.owl ricordo.nt" );
       return;
     }
 
@@ -49,9 +52,26 @@ public class Convert
     }
     catch(Exception e)
     {
-      System.out.println("Load failure");
+      System.out.println("could not open '"+args[0]+"' to read.");
+      e.printStackTrace();
       return;
     }
+
+    PrintWriter writer;
+
+    try
+    {
+      writer = new PrintWriter( args[1], "UTF-8" );
+    }
+    catch( Exception e )
+    {
+      System.out.println( "Could not open '"+args[1]+"' to write." );
+      e.printStackTrace();
+      return;
+    }
+
+    OWLReasonerFactory rf = new ElkReasonerFactory();
+    OWLReasoner r = rf.createReasoner(ont);
 
     IRI iri = manager.getOntologyDocumentIRI(ont);
 
@@ -70,10 +90,22 @@ public class Convert
         for ( OWLAnnotation a : annots )
         {
           if ( a.getValue() instanceof OWLLiteral )
-            System.out.print( cID + " <http://www.w3.org/2000/01/rdf-schema#label> \"" + escape(((OWLLiteral)a.getValue()).getLiteral().trim()) + "\" .\n" );
+            writer.print( cID + " <http://www.w3.org/2000/01/rdf-schema#label> \"" + escape(((OWLLiteral)a.getValue()).getLiteral().trim()) + "\" .\n" );
+        }
+
+        NodeSet<OWLClass> subClasses = r.getSubClasses(c, true);
+
+        for ( Node<OWLClass> subnode : subClasses )
+        {
+          OWLClass sub = subnode.getEntities().iterator().next();
+
+          if ( !sub.isOWLNothing() )
+            writer.print( sub.toString().trim() + " <http://www.w3.org/2000/01/rdf-schema#subClassOf> " + cID + " .\n" );
         }
       }
     }
+
+    writer.close();
 
     return;
   }
