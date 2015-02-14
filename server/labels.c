@@ -1,11 +1,14 @@
 #include "lyph.h"
 #include "nt_parse.h"
 
-void init_labels(void)
+void init_labels(FILE *fp)
 {
   iri_to_labels = blank_trie();
   label_to_iris = blank_trie();
   label_to_iris_lowercase = blank_trie();
+  superclasses = blank_trie();
+
+  parse_ontology_file( fp );
 
   lyph_names = blank_trie();
   lyph_ids = blank_trie();
@@ -14,8 +17,6 @@ void init_labels(void)
   lyphedge_ids = blank_trie();
   lyphedge_names = blank_trie();
   lyphedge_fmas = blank_trie();
-
-  superclasses = blank_trie();
 
   init_html_codes();
 
@@ -56,7 +57,7 @@ void got_triple( char *subj, char *pred, char *obj )
   free( obj );
 }
 
-void parse_labels_file(FILE *fp)
+void parse_ontology_file(FILE *fp)
 {
   char *err = NULL;
 

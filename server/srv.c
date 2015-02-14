@@ -39,12 +39,10 @@ int main( int argc, const char* argv[] )
     return 0;
   }
 
-  init_labels();
-  init_lyph_http_server(port);
-
-  parse_labels_file(fp);
-
+  init_labels(fp);
   fclose(fp);
+
+  init_lyph_http_server(port);
 
   printf( "Ready.\n" );
 

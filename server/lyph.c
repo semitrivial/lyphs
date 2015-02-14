@@ -12,6 +12,13 @@ lyphedge *find_duplicate_lyphedge( int type, lyphnode *from, lyphnode *to, lyph 
 lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyph *L, trie *fma, trie *name );
 void maybe_update_top_id( int *top, char *idstr );
 trie *new_lyphnode_id(lyphnode *n);
+void add_lyph_to_wrappers( lyph *L, lyphs_wrapper **head, lyphs_wrapper **tail );
+void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail );
+void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail );
+void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail );
+void compute_lyph_hierarchy_one_lyph( lyph *L );
+int is_superlayer( layer *sup, layer *sub );
+lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
 
 int top_layer_id;
 int top_lyph_id;
@@ -813,6 +820,8 @@ void got_lyph_triple( char *subj, char *pred, char *obj )
     load_lyph_label( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#lyph_type" ) )
     load_lyph_type( s, o );
+  else if ( !strcmp( p, "http://open-physiology.org/lyph#ont_term" ) )
+    load_ont_term( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_layers" ) )
     acknowledge_has_layers( s, o );
   else if ( str_begins( p, "http://www.w3.org/1999/02/22-rdf-syntax-ns#_" ) )
@@ -827,6 +836,28 @@ void got_lyph_triple( char *subj, char *pred, char *obj )
   free( subj );
   free( pred );
   free( obj );
+}
+
+void load_ont_term( char *subj_full, char *ont_term_str )
+{
+  char *subj = get_url_shortform( subj_full );
+  trie *ont_term = trie_search( ont_term_str, superclasses );
+  trie *iri;
+
+  if ( !ont_term )
+  {
+    char *errmsg = strdupf( "Could not find ont_term: %s\n", ont_term_str );
+    log_string( errmsg );
+    free( errmsg );
+    return;
+  }
+
+  iri = trie_search( subj, lyph_ids );
+
+  if ( !iri )
+    return;
+
+  ((lyph*)iri->data)->ont_term = ont_term;
 }
 
 void load_lyph_type( char *subj_full, char *type_str )
@@ -861,6 +892,9 @@ void load_lyph_label( char *subj_full, char *label )
       L->id = iri;
       L->type = LYPH_MISSING;
       L->layers = NULL;
+      L->supers = NULL;
+      L->subs = NULL;
+      L->ont_term = NULL;
       iri->data = (void *)L;
     }
     else
@@ -1119,6 +1153,9 @@ void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes )
 
     fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyph_type_as_char( L ) );
 
+    if ( L->ont_term )
+      fprintf( fp, "%s <http://open-physiology.org/lyph#ont_term> \"%s\" .\n", id, trie_to_static(L->ont_term) );
+
     if ( L->type == LYPH_SHELL || L->type == LYPH_MIX )
     {
       layer **lyrs;
@@ -1205,6 +1242,10 @@ lyph *lyph_by_layers( int type, layer **layers, char *name )
     L->id = assign_new_lyph_id( L );
     L->type = type;
     L->layers = copy_layers( layers );
+    L->ont_term = NULL;
+    /*
+     * To do: compute L->supers and L->subs
+     */
 
     save_lyphs();
   }
@@ -1370,19 +1411,28 @@ lyph *lyph_by_id( char *id )
   if ( t && t->data )
     return (lyph *) t->data;
 
-  t = trie_search( id, iri_to_labels );
+  t = trie_search( id, superclasses );
 
   if ( t && t->data )
   {
     lyph *L;
-    char *sht = get_url_shortform( id );
+    trie *label;
+
+    if ( (L = lyph_by_ont_term( t )) != NULL )
+      return L;
+
+    label = trie_search( id, iri_to_labels );
 
     CREATE( L, lyph, 1 );
 
     L->type = LYPH_BASIC;
-    L->id = trie_strdup( (sht ? sht : id), lyph_ids );
-    L->name = trie_strdup( trie_to_static( *t->data ), lyph_names );
+    L->id = assign_new_lyph_id( L );
+    L->ont_term = t;
+    L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyph_names );
     L->layers = NULL;
+    /*
+     * To do: compute L->supers and L->subs
+     */
 
     L->id->data = (trie **)L;
     L->name->data = (trie **)L;
@@ -1831,4 +1881,203 @@ void maybe_update_top_id( int *top, char *idstr )
 
   if ( id > *top )
     *top = id;
+}
+
+void compute_lyph_hierarchy( trie *t )
+{
+  if ( t->data )
+  {
+    lyph *L = (lyph *)t->data;
+
+    if ( !L->supers )
+    {
+      compute_lyph_hierarchy_one_lyph( L );
+      TRIE_RECURSE( compute_lyph_hierarchy( *child ) );
+    }
+  }
+  else
+    TRIE_RECURSE( compute_lyph_hierarchy( *child ) );
+}
+
+#define PARENT_ADDED 1
+
+/*
+ * To do: Optimize this
+ */
+void compute_lyph_hierarchy_one_lyph( lyph *L )
+{
+  lyphs_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyph **parent, **supers, **sptr, avoid_dupes;
+  int cnt = 0;
+
+  if ( L->ont_term )
+    add_ont_term_parents( L->ont_term, &head, &tail );
+
+  if ( L->layers && *L->layers )
+  {
+    layer **lyr;
+
+    for ( lyr = L->layers; *lyr; lyr++ )
+    {
+      if ( !(*lyr)->material->supers )
+        compute_lyph_hierarchy_one_lyph( (*lyr)->material );
+    }
+
+    add_supers_by_layers( lyph_ids, L, &head, &tail );
+  }
+
+  for ( w = head; w; w = w->next )
+  for ( parent = w->L; *parent; parent++ )
+  {
+    if ( !IS_SET( (*parent)->flags, PARENT_ADDED ) )
+    {
+      SET_BIT( (*parent)->flags, PARENT_ADDED );
+      cnt++;
+    }
+    else
+      *parent = &avoid_dupes;
+  }
+
+  CREATE( supers, lyph *, cnt + 1 );
+  sptr = supers;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+
+    for ( parent = w->L; *parent; parent++ )
+    {
+      if ( *parent == &avoid_dupes )
+        continue;
+
+      *sptr++ = *parent;
+      REMOVE_BIT( (*parent)->flags, PARENT_ADDED );
+    }
+
+    free( w->L );
+    free( w );
+  }
+
+  *sptr = NULL;
+  L->supers = sptr;
+}
+
+void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail )
+{
+  if ( t->data )
+  {
+    lyph *L = (lyph *)t->data;
+
+    if ( L->layers && !*L->layers )
+    {
+      layer **Llyr, **slyr;
+
+      for ( Llyr = L->layers, slyr = sub->layers; *Llyr; Llyr++ )
+      {
+        if ( !*slyr || !is_superlayer( *Llyr, *slyr ) )
+          goto add_supers_by_layers_escape;
+        slyr++;
+      }
+
+      if ( *slyr )
+        goto add_supers_by_layers_escape;
+
+      add_lyph_to_wrappers( L, head, tail );
+
+      if ( !L->supers )
+        compute_lyph_hierarchy_one_lyph( L );
+
+      if ( *L->supers )
+        add_lyphs_to_wrappers( L->supers, head, tail );
+    }
+  }
+
+  add_supers_by_layers_escape:
+  TRIE_RECURSE( add_supers_by_layers( *child, sub, head, tail ) );
+}
+
+void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail )
+{
+  trie **parent;
+
+  for ( parent = t->data; *parent; parent++ )
+  {
+    lyph *L = lyph_by_ont_term( *parent );
+
+    if ( L )
+    {
+      add_lyph_to_wrappers( L, head, tail );
+
+      if ( !L->supers )
+        compute_lyph_hierarchy_one_lyph( L );
+
+      if ( *L->supers )
+        add_lyphs_to_wrappers( L->supers, head, tail );
+
+      add_ont_term_parents( *parent, head, tail );
+    }
+  }
+}
+
+void add_lyph_to_wrappers( lyph *L, lyphs_wrapper **head, lyphs_wrapper **tail )
+{
+  lyphs_wrapper *w;
+
+  CREATE( w, lyphs_wrapper, 1 );
+  CREATE( w->L, lyph *, 2 );
+  w->L[0] = L;
+  w->L[1] = NULL;
+
+  LINK( w, *head, *tail, next );
+}
+
+void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail )
+{
+  lyphs_wrapper *w;
+  int len = voidlen( (void **)L );
+
+  CREATE( w, lyphs_wrapper, 1 );
+  CREATE( w->L, lyph *, len + 1 );
+  memcpy( w->L, L, sizeof(lyph*) * (len+1) );
+
+  LINK( w, *head, *tail, next );
+}
+
+int is_superlayer( layer *sup, layer *sub )
+{
+  lyph *sup_lyph = sup->material, *sub_lyph = sub->material, **supers;
+
+  for ( supers = sub_lyph->supers; *supers; supers++ )
+    if ( *supers == sup_lyph )
+      return 1;
+
+  return 0;
+}
+
+/*
+ * To do: optimize this
+ */
+lyph *lyph_by_ont_term( trie *term )
+{
+  return lyph_by_ont_term_recurse( term, lyph_ids );
+}
+
+lyph *lyph_by_ont_term_recurse( trie *term, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *L = (lyph *)t->data;
+    if ( L->ont_term == term )
+      return L;
+  }
+
+  TRIE_RECURSE
+  (
+    lyph *L = lyph_by_ont_term_recurse( term, *child );
+
+    if ( L )
+      return L;
+  );
+
+  return NULL;
 }

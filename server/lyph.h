@@ -33,6 +33,7 @@ typedef struct LYPHEDGE lyphedge;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
+typedef struct LYPHS_WRAPPER lyphs_wrapper;
 
 /*
  * Structures
@@ -81,14 +82,22 @@ struct LYPH
   trie *id;
   int type;
   layer **layers;
-  lyph **direct_supers;
-  lyph **direct_subs;
+  lyph **supers;
+  lyph **subs;
+  trie *ont_term;
+  int flags;
 };
 
 typedef enum
 {
   LYPH_BASIC, LYPH_SHELL, LYPH_MIX, LYPH_MISSING
 } lyph_types;
+
+struct LYPHS_WRAPPER
+{
+  lyphs_wrapper *next;
+  lyph **L;
+};
 
 struct LAYER
 {
@@ -198,8 +207,8 @@ extern trie *superclasses;
 /*
  * labels.c
  */
-void init_labels(void);
-void parse_labels_file(FILE *fp);
+void init_labels(FILE *fp);
+void parse_ontology_file(FILE *fp);
 void add_labels_entry( char *iri_ch, char *label_ch );
 void add_subclass_entry( char *child_ch, char *parent_ch );
 trie **get_labels_by_iri( char *iri_ch );
@@ -314,3 +323,6 @@ lyphview *search_duplicate_view( lyphnode **nodes, char **coords );
 lyphview *create_new_view( lyphnode **nodes, char **coords );
 lyphedge *make_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, char *fmastr, char *namestr );
 lyphnode *make_lyphnode( void );
+void compute_lyph_hierarchy( trie *t );
+lyph *lyph_by_ont_term( trie *term );
+void load_ont_term( char *subj_full, char *ont_term_str );
