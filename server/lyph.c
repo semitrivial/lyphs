@@ -1480,6 +1480,7 @@ char *lyph_to_json( lyph *L )
     "id": trie_to_json( L->id ),
     "name": trie_to_json( L->name ),
     "type": lyph_type_as_char( L ),
+    "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
     "layers": JS_ARRAY( layer_to_json, L->layers )
   );
 }
