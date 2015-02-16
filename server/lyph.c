@@ -14,6 +14,7 @@ void maybe_update_top_id( int *top, char *idstr );
 trie *new_lyphnode_id(lyphnode *n);
 lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
 void lyphs_unset_bit( int bit, trie *t );
+lyph **parse_lyphedge_constraints( char *str );
 
 int top_layer_id;
 int top_lyph_id;
@@ -535,6 +536,9 @@ void save_lyphedges_recurse( trie *t, FILE *fp )
     if ( e->lyph )
       fprintf( fp, "lyph:%s ", trie_to_static( e->lyph->id ) );
 
+    if ( *e->constraints )
+      fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
+
     fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
   }
 
@@ -583,6 +587,9 @@ int load_lyphedges_one_line( char *line, char **err )
     etr->data = (trie **)e;
 
     maybe_update_top_id( &top_lyphedge_id, edgeidbuf );
+
+    CREATE( e->constraints, lyph *, 1 );
+    *e->constraints = NULL;
   }
   else
     e = (lyphedge *)etr->data;
@@ -642,37 +649,47 @@ int load_lyphedges_one_line( char *line, char **err )
   return 1;
 }
 
+int parse_name_preamble( char **name, char *needle, char **dest )
+{
+  char *ptr;
+
+  if ( !str_begins( *name, needle ) )
+    return 0;
+
+  *name += strlen(needle);
+
+  for ( ptr = *name; *ptr; ptr++ )
+    if ( *ptr == ' ' )
+      break;
+
+  if ( !*ptr )
+  {
+    log_stringf( "Expected ' ' after %s", needle );
+    return 0;
+  }
+
+  *ptr = '\0';
+  *dest = *name;
+  *name = &ptr[1];
+  return 1;
+}
+
 trie *parse_lyphedge_name_field( char *namebuf, lyphedge *e )
 {
-  if ( str_begins( namebuf, "lyph:" ) )
+  char *preamble;
+
+  if ( parse_name_preamble( &namebuf, "lyph:", &preamble ) )
   {
-    char *ptr;
-    int fSpace = 0;
+    lyph *L = lyph_by_id( preamble );
 
-    namebuf = &namebuf[strlen("lyph:")];
-
-    for ( ptr = namebuf; *ptr; ptr++ )
-    {
-      if ( *ptr == ' ' )
-      {
-        lyph *L;
-
-        *ptr = '\0';
-        L = lyph_by_id( namebuf );
-
-        if ( !L )
-          return NULL;
-
-        e->lyph = L;
-        namebuf = &ptr[1];
-        fSpace = 1;
-        break;
-      }
-    }
-
-    if ( !fSpace )
+    if ( !L )
       return NULL;
+
+    e->lyph = L;
   }
+
+  if ( parse_name_preamble( &namebuf, "constraints:", &preamble ) )
+    e->constraints = parse_lyphedge_constraints( preamble );
 
   if ( !strcmp( namebuf, "(noname)" ) )
     return NULL;
@@ -1563,7 +1580,8 @@ char *lyphedge_to_json( lyphedge *e )
     "type": int_to_json( e->type ),
     "from": lyphnode_to_json( e->from ),
     "to": lyphnode_to_json( e->to ),
-    "lyph": e->lyph ? lyph_to_json( e->lyph ) : NULL
+    "lyph": e->lyph ? lyph_to_json( e->lyph ) : NULL,
+    "constraints": JS_ARRAY( lyph_to_shallow_json, e->constraints )
   );
 
   lyphnode_to_json_flags = old_LTJ_flags;
@@ -1809,6 +1827,9 @@ lyphedge *make_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, char *
   e->lyph = L;
   e->fma = fma;
 
+  CREATE( e->constraints, lyph *, 1 );
+  *e->constraints = NULL;
+
   add_exit( e, from );
 
   save_lyphedges();
@@ -1920,4 +1941,59 @@ lyph *lyph_by_ont_term_recurse( trie *term, trie *t )
   );
 
   return NULL;
+}
+
+lyph **parse_lyphedge_constraints( char *str )
+{
+  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyph *L, **buf, **bptr;
+  char *ptr, *left = str;
+  int fEnd = 0, cnt = 0;
+
+  for ( ptr = str; ; ptr++ )
+  {
+    switch ( *ptr )
+    {
+      case '\0':
+        fEnd = 1;
+      case ',':
+        *ptr = '\0';
+        L = lyph_by_id( left );
+
+        if ( !L )
+          log_stringf( "Unrecognized lyph (%s) while parsing lyph constraints", left );
+        else
+        {
+          CREATE( w, lyph_wrapper, 1 );
+          w->L = L;
+          LINK( w, head, tail, next );
+          cnt++;
+        }
+
+        if ( fEnd )
+          goto parse_lyphedge_constraints_escape;
+
+        left = &ptr[1];
+        break;
+
+      default:
+        continue;
+    }
+  }
+
+  parse_lyphedge_constraints_escape:
+
+  CREATE( buf, lyph *, cnt + 1 );
+  bptr = buf;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+    *bptr++ = w->L;
+    free( w );
+  }
+
+  *bptr = NULL;
+
+  return buf;
 }

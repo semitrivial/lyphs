@@ -13,6 +13,20 @@ void log_string( char *txt )
     printf( "%s\n", txt );
 }
 
+void log_stringf( char *fmt, ... )
+{
+  char *buf;
+  va_list args;
+
+  va_start( args, fmt );
+  buf = vstrdupf( fmt, args );
+  va_end( args );
+
+  log_string( buf );
+
+  free( buf );
+}
+
 void log_linenum( int linenum )
 {
     printf( "(Line %d)\n", linenum );
@@ -240,4 +254,43 @@ size_t voidlen( void **x )
     ;
 
   return ptr - x;
+}
+
+char *constraints_comma_list( lyph **constraints )
+{
+  lyph **ptr;
+  static char *buf;
+  char **ids, **iptr, *bptr;
+  int len;
+
+  if ( buf )
+    free( buf );
+
+  CREATE( ids, char *, voidlen((void**)constraints) + 1 );
+  iptr = ids;
+
+  for ( ptr = constraints; *ptr; ptr++ )
+  {
+    *iptr = strdup( trie_to_static( (*ptr)->id ) );
+    len += strlen( *iptr ) + strlen(",");
+    iptr++;
+  }
+
+  *iptr = NULL;
+
+  CREATE( buf, char, len+1 );
+  bptr = buf;
+
+  for ( iptr = ids; *iptr; iptr++ )
+  {
+    if ( iptr != ids )
+      *bptr++ = ',';
+
+    strcpy( bptr, *iptr );
+    bptr += strlen(bptr);
+  }
+
+  *bptr = '\0';
+
+  return buf;
 }

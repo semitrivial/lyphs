@@ -151,6 +151,7 @@ struct LYPHEDGE
   lyphnode *from;
   lyphnode *to;
   lyph *lyph;
+  lyph **constraints;
   trie *fma;
 };
 
@@ -252,6 +253,7 @@ int count_nontrivial_members( trie *t );
  * util.c
  */
 void log_string( char *txt );
+void log_stringf( char *fmt, ... );
 void log_linenum( int linenum );
 char *html_encode( char *str );
 void init_html_codes( void );
@@ -265,6 +267,7 @@ char *strdupf( const char *fmt, ... );
 char *jsonf( int paircnt, ... );;
 void json_gc( void );
 size_t voidlen( void **x );
+char *constraints_comma_list( lyph **constraints );
 
 /*
  * ucl.c
