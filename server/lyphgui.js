@@ -57,6 +57,20 @@ function ajax_run(inputbox)
     if ( color != '' )
       query = query + '&color=' + encodeURIComponent( color );
   }
+  else if ( inputbox === 'assign_lyph' )
+  {
+    var assign_lyph_lyph = g('assign_lyph_lyph').value.trim();
+    var assign_lyph_edge = g('assign_lyph_edge').value.trim();
+
+    if ( assign_lyph_lyph === "" || assign_lyph_edge === "" )
+      return;
+
+    query = '/assignlyph/?edge='+encodeURIComponent(assign_lyph_edge);
+    query+= '&lyph='+encodeURIComponent(assign_lyph_lyph);
+
+    handle_parsed_data = assign_lyph_response_handler;
+    g('assign_lyph_response_div').innerHTML = "";
+  }
   else if ( inputbox === 'lyph_adder' )
   {
     var proposedname = g('lyphname').value.trim();
@@ -200,6 +214,14 @@ function material_to_palette( x )
 
   palette_ids[i] = id;
   g('palette_list').innerHTML = palette;
+}
+
+function assign_lyph_response_handler( x )
+{
+  if ( x.hasOwnProperty( "Error" ) )
+    g('assign_lyph_response_div').innerHTML = "Error:" + x.Error;
+  else
+    g('assign_lyph_response_div').innerHTML = "OK.";
 }
 
 function add_layer( x )

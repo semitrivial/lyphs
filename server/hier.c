@@ -272,7 +272,7 @@ char *lyph_hierarchy_to_json( void )
 
   lyphs_unset_bit( FOUND_IN_HIERARCHY, lyph_ids );
 
-  return retval;
+  return JSON1( "levels": retval );
 }
 
 char *hierarchy_member_to_json( lyph *L )

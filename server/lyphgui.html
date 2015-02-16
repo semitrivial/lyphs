@@ -35,6 +35,13 @@
           </p>
         </div>
 
+        <div class='area lyph_hierarchy_area' style='display:none'>
+          <h2>View lyph hierarchy</h2>
+          <div>
+            <a target='_blank' href='/lyph_hierarchy/'>Click Here</a> to view the lyph hierarchy in a new window.
+          </div>
+        </div>
+
         <div class='area all_edges_area' style='display:none'>
           <h2>View all edges</h2>
           <div>
@@ -66,6 +73,18 @@
           </div>
           <hr>
           <div id='view_all_lyphs_result'>
+          </div>
+        </div>
+
+        <div class='area assign_lyph_area' style='display:none'>
+          <h2>Assign lyph to edge</h2>
+          <input style='width:100%' placeholder='Edge ID' id='assign_lyph_edge'>
+          <input style='width:100%' placeholder='Lyph ID' id='assign_lyph_lyph'>
+          <button style='width:100%' onclick='inputkey(13,"assign_lyph")'>
+            Assign lyph to edge
+          </button>
+          <hr>
+          <div id='assign_lyph_response_div'>
           </div>
         </div>
 
@@ -166,6 +185,14 @@
             <li>
               &raquo;
               <a href='javascript:void(0)' onclick='menuclick("new_edge")'>Create edge</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("lyph_hierarchy")'>Lyph hierarchy</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("assign_lyph")'>Assign lyph to edge</a>
             </li>
           </ul>
         </div>

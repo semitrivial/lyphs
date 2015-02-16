@@ -230,6 +230,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "assignlyph" ) )
+      {
+        handle_assignlyph_request( req, params );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       if ( !strcmp( reqtype, "makelyph" ) )
       {
         handle_makelyph_request( req, params );
@@ -1162,6 +1170,39 @@ void handle_makelayer_request( http_request *req, url_param **params )
     HND_ERR( "Invalid material id specified for layer" );
 
   send_200_response( req, layer_to_json( lyr ) );
+}
+
+void handle_assignlyph_request( http_request *req, url_param **params )
+{
+  lyphedge *e;
+  lyph *L;
+  char *edgeid, *lyphid;
+
+  edgeid = get_url_param( params, "edge" );
+
+  if ( !edgeid )
+    HND_ERR( "You did not specify an edge." );
+
+  e = lyphedge_by_id( edgeid );
+
+  if ( !e )
+    HND_ERR( "The database has no edge with that ID." );
+
+  lyphid = get_url_param( params, "lyph" );
+
+  if ( !lyphid )
+    HND_ERR( "You did not specify a lyph." );
+
+  L = lyph_by_id( lyphid );
+
+  if ( !L )
+    HND_ERR( "The database has no edge with that ID." );
+
+  e->lyph = L;
+
+  save_lyphedges();
+
+  send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
 void handle_makelyph_request( http_request *req, url_param **params )
