@@ -279,6 +279,12 @@ void free_ambigs( ambig *head );
 char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible_error );
 
 /*
+ * hier.c
+ */
+void compute_lyph_hierarchy_one_lyph( lyph *L );
+void add_lyph_as_super( lyph *sup, trie *t );
+
+/*
  * lyph.c
  */
 lyph *lyph_by_name( char *name );
@@ -341,3 +347,4 @@ void compute_lyph_hierarchy( trie *t );
 lyph *lyph_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyph_hierarchy_to_json( void );
+void lyphs_unset_bit( int bit, trie *t );
