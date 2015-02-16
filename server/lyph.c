@@ -1997,3 +1997,19 @@ lyph **parse_lyphedge_constraints( char *str )
 
   return buf;
 }
+
+int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err )
+{
+  lyph **c;
+
+  for ( c = e->constraints; *c; c++ )
+  {
+    if ( !is_superlyph( *c, L ) )
+    {
+      *err = strdupf( "That edge is constrained to have lyph a sublyph of %s", trie_to_static( (*c)->id ) );
+      return 0;
+    }
+  }
+
+  return 1;
+}

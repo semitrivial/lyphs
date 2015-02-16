@@ -261,7 +261,7 @@ char *constraints_comma_list( lyph **constraints )
   lyph **ptr;
   static char *buf;
   char **ids, **iptr, *bptr;
-  int len;
+  int len = 0;
 
   if ( buf )
     free( buf );

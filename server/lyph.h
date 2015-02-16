@@ -286,6 +286,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
  */
 void compute_lyph_hierarchy_one_lyph( lyph *L );
 void add_lyph_as_super( lyph *sup, trie *t );
+int is_superlyph( lyph *sup, lyph *sub );
 
 /*
  * lyph.c
@@ -351,3 +352,4 @@ lyph *lyph_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyph_hierarchy_to_json( void );
 void lyphs_unset_bit( int bit, trie *t );
+int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err );

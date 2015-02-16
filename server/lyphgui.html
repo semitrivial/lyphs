@@ -76,6 +76,22 @@
           </div>
         </div>
 
+        <div class='area edge_constrain_area' style='display:none'>
+          <h2>Constrain edge with lyph</h2>
+          <input style='width:100%' placeholder='Edge ID' id='edge_constrain_edge'>
+          <input style='width:100%' placeholder='Lyph ID' id='edge_constrain_lyph'>
+          <button style='width:100%' onclick='inputkey(13,"edge_constrain")'>
+            Constrain edge by lyph
+          </button>
+          <blockquote>
+            Explanation:  This will prevent the edge from being assigned a lyph
+            that is not a sublyph of the indicated constraint lyph.
+          </blockquote>
+          <hr>
+          <div id='edge_constrain_response_div'>
+          </div>
+        </div>
+
         <div class='area assign_lyph_area' style='display:none'>
           <h2>Assign lyph to edge</h2>
           <input style='width:100%' placeholder='Edge ID' id='assign_lyph_edge'>
@@ -193,6 +209,10 @@
             <li>
               &raquo;
               <a href='javascript:void(0)' onclick='menuclick("assign_lyph")'>Assign lyph to edge</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("edge_constrain")'>Constrain an edge</a>
             </li>
           </ul>
         </div>

@@ -238,6 +238,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "edgeconstrain" ) )
+      {
+        handle_edgeconstrain_request( req, params );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       if ( !strcmp( reqtype, "makelyph" ) )
       {
         handle_makelyph_request( req, params );
@@ -1172,11 +1180,57 @@ void handle_makelayer_request( http_request *req, url_param **params )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
+void handle_edgeconstrain_request( http_request *req, url_param **params )
+{
+  lyphedge *e;
+  lyph *L, **c;
+  char *edgeid, *lyphid;
+  int cnt;
+
+  edgeid = get_url_param( params, "edge" );
+  lyphid = get_url_param( params, "lyph" );
+
+  if ( !edgeid )
+    HND_ERR( "You did not specify an edge." );
+
+  if ( !lyphid )
+    HND_ERR( "You did not specify a lyph." );
+
+  e = lyphedge_by_id( edgeid );
+
+  if ( !e )
+    HND_ERR( "The database does not contain an edge with that ID." );
+
+  L = lyph_by_id( lyphid );
+
+  if ( !L )
+    HND_ERR( "The database does not contain a lyph with that ID." );
+
+  for ( c = e->constraints; *c; c++ )
+    if ( *c == L )
+      HND_ERR( "The edge in question already has the constraint in question." );
+
+  cnt = voidlen( (void**)e->constraints );
+  CREATE( c, lyph *, cnt + 2 );
+
+  memcpy( c, e->constraints, cnt * sizeof(lyph*) );
+
+  c[cnt] = L;
+  c[cnt+1] = NULL;
+
+  free( e->constraints );
+  e->constraints = c;
+
+  save_lyphedges();
+
+  send_200_response( req, JSON1( "Response": "OK" ) );
+}
+
 void handle_assignlyph_request( http_request *req, url_param **params )
 {
   lyphedge *e;
   lyph *L;
-  char *edgeid, *lyphid;
+  char *edgeid, *lyphid, *err;
 
   edgeid = get_url_param( params, "edge" );
 
@@ -1197,6 +1251,19 @@ void handle_assignlyph_request( http_request *req, url_param **params )
 
   if ( !L )
     HND_ERR( "The database has no edge with that ID." );
+
+  if ( !can_assign_lyph_to_edge( L, e, &err ) )
+  {
+    if ( err )
+    {
+      HND_ERR( err );
+      free( err );
+    }
+    else
+      HND_ERR( "That lyph cannot be assigned to that edge." );
+
+    return;
+  }
 
   e->lyph = L;
 

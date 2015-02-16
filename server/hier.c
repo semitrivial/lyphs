@@ -340,3 +340,16 @@ void add_lyph_as_super( lyph *sup, trie *t )
   TRIE_RECURSE( add_lyph_as_super( sup, *child ) );
 }
 
+int is_superlyph( lyph *sup, lyph *sub )
+{
+  lyph **supers;
+
+  if ( sup == sub )
+    return 1;
+
+  for ( supers = sub->supers; *supers; supers++ )
+    if ( *supers == sup )
+      return 1;
+
+  return 0;
+}
