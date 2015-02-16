@@ -222,6 +222,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "lyph_hierarchy" ) )
+      {
+        handle_lyph_hierarchy_request( req );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       if ( !strcmp( reqtype, "makelyph" ) )
       {
         handle_makelyph_request( req, params );
@@ -1207,7 +1215,7 @@ void handle_makelyph_request( http_request *req, url_param **params )
     {
       char *errmsg = malloc( strlen(lyrid) + 256 );
 
-      sprintf( errmsg, "{\"Error\": \"No layer with id '%s'\"}", lyrid );
+      sprintf( errmsg, "No layer with id '%s'", lyrid );
       HND_ERR_NORETURN( errmsg );
 
       free( errmsg );
@@ -1401,6 +1409,11 @@ void handle_all_lyphs_request( http_request *req )
   send_200_response( req, JS_ARRAY( lyph_to_json, lyphs ) );
 
   free( lyphs );
+}
+
+void handle_lyph_hierarchy_request( http_request *req )
+{
+  send_200_response( req, lyph_hierarchy_to_json() );
 }
 
 void handle_all_lyphviews_request( http_request *req )

@@ -623,7 +623,7 @@ char *json_enquote( const char *str )
 
 char *json_array_worker( char * (*fnc) (void *), void **array )
 {
-  char **results, **rptr, *buf, *bptr;
+  char **results, **rptr, *buf, *bptr, *retval;
   void **ptr;
   int cnt, len;
 
@@ -679,7 +679,15 @@ char *json_array_worker( char * (*fnc) (void *), void **array )
   bptr[0] = ']';
   bptr[1] = '\0';
 
-  return prep_for_json_gc(buf);
+  retval = json_format( buf, 2, NULL );
+
+  if ( retval )
+  {
+    free( buf );
+    return retval;
+  }
+  else
+    return prep_for_json_gc(buf);
 }
 
 char *str_to_json( char *x )

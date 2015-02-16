@@ -19,7 +19,7 @@
 /*
  * Typedefs
  */
-typedef char * (*json_array_printer) (void *what, void *how);
+typedef struct STR_WRAPPER str_wrapper;
 typedef struct TRIE trie;
 typedef struct TRIE_WRAPPER trie_wrapper;
 typedef struct UCL_SYNTAX ucl_syntax;
@@ -33,11 +33,19 @@ typedef struct LYPHEDGE lyphedge;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
+typedef struct LYPH_WRAPPER lyph_wrapper;
 typedef struct LYPHS_WRAPPER lyphs_wrapper;
 
 /*
  * Structures
  */
+struct STR_WRAPPER
+{
+  str_wrapper *next;
+  str_wrapper *prev;
+  char *str;
+};
+
 struct TRIE
 {
   trie *parent;
@@ -92,6 +100,12 @@ typedef enum
 {
   LYPH_BASIC, LYPH_SHELL, LYPH_MIX, LYPH_MISSING
 } lyph_types;
+
+struct LYPH_WRAPPER
+{
+  lyph_wrapper *next;
+  lyph *L;
+};
 
 struct LYPHS_WRAPPER
 {
@@ -249,7 +263,6 @@ void error_message( char *err );
 char *pretty_free( char *json );
 char *strdupf( const char *fmt, ... );
 char *jsonf( int paircnt, ... );;
-char *jslist_r( json_array_printer *p, void **array, void *param );
 void json_gc( void );
 size_t voidlen( void **x );
 
@@ -271,6 +284,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
 lyph *lyph_by_name( char *name );
 lyph *lyph_by_id( char *id );
 char *lyph_to_json( lyph *L );
+char *lyph_to_shallow_json( lyph *L );
 char *layer_to_json( layer *lyr );
 lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json( lyphnode *n );
@@ -326,3 +340,4 @@ lyphnode *make_lyphnode( void );
 void compute_lyph_hierarchy( trie *t );
 lyph *lyph_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
+char *lyph_hierarchy_to_json( void );
