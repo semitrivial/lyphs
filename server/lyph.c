@@ -1923,7 +1923,6 @@ void compute_lyph_hierarchy_one_lyph( lyph *L )
       if ( !(*lyr)->material->supers )
         compute_lyph_hierarchy_one_lyph( (*lyr)->material );
     }
-
     add_supers_by_layers( lyph_ids, L, &head, &tail );
   }
 
@@ -1960,7 +1959,7 @@ void compute_lyph_hierarchy_one_lyph( lyph *L )
   }
 
   *sptr = NULL;
-  L->supers = sptr;
+  L->supers = supers;
 }
 
 void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail )
@@ -1969,7 +1968,13 @@ void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapp
   {
     lyph *L = (lyph *)t->data;
 
-    if ( L->layers && !*L->layers )
+    if ( L == sub )
+      goto add_supers_by_layers_escape;
+
+    if ( L->type != sub->type )
+      goto add_supers_by_layers_escape;
+
+    if ( L->layers && *L->layers )
     {
       layer **Llyr, **slyr;
 
@@ -2047,6 +2052,9 @@ void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail
 int is_superlayer( layer *sup, layer *sub )
 {
   lyph *sup_lyph = sup->material, *sub_lyph = sub->material, **supers;
+
+  if ( sup == sub )
+    return 1;
 
   for ( supers = sub_lyph->supers; *supers; supers++ )
     if ( *supers == sup_lyph )

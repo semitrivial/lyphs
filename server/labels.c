@@ -24,6 +24,8 @@ void init_labels(FILE *fp)
   load_lyphedges();
   load_lyphviews();
 
+  compute_lyph_hierarchy( lyph_ids );
+
   return;
 }
 
@@ -119,6 +121,7 @@ void add_labels_entry( char *iri_ch, char *label_ch )
   trie *iri = trie_strdup(iri_ch, iri_to_labels);
   trie *label = trie_strdup(label_ch, label_to_iris);
   trie *label_lowercase;
+  trie *in_superclasses;
 
   add_to_data( &iri->data, label );
   add_to_data( &label->data, iri );
@@ -127,6 +130,13 @@ void add_labels_entry( char *iri_ch, char *label_ch )
   {
     trie *iri_shortform = trie_strdup( iri_shortform_ch, iri_to_labels );
     add_to_data( &iri_shortform->data, label );
+
+    in_superclasses = trie_strdup( iri_shortform_ch, superclasses );
+    if ( !in_superclasses->data )
+    {
+      CREATE( in_superclasses->data, trie *, 1 );
+      in_superclasses->data[0] = NULL;
+    }
   }
 
   label_lowercase_ch = lowercaserize(label_ch);
