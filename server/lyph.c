@@ -840,8 +840,6 @@ void got_lyph_triple( char *subj, char *pred, char *obj )
     load_layer_to_lld( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_material" ) )
     load_layer_material( s, o );
-  else if ( !strcmp( p, "http://open-physiology.org/lyph#has_color" ) )
-    load_layer_color( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_thickness" ) )
     load_layer_thickness( s, o );
 
@@ -963,7 +961,6 @@ void load_layer_to_lld( char *bnode, char *obj_full )
     CREATE( lyr, layer, 1 );
     lyr->id = trie_strdup( obj, layer_ids );
     lyr->id->data = (trie **)lyr;
-    lyr->color = NULL;
     lyr->thickness = -1;
     maybe_update_top_id( &top_layer_id, obj + strlen( "LAYER_" ) );
   }
@@ -993,25 +990,6 @@ void load_layer_material( char *subj_full, char *obj_full )
     return;
 
   lyr->material = mat;
-}
-
-void load_layer_color( char *subj_full, char *obj_full )
-{
-  char *subj = get_url_shortform( subj_full );
-  trie *t;
-  layer *lyr;
-
-  t = trie_search( subj, layer_ids );
-
-  if ( !t || !t->data )
-    return;
-
-  lyr = (layer *)t->data;
-
-  if ( lyr->color )
-    free( lyr->color );
-
-  lyr->color = strdup( obj_full );
 }
 
 void load_layer_thickness( char *subj_full, char *obj )
@@ -1211,14 +1189,6 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
   fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> %s .\n", lid, mat_iri );
   free( mat_iri );
 
-  if ( lyr->color )
-  {
-    char *fmtcolor = html_encode( lyr->color );
-
-    fprintf( fp, "%s <http://open-physiology.org/lyph#has_color> \"%s\" .\n", lid, fmtcolor );
-    free( fmtcolor );
-  }
-
   if ( lyr->thickness != -1 )
     fprintf( fp, "%s <http://open-physiology.org/lyph#has_thickness> \"%d\" .\n", lid, lyr->thickness );
 
@@ -1304,7 +1274,7 @@ int same_layers( layer **x, layer **y )
   }
 }
 
-layer *layer_by_description( char *mtid, int thickness, char *color )
+layer *layer_by_description( char *mtid, int thickness )
 {
   lyph *L = lyph_by_id( mtid );
   layer *lyr;
@@ -1315,7 +1285,7 @@ layer *layer_by_description( char *mtid, int thickness, char *color )
   if ( thickness < 0 && thickness != -1 )
     return NULL;
 
-  lyr = layer_by_description_recurse( L, thickness, color, layer_ids );
+  lyr = layer_by_description_recurse( L, thickness, layer_ids );
 
   if ( !lyr )
   {
@@ -1323,10 +1293,6 @@ layer *layer_by_description( char *mtid, int thickness, char *color )
     lyr->material = L;
     lyr->id = assign_new_layer_id( lyr );
     lyr->thickness = thickness;
-    if ( color )
-      lyr->color = strdup( color );
-    else
-      lyr->color = NULL;
 
     save_lyphs();
   }
@@ -1364,7 +1330,7 @@ trie *assign_new_layer_id( layer *lyr )
   return t;
 }
 
-int layer_matches( layer *candidate, const lyph *material, const float thickness, const char *color )
+int layer_matches( layer *candidate, const lyph *material, const float thickness )
 {
   if ( candidate->material != material )
     return 0;
@@ -1372,26 +1338,17 @@ int layer_matches( layer *candidate, const lyph *material, const float thickness
   if ( thickness != -1 && thickness != candidate->thickness )
     return 0;
 
-  if ( color )
-  {
-    if ( !candidate->color )
-      return 0;
-
-    if ( strcmp( color, candidate->color ) )
-      return 0;
-  }
-
   return 1;
 }
 
-layer *layer_by_description_recurse( const lyph *L, const float thickness, const char *color, const trie *t )
+layer *layer_by_description_recurse( const lyph *L, const float thickness, const trie *t )
 {
-  if ( t->data && layer_matches( (layer *)t->data, L, thickness, color ) )
+  if ( t->data && layer_matches( (layer *)t->data, L, thickness ) )
       return (layer *)t->data;
 
   TRIE_RECURSE
   (
-    layer *lyr = layer_by_description_recurse( L, thickness, color, *child );
+    layer *lyr = layer_by_description_recurse( L, thickness, *child );
     if ( lyr )
       return lyr;
   );

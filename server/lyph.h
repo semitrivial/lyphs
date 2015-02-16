@@ -116,7 +116,6 @@ struct LYPHS_WRAPPER
 struct LAYER
 {
   lyph *material;
-  char *color;
   int thickness;
   trie *id;
 };
@@ -302,8 +301,8 @@ char *lyphedge_to_json( lyphedge *e );
 char *lyphpath_to_json( lyphedge **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
-layer *layer_by_description( char *mtid, int thickness, char *color );
-layer *layer_by_description_recurse( const lyph *L, const float thickness, const char *color, const trie *t );
+layer *layer_by_description( char *mtid, int thickness );
+layer *layer_by_description_recurse( const lyph *L, const float thickness, const trie *t );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyphedge *lyphedge_by_id( char *id );
@@ -325,7 +324,6 @@ void load_lyph_label( char *subj_full, char *label );
 void load_lyph_type( char *subj_full, char *type_str );
 void acknowledge_has_layers( char *subj_full, char *bnode_id );
 void load_layer_material( char *subj_full, char *obj_full );
-void load_layer_color( char *subj_full, char *obj_full );
 void load_layer_to_lld( char *bnode, char *obj_full );
 void load_layer_thickness( char *subj_full, char *obj );
 lyph *missing_layers( trie *t );

@@ -51,11 +51,6 @@ function ajax_run(inputbox)
 
     if ( thickness != '' )
       query = query + '&thickness=' + encodeURIComponent( thickness );
-
-    var color = g('color').value.trim();
-
-    if ( color != '' )
-      query = query + '&color=' + encodeURIComponent( color );
   }
   else if ( inputbox === 'edge_constrain' )
   {
@@ -280,18 +275,12 @@ function add_layer_with_position( x, pos )
   else
     thickness = 'Unspecified';
 
-  var color;
-  if ( x.hasOwnProperty( 'color' ) && x.color != '' )
-    color = x.color;
-  else
-    color = 'Unspecified';
-
   layers_html += "<li>" +
                    "Layer #"+pos+" (Layer id: <span id='layer"+pos+"'>"+x.id+"</span>)" +
                    "<ul>" +
                      "<li>" +
                        "Material: "+x.mtlid+" ("+htmlEscape(x.mtlname)+"); " +
-                       "Thickness: "+thickness+"; Color: "+htmlEscape(color) +
+                       "Thickness: "+thickness+
                      "</li>" +
                    "</ul>" +
                  "</li>";
@@ -341,7 +330,6 @@ function clear_display()
   g('lyphtype').value = '';
   g('layer_material').value = '';
   g('thickness').value = '';
-  g('color').value = '';
   layer_ids = new Object();
   layers_html = "";
   g('layers_list').innerHTML = '';

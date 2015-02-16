@@ -1154,7 +1154,7 @@ void handle_makeview_request( http_request *req, url_param **params )
 
 void handle_makelayer_request( http_request *req, url_param **params )
 {
-  char *mtid, *color, *thickstr;
+  char *mtid, *thickstr;
   int thickness;
   layer *lyr;
 
@@ -1163,8 +1163,6 @@ void handle_makelayer_request( http_request *req, url_param **params )
   if ( !mtid )
     HND_ERR( "No material specified for layer" );
 
-  color = get_url_param( params, "color" );
-
   thickstr = get_url_param( params, "thickness" );
 
   if ( thickstr )
@@ -1172,7 +1170,7 @@ void handle_makelayer_request( http_request *req, url_param **params )
   else
     thickness = -1;
 
-  lyr = layer_by_description( mtid, thickness, color );
+  lyr = layer_by_description( mtid, thickness );
 
   if ( !lyr )
     HND_ERR( "Invalid material id specified for layer" );
