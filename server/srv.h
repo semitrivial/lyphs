@@ -37,6 +37,10 @@
 #define HTTP_SOCKSTATE_WRITING_RESPONSE 1
 #define HTTP_SOCKSTATE_AWAITING_INSTRUCTIONS 2
 
+#define ALONG_PATH_LYPH 1
+#define ALONG_PATH_CONSTRAIN 2
+#define ALONG_PATH_COMPUTE 3
+
 /*
  * Macros
  */
@@ -148,7 +152,6 @@ void handle_lyph_request( char *request, http_request *req );
 void handle_layer_request( char *request, http_request *req );
 void handle_lyphedge_request( char *request, http_request *req );
 void handle_lyphnode_request( char *request, http_request *req );
-void handle_lyphpath_request( http_request *req, url_param **params );
 void handle_lyphview_request( char *request, http_request *req );
 void free_url_params( url_param **buf );
 char *get_url_param( url_param **params, char *key );
@@ -159,4 +162,7 @@ void handle_all_lyphviews_request( http_request *req );
 void handle_lyph_hierarchy_request( http_request *req );
 void handle_assignlyph_request( http_request *req, url_param **params );
 void handle_edgeconstrain_request( http_request *req, url_param **params );
+void handle_lyphpath_request( http_request *req, url_param **params );
 void handle_lyph_along_path_request( http_request *req, url_param **params );
+void handle_constrain_along_path_request( http_request *req, url_param **params );
+void along_path_abstractor( http_request *req, url_param **params, int along_path_type );

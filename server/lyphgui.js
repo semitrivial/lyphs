@@ -134,7 +134,21 @@ function ajax_run(inputbox)
   }
   else if ( inputbox === 'shortest_path' )
   {
-    query = '/lyphpath/?from='+encodeURIComponent(g('frombox').value)+'&to='+encodeURIComponent(g('tobox').value);
+    if ( g('lyph_along_path_box').value !== "" )
+    {
+      if ( g('constrain_along_path_box').value !== "" )
+      {
+        alert("You can't do 'lyph along path' and 'constrain along path' in the same command");
+        return;
+      }
+      query = '/lyph_along_path/';
+    }
+    else if ( g('constrain_along_path_box').value !== "" )
+      query = '/constrain_along_path/';
+    else
+      query = '/lyphpath/';
+
+    query += '?from='+encodeURIComponent(g('frombox').value)+'&to='+encodeURIComponent(g('tobox').value);
 
     var filter = g('filterbox').value.trim();
     if ( filter != "" )
