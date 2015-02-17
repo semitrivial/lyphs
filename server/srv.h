@@ -159,3 +159,4 @@ void handle_all_lyphviews_request( http_request *req );
 void handle_lyph_hierarchy_request( http_request *req );
 void handle_assignlyph_request( http_request *req, url_param **params );
 void handle_edgeconstrain_request( http_request *req, url_param **params );
+void handle_lyph_along_path_request( http_request *req, url_param **params );

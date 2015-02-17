@@ -246,6 +246,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "lyph_along_path" ) )
+      {
+        handle_lyph_along_path_request( req, params );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       if ( !strcmp( reqtype, "makelyph" ) )
       {
         handle_makelyph_request( req, params );
@@ -984,6 +992,92 @@ const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_requ
   }
 }
 
+void handle_lyph_along_path_request( http_request *req, url_param **params )
+{
+  lyphnode *x, *y;
+  lyph *L;
+  lyphedge **p, **pptr;
+  edge_filter *f;
+  char *xid, *yid, *Lid, *fid;
+
+  xid = get_url_param( params, "from" );
+  yid = get_url_param( params, "to" );
+  Lid = get_url_param( params, "lyph" );
+  fid = get_url_param( params, "filter" );
+
+  if ( !xid )
+    HND_ERR( "You did not specify the 'from' node" );
+
+  if ( !yid )
+    HND_ERR( "You did not specify the 'to' node" );
+
+  if ( !Lid )
+    HND_ERR( "You did not specify the lyph" );
+
+  x = lyphnode_by_id( xid );
+
+  if ( !x )
+    HND_ERR( "The indicated 'from' node was not found in the database" );
+
+  y = lyphnode_by_id( yid );
+
+  if ( !y )
+    HND_ERR( "The indicated 'to' node was not found in the database" );
+
+  L = lyph_by_id( Lid );
+
+  if ( !L )
+    HND_ERR( "The indicated lyph was not found in the database" );
+
+  if ( fid )
+  {
+    lyph *filt = lyph_by_id( fid );
+    char *na_param;
+
+    if ( !filt )
+      HND_ERR( "The indicated filter-lyph was not found in the database" );
+
+    CREATE( f, edge_filter, 1 );
+
+    f->sup = filt;
+
+    na_param = get_url_param( params, "include_lyphless" );
+
+    if ( na_param && !strcmp( na_param, "yes" ) )
+      f->accept_na_edges = 1;
+    else if ( na_param && !strcmp( na_param, "no" ) )
+      f->accept_na_edges = 0;
+    else if ( na_param )
+      HND_ERR( "'include_lyphless' must be 'yes' or 'no'" );
+    else
+      f->accept_na_edges = 0;
+  }
+  else
+    f = NULL;
+
+  p = compute_lyphpath( x, y, f );
+
+  for ( pptr = p; *pptr; pptr++ )
+  {
+    char *err;
+
+    if ( !can_assign_lyph_to_edge( L, *pptr, &err ) )
+      HND_ERR( err ? err : "One of the edges on the path could not be assigned the lyph, due to a constraint on it" );
+  }
+
+  for ( pptr = p; *pptr; pptr++ )
+    (*pptr)->lyph = L;
+
+  save_lyphedges();
+
+  if ( f )
+    free( f );
+
+  free( p );
+
+  send_200_response( req, JSON1( "Response": "OK" ) );
+}
+
 void handle_makelyphnode_request( http_request *req, url_param **params )
 {
   lyphnode *n;
@@ -1456,6 +1550,9 @@ void handle_lyphpath_request( http_request *req, url_param **params )
     filter = NULL;
 
   path = compute_lyphpath( from, to, filter );
+
+  if ( filter )
+    free( filter );
 
   if ( !path )
     HND_ERR( "No path found" );
