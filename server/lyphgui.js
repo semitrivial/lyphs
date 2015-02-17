@@ -135,6 +135,17 @@ function ajax_run(inputbox)
   else if ( inputbox === 'shortest_path' )
   {
     query = '/lyphpath/?from='+encodeURIComponent(g('frombox').value)+'&to='+encodeURIComponent(g('tobox').value);
+
+    var filter = g('filterbox').value.trim();
+    if ( filter != "" )
+    {
+      query += '&filter='+encodeURIComponent(g('filterbox').value);
+
+      var na_box = g('na_box').value.trim();
+      if ( na_box != "" )
+        query += '&include_lyphless='+encodeURIComponent(g('na_box').value);
+    }
+
     use_raw_response = true;
     handle_parsed_data = display_lyphpath;
   }

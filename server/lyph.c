@@ -15,6 +15,7 @@ trie *new_lyphnode_id(lyphnode *n);
 lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
 void lyphs_unset_bit( int bit, trie *t );
 lyph **parse_lyphedge_constraints( char *str );
+int edge_passes_filter( lyphedge *e, edge_filter *f );
 
 int top_layer_id;
 int top_lyph_id;
@@ -1647,7 +1648,7 @@ int parse_lyph_type( char *str )
   return -1;
 }
 
-lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to )
+lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter )
 {
   lyphstep *head = NULL, *tail = NULL, *step, *curr;
 
@@ -1703,6 +1704,9 @@ lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to )
     for ( x = curr->location->exits; *x; x++ )
     {
       if ( IS_SET( (*x)->to->flags, LYPHNODE_SEEN ) )
+        continue;
+
+      if ( filter && !edge_passes_filter( (*x)->via, filter ) )
         continue;
 
       CREATE( step, lyphstep, 1 );
@@ -1969,4 +1973,23 @@ int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err )
   }
 
   return 1;
+}
+
+int edge_passes_filter( lyphedge *e, edge_filter *f )
+{
+  if ( e->lyph )
+    return is_superlyph( f->sup, e->lyph );
+
+  if ( !*e->constraints )
+    return f->accept_na_edges;
+  else
+  {
+    lyph **c;
+
+    for ( c = e->constraints; *c; c++ )
+      if ( !is_superlyph( f->sup, *c ) )
+        return 0;
+
+    return 1;
+  }
 }

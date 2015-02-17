@@ -125,9 +125,17 @@
           <h2>Shortest Path</h2>
           <input id='frombox' style='width:100%' placeholder='From'>
           <input id='tobox' style='width:100%' placeholder='To'>
+          <input id='filterbox' style='width:100%' placeholder='(Optional) Filter (lyph ID)'>
+          <input id='na_box' style='width:100%' placeholder='(Optional) Include lyphless edges?'>
           <button style='width:100%' onclick='inputkey(13,"shortest_path")'>
             Find the shortest path between the nodes indicated above
           </button>
+          <blockquote>
+            Explanation: If you specify a "Filter" lyph, the path will be restricted
+            to only use edges whose lyphs are sublyphs of that filter.
+            (In that case, do you want lyphless edges to be included?  If so, put
+            "yes" in "Include lyphless edges?", otherwise put "no" there.)
+          </blockquote>
           <hr>
           <div id='shortest_path_results'>
             Results will appear here.

@@ -1400,9 +1400,10 @@ void handle_layer_request( char *request, http_request *req )
 
 void handle_lyphpath_request( http_request *req, url_param **params )
 {
-  char *fromstr, *tostr;
+  char *fromstr, *tostr, *filterstr;
   lyphnode *from, *to;
   lyphedge **path;
+  edge_filter *filter;
 
   fromstr = get_url_param( params, "from" );
 
@@ -1424,7 +1425,37 @@ void handle_lyphpath_request( http_request *req, url_param **params )
   if ( !to )
     HND_ERR( "The specified 'to' node was not found in the database" );
 
-  path = compute_lyphpath( from, to );
+  filterstr = get_url_param( params, "filter" );
+
+  if ( filterstr )
+  {
+    lyph *L = lyph_by_id( filterstr );
+    char *na_str;
+
+    if ( !L )
+      HND_ERR( "The indicated filter lyph was not found in the database" );
+
+    CREATE( filter, edge_filter, 1 );
+    filter->sup = L;
+
+    na_str = get_url_param( params, "include_lyphless" );
+
+    if ( na_str )
+    {
+      if ( !strcmp( na_str, "yes" ) )
+        filter->accept_na_edges = 1;
+      else if ( !strcmp( na_str, "no" ) )
+        filter->accept_na_edges = 0;
+      else
+        HND_ERR( "include_lyphless should be either 'yes' or 'no'" );
+    }
+    else
+      filter->accept_na_edges = 0;
+  }
+  else
+    filter = NULL;
+
+  path = compute_lyphpath( from, to, filter );
 
   if ( !path )
     HND_ERR( "No path found" );

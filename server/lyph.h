@@ -35,6 +35,7 @@ typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
 typedef struct LYPH_WRAPPER lyph_wrapper;
 typedef struct LYPHS_WRAPPER lyphs_wrapper;
+typedef struct EDGE_FILTER edge_filter;
 
 /*
  * Structures
@@ -173,6 +174,12 @@ struct LYPHSTEP
   lyphstep *backtrace;
   lyphnode *location;
   lyphedge *edge;
+};
+
+struct EDGE_FILTER
+{
+  lyph *sup;
+  int accept_na_edges;
 };
 
 struct LYPHVIEW
@@ -336,7 +343,7 @@ int word_from_line( char **line, char *buf );
 char *lyphedge_type_str( int type );
 int parse_lyph_type_str( char *type );
 void add_exit( lyphedge *e, lyphnode *n );
-lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to );
+lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter );
 void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
