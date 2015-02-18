@@ -1484,7 +1484,7 @@ char *lyphnode_to_json( lyphnode *n )
     {
       exit_data **eptr, **nptr;
 
-      CREATE( exits, exit_data *, voidlen( (void**)n->exits ) + 1 );
+      CREATE( exits, exit_data *, VOIDLEN( n->exits ) + 1 );
       for ( eptr = exits, nptr = n->exits; *nptr; nptr++ )
         if ( IS_SET( (*nptr)->to->flags, LYPHNODE_SELECTED ) )
           *eptr++ = *nptr;
@@ -1550,7 +1550,7 @@ char *lyphpath_to_json( lyphedge **path )
 {
   return JSON
   (
-    "length": int_to_json( voidlen( (void**)path ) ),
+    "length": int_to_json( VOIDLEN( path ) ),
     "edges": JS_ARRAY( lyphedge_to_json, path )
   );
 }

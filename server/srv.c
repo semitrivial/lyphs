@@ -1302,7 +1302,7 @@ void handle_edgeconstrain_request( http_request *req, url_param **params )
     if ( *c == L )
       HND_ERR( "The edge in question already has the constraint in question." );
 
-  cnt = voidlen( (void**)e->constraints );
+  cnt = VOIDLEN( e->constraints );
   CREATE( c, lyph *, cnt + 2 );
 
   memcpy( c, e->constraints, cnt * sizeof(lyph*) );
@@ -1656,7 +1656,7 @@ void handle_all_lyphviews_request( http_request *req )
   extern lyphview obsolete_lyphview;
   extern lyphview **views;
 
-  CREATE( v, lyphview *, voidlen( (void **)&views[1] ) );
+  CREATE( v, lyphview *, VOIDLEN( &views[1] ) );
   vptr = v;
 
   for ( viewsptr = &views[1]; *viewsptr; viewsptr++ )

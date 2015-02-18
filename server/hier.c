@@ -186,7 +186,7 @@ void add_lyph_to_wrappers( lyph *L, lyphs_wrapper **head, lyphs_wrapper **tail )
 void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail )
 {
   lyphs_wrapper *w;
-  int len = voidlen( (void **)L );
+  int len = VOIDLEN( L );
 
   CREATE( w, lyphs_wrapper, 1 );
   CREATE( w->L, lyph *, len + 1 );
@@ -326,7 +326,7 @@ void add_lyph_as_super( lyph *sup, trie *t )
     if ( should_add_super( sup, sub ) )
     {
       lyph **new_supers;
-      int cnt = voidlen((void**)sub->supers);
+      int cnt = VOIDLEN(sub->supers);
 
       CREATE( new_supers, lyph *, cnt + 2 );
       memcpy( new_supers, sub->supers, cnt * sizeof(lyph *) );

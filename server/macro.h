@@ -181,4 +181,9 @@ while(0)
  */
 #define LOWER(x) ( ( (x) >= 'A' && (x) <= 'Z' )? x - 'A' + 'a' : x )
 
+/*
+ * Misc. macros
+ */
+#define VOIDLEN(x) voidlen((void**)(x))
+
 #endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD

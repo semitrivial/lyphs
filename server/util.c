@@ -266,7 +266,7 @@ char *constraints_comma_list( lyph **constraints )
   if ( buf )
     free( buf );
 
-  CREATE( ids, char *, voidlen((void**)constraints) + 1 );
+  CREATE( ids, char *, VOIDLEN(constraints) + 1 );
   iptr = ids;
 
   for ( ptr = constraints; *ptr; ptr++ )
