@@ -294,3 +294,42 @@ char *constraints_comma_list( lyph **constraints )
 
   return buf;
 }
+
+int copy_file( char *dest_ch, char *src_ch )
+{
+  FILE *dest, *src;
+  char c;
+
+  /*
+   * Variables for QUICK_GETC
+   */
+  char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
+  int fread_len;
+
+  src = fopen( src_ch, "r" );
+
+  if ( !src )
+    return 0;
+
+  dest = fopen( dest_ch, "w" );
+
+  if ( !dest )
+  {
+    fclose( src );
+    return 0;
+  }
+
+  for (;;)
+  {
+    QUICK_GETC(c, src);
+
+    if ( !c )
+      break;
+
+    fprintf( dest, "%c", c );
+  }
+
+  fclose( dest );
+  fclose( src );
+  return 1;
+}

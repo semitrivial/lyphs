@@ -310,6 +310,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "reset_db" ) )
+      {
+        handle_reset_db_request( req, params );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       free_url_params( params );
 
       if ( !strcmp( reqtype, "uclsyntax" )
@@ -1682,4 +1690,44 @@ void handle_all_lyphnodes_request( http_request *req )
   lyphnode_to_json_flags = 0;
 
   free ( n );
+}
+
+void handle_reset_db_request( http_request *req, url_param **params )
+{
+  int fMatch = 0, fWarning = 0;
+
+  #ifdef NDEBUG
+  HND_ERR( "The reset_db command is only available when the server is running in debug mode." );
+  #endif
+
+  if ( get_url_param( params, "views" ) )
+  {
+    fMatch = 1;
+    free_all_views();
+  }
+
+  if ( get_url_param( params, "lyphs" ) )
+  {
+    fMatch = 1;
+    free_all_lyphs();
+  }
+
+  if ( get_url_param( params, "graph" ) )
+  {
+    fMatch = 1;
+    free_all_edges();
+
+    if ( !copy_file( "lyphedges.dat", "lyphedges.dat.bak" ) )
+      fWarning = 1;
+    else
+      load_lyphedges();
+  }
+
+  if ( !fMatch )
+    HND_ERR( "You did not specify anything to delete (options are 'views', 'lyphs', and 'graph')" );
+
+  if ( fWarning )
+    send_200_response( req, JSON1( "Response": "Warning: Could not copy 'lyphedges.dat.bak' to 'lyphedges.dat'" ) );
+  else
+    send_200_response( req, JSON1( "Response": "OK" ) );
 }

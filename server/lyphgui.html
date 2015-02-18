@@ -42,6 +42,19 @@
           </div>
         </div>
 
+        <div class='area reset_db_area' style='display:none'>
+          <h2>Reset database</h2>
+          <div>
+            <a target='_blank' href='/reset_db/?lyphs=yes'>Click Here</a> to reset all lyphs and layers</a>
+          </div>
+          <div>
+            <a target='_blank' href='/reset_db/?views=yes'>Click Here</a> to reset all lyphviews</a>
+          </div>
+          <div>
+            <a target='_blank' href='/reset_db/?graph=yes'>Click Here</a> to reset all edges/nodes to the original vascular datagraph</a>
+          </div>
+        </div>
+
         <div class='area all_edges_area' style='display:none'>
           <h2>View all edges</h2>
           <div>
@@ -234,6 +247,10 @@
             <li>
               &raquo;
               <a href='javascript:void(0)' onclick='menuclick("edge_constrain")'>Constrain an edge</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("reset_db")'>Reset database</a>
             </li>
           </ul>
         </div>

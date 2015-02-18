@@ -16,6 +16,7 @@ lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
 void lyphs_unset_bit( int bit, trie *t );
 lyph **parse_lyphedge_constraints( char *str );
 int edge_passes_filter( lyphedge *e, edge_filter *f );
+void save_lyphs(void);
 
 int top_layer_id;
 int top_lyph_id;
@@ -112,6 +113,92 @@ int is_duplicate_view( lyphview *v, lyphnode **nodes, char **coords )
     return 0;
 
   return 1;
+}
+
+void strip_lyphs_from_graph( trie *t )
+{
+  if ( t->data )
+  {
+    lyphedge *e = (lyphedge *)t->data;
+
+    e->lyph = NULL;
+
+    if ( *e->constraints )
+    {
+      free( e->constraints );
+      CREATE( e->constraints, lyph *, 1 );
+      *e->constraints = NULL;
+    }
+  }
+
+  TRIE_RECURSE( strip_lyphs_from_graph( *child ) );
+}
+
+void free_all_edges( void )
+{
+  /*
+   * Memory leak here is deliberate: this function should only
+   * be called on the devport, not on production.
+   */
+  lyphnode_ids = blank_trie();
+  lyphedge_ids = blank_trie();
+  lyphedge_names = blank_trie();
+  lyphedge_fmas = blank_trie();
+
+  top_lyphedge_id = 0;
+
+  free_all_views();
+
+  save_lyphedges();
+}
+
+void free_all_lyphs( void )
+{
+  /*
+   * Memory leak here is deliberate: this function should only be
+   * called on the devport, not on production.
+   */
+  lyph_ids = blank_trie();
+  lyph_names = blank_trie();
+  layer_ids = blank_trie();
+  save_lyphs();
+
+  top_lyph_id = 0;
+  top_layer_id = 0;
+
+  strip_lyphs_from_graph( lyphedge_ids );
+  save_lyphedges();
+}
+
+void free_view( lyphview *v )
+{
+  if ( v->nodes )
+    free( v->nodes );
+
+  if ( v->coords )
+    free( v->coords );
+
+  free( v );
+}
+
+void free_all_views( void )
+{
+  int i;
+
+  for ( i = 0; i < top_view; i++ )
+  {
+    if ( views[i] && views[i] != &obsolete_lyphview )
+      free_view( views[i] );
+  }
+
+  free( views );
+  top_view = 0;
+
+  CREATE( views, lyphview *, 2 );
+  views[0] = &obsolete_lyphview;
+  views[1] = NULL;
+
+  save_lyphviews();
 }
 
 lyphview *lyphview_by_id( char *idstr )

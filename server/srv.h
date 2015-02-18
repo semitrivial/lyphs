@@ -166,3 +166,4 @@ void handle_lyphpath_request( http_request *req, url_param **params );
 void handle_lyph_along_path_request( http_request *req, url_param **params );
 void handle_constrain_along_path_request( http_request *req, url_param **params );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
+void handle_reset_db_request( http_request *req, url_param **params );

@@ -274,6 +274,7 @@ char *jsonf( int paircnt, ... );;
 void json_gc( void );
 size_t voidlen( void **x );
 char *constraints_comma_list( lyph **constraints );
+int copy_file( char *dest_ch, char *src_ch );
 
 /*
  * ucl.c
@@ -358,3 +359,6 @@ void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyph_hierarchy_to_json( void );
 void lyphs_unset_bit( int bit, trie *t );
 int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err );
+void free_all_views( void );
+void free_all_edges( void );
+void free_all_lyphs( void );
