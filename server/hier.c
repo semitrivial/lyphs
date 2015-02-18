@@ -243,7 +243,6 @@ char *lyph_hierarchy_to_json( void )
     }
 
     *mptr = NULL;
-    levels++;
 
     CREATE( lev, str_wrapper, 1 );
     lev->str = JS_ARRAY( hierarchy_member_to_json, members );
