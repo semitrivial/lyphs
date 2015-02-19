@@ -236,6 +236,7 @@ trie **get_labels_by_iri( char *iri_ch );
 trie **get_iris_by_label( char *label_ch );
 trie **get_iris_by_label_case_insensitive( char *label_ch );
 trie **get_autocomplete_labels( char *label_ch, int case_insens );
+char *all_ont_terms_as_json( void );
 
 /*
  * srv.c

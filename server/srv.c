@@ -222,6 +222,14 @@ void main_loop( void )
         continue;
       }
 
+      if ( !strcmp( reqtype, "all_ont_terms" ) )
+      {
+        handle_all_ont_terms_request( req );
+        free( request );
+        free_url_params( params );
+        continue;
+      }
+
       if ( !strcmp( reqtype, "lyph_hierarchy" ) )
       {
         handle_lyph_hierarchy_request( req );
@@ -1656,6 +1664,11 @@ void handle_all_lyphs_request( http_request *req )
 void handle_lyph_hierarchy_request( http_request *req )
 {
   send_200_response( req, lyph_hierarchy_to_json() );
+}
+
+void handle_all_ont_terms_request( http_request *req )
+{
+  send_200_response( req, all_ont_terms_as_json() );
 }
 
 void handle_all_lyphviews_request( http_request *req )

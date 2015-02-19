@@ -191,3 +191,43 @@ trie **get_autocomplete_labels( char *label_ch, int case_insens )
 
   return buf;
 }
+
+void all_ont_terms_as_json_populator( trie ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    **bptr = t;
+    (*bptr)++;
+  }
+
+  TRIE_RECURSE( all_ont_terms_as_json_populator( bptr, *child ) );
+}
+
+char *ont_term_to_json( trie *t )
+{
+  trie *label = *t->data;
+
+  return JSON
+  (
+    "term": trie_to_json( t ),
+    "label": trie_to_json( label )
+  );
+}
+
+char *all_ont_terms_as_json( void )
+{
+  trie **buf, **bptr;
+  char *retval;
+  int cnt = count_nontrivial_members( iri_to_labels );
+
+  CREATE( buf, trie *, cnt + 1 );
+  bptr = buf;
+
+  all_ont_terms_as_json_populator( &bptr, iri_to_labels );
+  *bptr = NULL;
+
+  retval = JS_ARRAY( ont_term_to_json, buf );
+  free( buf );
+
+  return retval;
+}
