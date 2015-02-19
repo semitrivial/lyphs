@@ -51,7 +51,7 @@ int main( int argc, const char* argv[] )
     /*
      * To do: make this commandline-configurable
      */
-    usleep(10000);
+    usleep(100000);
     main_loop();
   }
 }
@@ -97,7 +97,7 @@ void init_lyph_http_server( int port )
   if ( bind( srvsock, servinfo->ai_addr, servinfo->ai_addrlen ) == -1 )
   {
     fprintf( stderr, "Fatal: Couldn't open server port (bind failed)\n" );
-    abort();
+    exit( EXIT_SUCCESS );
   }
 
   if ( listen( srvsock, HTTP_LISTEN_BACKLOG ) == -1 )
