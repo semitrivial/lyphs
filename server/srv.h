@@ -41,6 +41,8 @@
 #define ALONG_PATH_CONSTRAIN 2
 #define ALONG_PATH_COMPUTE 3
 
+#define TABLES_HASH 256
+
 /*
  * Macros
  */
@@ -61,12 +63,17 @@ do\
 }\
 while(0)
 
+#define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
+
 /*
  * Structures
  */
 typedef struct HTTP_REQUEST http_request;
 typedef struct HTTP_CONN http_conn;
 typedef struct URL_PARAM url_param;
+typedef struct COMMAND_ENTRY command_entry;
+
+typedef void handle_function ( char *request, http_request *req, url_param **params );
 
 struct HTTP_REQUEST
 {
@@ -102,6 +109,13 @@ struct URL_PARAM
   char *val;
 };
 
+struct COMMAND_ENTRY
+{
+  command_entry *next;
+  handle_function *f;
+  char *cmd;
+};
+
 /*
  * Global variables
  */
@@ -117,7 +131,11 @@ fd_set http_excset;
 int srvsock;
 
 /*
- * Local function prototypes
+ * Function prototypes
+ */
+
+/*
+ * srv.c
  */
 void init_lyph_http_server( int port );
 void http_update_connections( void );
@@ -142,29 +160,40 @@ void send_lyphgui( http_request *req );
 void send_lyphjs( http_request *req );
 char *load_file( char *filename );
 const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_request *req, url_param **params );
-void handle_ucl_syntax_request( char *request, http_request *req );
-void handle_makelayer_request( http_request *req, url_param **params );
-void handle_makelyph_request( http_request *req, url_param **params );
-void handle_makeview_request( http_request *req, url_param **params );
-void handle_makelyphnode_request( http_request *req, url_param **params );
-void handle_makelyphedge_request( http_request *req, url_param **params );
-void handle_lyph_request( char *request, http_request *req );
-void handle_layer_request( char *request, http_request *req );
-void handle_lyphedge_request( char *request, http_request *req );
-void handle_lyphnode_request( char *request, http_request *req );
-void handle_lyphview_request( char *request, http_request *req );
 void free_url_params( url_param **buf );
 char *get_url_param( url_param **params, char *key );
-void handle_all_lyphs_request( http_request *req );
-void handle_all_lyphedges_request( http_request *req );
-void handle_all_lyphnodes_request( http_request *req );
-void handle_all_lyphviews_request( http_request *req );
-void handle_lyph_hierarchy_request( http_request *req );
-void handle_assignlyph_request( http_request *req, url_param **params );
-void handle_edgeconstrain_request( http_request *req, url_param **params );
-void handle_lyphpath_request( http_request *req, url_param **params );
-void handle_lyph_along_path_request( http_request *req, url_param **params );
-void handle_constrain_along_path_request( http_request *req, url_param **params );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
-void handle_reset_db_request( http_request *req, url_param **params );
-void handle_all_ont_terms_request( http_request *req );
+
+/*
+ * tables.c
+ */
+void init_command_table( void );
+void add_handler( char *cmd, handle_function *fnc );
+handle_function *lookup_command( char *cmd );
+
+/*
+ * Handlers (functions for handling HTTP requests)
+ */
+HANDLER( handle_ucl_syntax_request );
+HANDLER( handle_makelayer_request );
+HANDLER( handle_makelyph_request );
+HANDLER( handle_makeview_request );
+HANDLER( handle_makelyphnode_request );
+HANDLER( handle_makelyphedge_request );
+HANDLER( handle_lyph_request );
+HANDLER( handle_layer_request );
+HANDLER( handle_lyphedge_request );
+HANDLER( handle_lyphnode_request );
+HANDLER( handle_lyphview_request );
+HANDLER( handle_all_lyphs_request );
+HANDLER( handle_all_lyphedges_request );
+HANDLER( handle_all_lyphnodes_request );
+HANDLER( handle_all_lyphviews_request );
+HANDLER( handle_lyph_hierarchy_request );
+HANDLER( handle_assignlyph_request );
+HANDLER( handle_edgeconstrain_request );
+HANDLER( handle_lyphpath_request );
+HANDLER( handle_lyph_along_path_request );
+HANDLER( handle_constrain_along_path_request );
+HANDLER( handle_reset_db_request );
+HANDLER( handle_all_ont_terms_request );

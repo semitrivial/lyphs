@@ -43,6 +43,7 @@ int main( int argc, const char* argv[] )
   fclose(fp);
 
   init_lyph_http_server(port);
+  init_command_table();
 
   printf( "Ready.\n" );
 
@@ -124,6 +125,7 @@ void main_loop( void )
     {
       char *reqptr, *reqtype, *request, repl[MAX_STRING_LEN], *rptr;
       const char *parse_params_err;
+      handle_function *fnc;
       trie **data;
       int len=0, fFirst=0, fShortIRI=0, fCaseInsens=0;
       url_param *params[MAX_URL_PARAMS+1];
@@ -190,187 +192,17 @@ void main_loop( void )
 
       request = url_decode(&reqptr[1]);
 
-      if ( !strcmp( reqtype, "all_lyphs" ) )
-      {
-        handle_all_lyphs_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
+      fnc = lookup_command( reqtype );
 
-      if ( !strcmp( reqtype, "all_lyphnodes" ) )
+      if ( fnc )
       {
-        handle_all_lyphnodes_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "all_lyphedges" ) )
-      {
-        handle_all_lyphedges_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "all_lyphviews" ) )
-      {
-        handle_all_lyphviews_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "all_ont_terms" ) )
-      {
-        handle_all_ont_terms_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyph_hierarchy" ) )
-      {
-        handle_lyph_hierarchy_request( req );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "assignlyph" ) )
-      {
-        handle_assignlyph_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "edgeconstrain" ) )
-      {
-        handle_edgeconstrain_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyph_along_path" ) )
-      {
-        handle_lyph_along_path_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "constrain_along_path" ) )
-      {
-        handle_constrain_along_path_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "makelyph" ) )
-      {
-        handle_makelyph_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "makelayer" ) )
-      {
-        handle_makelayer_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "makelyphedge" ) )
-      {
-        handle_makelyphedge_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "makelyphnode" ) )
-      {
-        handle_makelyphnode_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "makeview" ) )
-      {
-        handle_makeview_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyphpath" ) )
-      {
-        handle_lyphpath_request( req, params );
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "reset_db" ) )
-      {
-        handle_reset_db_request( req, params );
+        (*fnc)( request, req, params );
         free( request );
         free_url_params( params );
         continue;
       }
 
       free_url_params( params );
-
-      if ( !strcmp( reqtype, "uclsyntax" )
-      ||   !strcmp( reqtype, "ucl_syntax" )
-      ||   !strcmp( reqtype, "ucl-syntax" ) )
-      {
-        handle_ucl_syntax_request( request, req );
-        free( request );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyph" ) )
-      {
-        handle_lyph_request( request, req );
-        free( request );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "layer" ) )
-      {
-        handle_layer_request( request, req );
-        free( request );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyphedge" ) )
-      {
-        handle_lyphedge_request( request, req );
-        free( request );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyphnode" ) )
-      {
-        handle_lyphnode_request( request, req );
-        free( request );
-        continue;
-      }
-
-      if ( !strcmp( reqtype, "lyphview" ) )
-      {
-        handle_lyphview_request( request, req );
-        free( request );
-        continue;
-      }
 
       if ( !strcmp( reqtype, "iri" ) )
         data = get_labels_by_iri( request );
@@ -1016,17 +848,17 @@ const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_requ
   }
 }
 
-void handle_lyphpath_request( http_request *req, url_param **params )
+HANDLER( handle_lyphpath_request )
 {
   along_path_abstractor( req, params, ALONG_PATH_COMPUTE );
 }
 
-void handle_lyph_along_path_request( http_request *req, url_param **params )
+HANDLER( handle_lyph_along_path_request )
 {
   along_path_abstractor( req, params, ALONG_PATH_LYPH );
 }
 
-void handle_constrain_along_path_request( http_request *req, url_param **params )
+HANDLER( handle_constrain_along_path_request )
 {
   along_path_abstractor( req, params, ALONG_PATH_CONSTRAIN );
 }
@@ -1164,7 +996,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   free( p );
 }
 
-void handle_makelyphnode_request( http_request *req, url_param **params )
+HANDLER( handle_makelyphnode_request )
 {
   lyphnode *n;
 
@@ -1180,7 +1012,7 @@ void handle_makelyphnode_request( http_request *req, url_param **params )
   lyphnode_to_json_flags = 0;
 }
 
-void handle_makelyphedge_request( http_request *req, url_param **params )
+HANDLER( handle_makelyphedge_request )
 {
   lyphnode *from, *to;
   lyphedge *e;
@@ -1238,7 +1070,7 @@ void handle_makelyphedge_request( http_request *req, url_param **params )
   send_200_response( req, lyphedge_to_json( e ) );
 }
 
-void handle_makeview_request( http_request *req, url_param **params )
+HANDLER( handle_makeview_request )
 {
   lyphnode **nodes, **nptr;
   char **coords, **cptr, key[1024];
@@ -1332,7 +1164,7 @@ void handle_makeview_request( http_request *req, url_param **params )
   free( nodes );
 }
 
-void handle_makelayer_request( http_request *req, url_param **params )
+HANDLER( handle_makelayer_request )
 {
   char *mtid, *thickstr;
   int thickness;
@@ -1358,7 +1190,7 @@ void handle_makelayer_request( http_request *req, url_param **params )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-void handle_edgeconstrain_request( http_request *req, url_param **params )
+HANDLER( handle_edgeconstrain_request )
 {
   lyphedge *e;
   lyph *L, **c;
@@ -1404,7 +1236,7 @@ void handle_edgeconstrain_request( http_request *req, url_param **params )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-void handle_assignlyph_request( http_request *req, url_param **params )
+HANDLER( handle_assignlyph_request )
 {
   lyphedge *e;
   lyph *L;
@@ -1450,7 +1282,7 @@ void handle_assignlyph_request( http_request *req, url_param **params )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-void handle_makelyph_request( http_request *req, url_param **params )
+HANDLER( handle_makelyph_request )
 {
   char *name, *typestr;
   int type, lcnt;
@@ -1522,7 +1354,7 @@ void handle_makelyph_request( http_request *req, url_param **params )
   send_200_response( req, lyph_to_json( L ) );
 }
 
-void handle_lyph_request( char *request, http_request *req )
+HANDLER( handle_lyph_request )
 {
   lyph *L;
 
@@ -1534,7 +1366,7 @@ void handle_lyph_request( char *request, http_request *req )
   send_200_response( req, lyph_to_json( L ) );
 }
 
-void handle_lyphedge_request( char *request, http_request *req )
+HANDLER( handle_lyphedge_request )
 {
   lyphedge *e = lyphedge_by_id( request );
 
@@ -1544,7 +1376,7 @@ void handle_lyphedge_request( char *request, http_request *req )
   send_200_response( req, lyphedge_to_json( e ) );
 }
 
-void handle_lyphnode_request( char *request, http_request *req )
+HANDLER( handle_lyphnode_request )
 {
   lyphnode *n = lyphnode_by_id( request );
 
@@ -1558,7 +1390,7 @@ void handle_lyphnode_request( char *request, http_request *req )
   lyphnode_to_json_flags = 0;
 }
 
-void handle_lyphview_request( char *request, http_request *req )
+HANDLER( handle_lyphview_request )
 {
   lyphview *v = lyphview_by_id( request );
 
@@ -1568,7 +1400,7 @@ void handle_lyphview_request( char *request, http_request *req )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
-void handle_layer_request( char *request, http_request *req )
+HANDLER( handle_layer_request )
 {
   layer *lyr = layer_by_id( request );
 
@@ -1578,7 +1410,7 @@ void handle_layer_request( char *request, http_request *req )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-void handle_ucl_syntax_request( char *request, http_request *req )
+HANDLER( handle_ucl_syntax_request )
 {
   ucl_syntax *s;
   char *err = NULL, *maybe_err = NULL, *output;
@@ -1643,7 +1475,7 @@ char *get_url_param( url_param **params, char *key )
   return NULL;
 }
 
-void handle_all_lyphedges_request( http_request *req )
+HANDLER( handle_all_lyphedges_request )
 {
   lyphedge **edges = (lyphedge **)datas_to_array( lyphedge_ids );
 
@@ -1652,7 +1484,7 @@ void handle_all_lyphedges_request( http_request *req )
   free( edges );
 }
 
-void handle_all_lyphs_request( http_request *req )
+HANDLER( handle_all_lyphs_request )
 {
   lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
 
@@ -1661,17 +1493,17 @@ void handle_all_lyphs_request( http_request *req )
   free( lyphs );
 }
 
-void handle_lyph_hierarchy_request( http_request *req )
+HANDLER( handle_lyph_hierarchy_request )
 {
   send_200_response( req, lyph_hierarchy_to_json() );
 }
 
-void handle_all_ont_terms_request( http_request *req )
+HANDLER( handle_all_ont_terms_request )
 {
   send_200_response( req, all_ont_terms_as_json() );
 }
 
-void handle_all_lyphviews_request( http_request *req )
+HANDLER( handle_all_lyphviews_request )
 {
   lyphview **v, **vptr, **viewsptr;
   extern lyphview obsolete_lyphview;
@@ -1691,7 +1523,7 @@ void handle_all_lyphviews_request( http_request *req )
   free( v );
 }
 
-void handle_all_lyphnodes_request( http_request *req )
+HANDLER( handle_all_lyphnodes_request )
 {
   lyphnode **n = (lyphnode **)datas_to_array( lyphnode_ids );
   extern int lyphnode_to_json_flags;
@@ -1705,7 +1537,7 @@ void handle_all_lyphnodes_request( http_request *req )
   free ( n );
 }
 
-void handle_reset_db_request( http_request *req, url_param **params )
+HANDLER( handle_reset_db_request )
 {
   int fMatch = 0, fWarning = 0;
 
