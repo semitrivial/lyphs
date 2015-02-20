@@ -126,12 +126,6 @@ function ajax_run(inputbox)
 
     handle_parsed_data = display_lyph;
   }
-  else if ( inputbox === 'view_all_lyphs' )
-  {
-    query = '/all_lyphs/';
-    use_raw_response = true;
-    handle_parsed_data = display_all_lyphs;
-  }
   else if ( inputbox === 'shortest_path' )
   {
     if ( g('lyph_along_path_box').value !== "" )

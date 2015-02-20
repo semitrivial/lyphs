@@ -35,11 +35,31 @@
           </p>
         </div>
 
-        <div class='area lyph_hierarchy_area' style='display:none'>
-          <h2>View lyph hierarchy</h2>
-          <div>
-            <a target='_blank' href='/lyph_hierarchy/'>Click Here</a> to view the lyph hierarchy in a new window.
-          </div>
+        <div class='area view_allers_area' style='display:none'>
+          <h2>View all...</h2>
+          <p>
+            (Links will open in a new tab or window)
+          </p>
+          <ul>
+            <li>
+              &raquo; <a target='_blank' href='/all_lyphs/'>View all lyphs</a>
+            </li>
+            <li>
+              &raquo; <a target='_blank' href='/all_lyphedges/'>View all edges</a>
+            </li>
+            <li>
+              &raquo; <a target='_blank' href='/all_lyphnodes/'>View all nodes</a>
+            </li>
+            <li>
+              &raquo; <a target='_blank' href='/all_lyphviews/'>View all lyphviews</a>
+            </li>
+            <li>
+              &raquo; <a target='_blank' href='/lyph_hierarchy/'>View lyph hierarchy</a>
+            </li>
+            <li>
+              &raquo; <a target='_blank' href='/all_ont_terms/'>View all ontology terms</a>
+            </li>
+          </ul>
         </div>
 
         <div class='area reset_db_area' style='display:none'>
@@ -52,40 +72,6 @@
           </div>
           <div>
             <a target='_blank' href='/reset_db/?graph=yes'>Click Here</a> to reset all edges/nodes to the original vascular datagraph</a>
-          </div>
-        </div>
-
-        <div class='area all_edges_area' style='display:none'>
-          <h2>View all edges</h2>
-          <div>
-            <a target='_blank' href='/all_lyphedges/'>Click Here</a> to view them in a new window.
-          </div>
-        </div>
-
-        <div class='area all_nodes_area' style='display:none'>
-          <h2>View all nodes</h2>
-          <div>
-            <a target='_blank' href='/all_lyphnodes/'>Click here</a> to view all lyphnodes in a new window</a>
-          </div>
-        </div>
-
-        <div class='area all_views_area' style='display:none'>
-          <h2>View all views</h2>
-          <div>
-            <a target='_blank' href='/all_lyphviews/'>Click here</a> to view all views in a separate window.  (A "view" is what we talked about at the last meeting with Syed: a set of nodes together with x- and y-coordintes)
-          </div>
-        </div>
-
-        <div class='area all_lyphs_area' style='display:none'>
-          <h2>View all lyphs in database</h2>
-          <button onclick="inputkey(13,'view_all_lyphs');" style='width:100%'>
-            Click here to view all lyphs in the database
-          </button>
-          <div>
-            Or <a target='_blank' href='/all_lyphs/'>Click Here</a> to view them in a new window.
-          </div>
-          <hr>
-          <div id='view_all_lyphs_result'>
           </div>
         </div>
 
@@ -210,23 +196,11 @@
             </li>
             <li>
               &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("view_allers")'>View all...</a>
+            </li>
+            <li>
+              &raquo;
               <a href='javascript:void(0)' onclick='menuclick("layers")'>Lyphs/Layers</a>
-            </li>
-            <li>
-              &raquo;
-              <a href='javascript:void(0)' onclick='menuclick("all_lyphs")'>View all lyphs</a>
-            </li>
-            <li>
-              &raquo;
-              <a href='javascript:void(0)' onclick='menuclick("all_edges")'>View all edges</a>
-            </li>
-            <li>
-              &raquo;
-              <a href='javascript:void(0)' onclick='menuclick("all_nodes")'>View all nodes</a>
-            </li>
-            <li>
-              &raquo;
-              <a href='javascript:void(0)' onclick='menuclick("all_views")'>View all views</a>
             </li>
             <li>
               &raquo;
@@ -235,10 +209,6 @@
             <li>
               &raquo;
               <a href='javascript:void(0)' onclick='menuclick("new_edge")'>Create edge</a>
-            </li>
-            <li>
-              &raquo;
-              <a href='javascript:void(0)' onclick='menuclick("lyph_hierarchy")'>Lyph hierarchy</a>
             </li>
             <li>
               &raquo;
