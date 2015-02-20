@@ -11,6 +11,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "jsonfmt_internal.h"
 
 /*
@@ -490,7 +491,7 @@ int is_json( const char *str )
 
 unsigned int get_js_hash( char const *str )
 {
-  return ((unsigned int)str) % JSON_HASH;
+  return ((uintptr_t)str) % JSON_HASH;
 }
 
 char *prep_for_json_gc( char *str )
