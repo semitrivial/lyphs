@@ -490,17 +490,25 @@ void load_lyphviews( void )
 
           if ( !fNodeID )
           {
+            trie *nodetr;
             lyphnode *node;
 
             fNodeID = 1;
-            node = lyphnode_by_id( left );
 
-            if ( !node )
+            nodetr = trie_strdup( left, lyphnode_ids );
+
+            if ( !nodetr->data )
             {
-              log_stringf( "lyphviews.dat: Specified lyphnode (%s) does not exist -- aborting", left );
-              log_linenum( line );
-              EXIT();
+              CREATE( node, lyphnode, 1 );
+              node->id = nodetr;
+              nodetr->data = (trie **)node;
+              node->flags = 0;
+              CREATE( node->exits, exit_data *, 1 );
+              node->exits[0] = NULL;
+              maybe_update_top_id( &top_lyphnode_id, left );
             }
+            else
+              node = (lyphnode *)nodetr->data;
 
             *nodes++ = node;
           }
