@@ -235,6 +235,7 @@ char *lyphview_to_json( lyphview *v )
     (*vnptr)->node = *n;
     (*vnptr)->x = coords[0];
     (*vnptr)->y = coords[1];
+    coords += 2;
     vnptr++;
   }
   *vnptr = NULL;
