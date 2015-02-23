@@ -186,4 +186,6 @@ while(0)
  */
 #define VOIDLEN(x) voidlen((void**)(x))
 
+#define EXIT() do exit(EXIT_SUCCESS); while(0)
+
 #endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD

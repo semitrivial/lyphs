@@ -395,20 +395,22 @@ void load_lyphviews( void )
 
     if ( str_begins( buf, "View " ) )
     {
-      id = strtol( &buf[strlen("View ")], NULL, 10 );
+      char *idstr = &buf[strlen("View ")];
+
+      id = strtol( idstr, NULL, 10 );
 
       if ( id < 1 )
       {
-        log_string( "lyphviews.dat: view id is not a positive integer -- aborting" );
+        log_stringf( "lyphviews.dat: view id (%s) is not a positive integer -- aborting", idstr );
         log_linenum( line );
-        exit(0);
+        EXIT();
       }
 
       if ( id > top_view )
       {
-        log_string( "lyphviews.dat: view id is higher than top_view -- aborting" );
+        log_stringf( "lyphviews.dat: view id (%s) is higher than top_view -- aborting", idstr );
         log_linenum( line );
-        exit(0);
+        EXIT();
       }
 
       if ( prev_view_index != -1 )
@@ -417,7 +419,7 @@ void load_lyphviews( void )
         {
           log_string( "lyphviews.dat: previous view did not finish loading -- aborting" );
           log_linenum( line );
-          exit(0);
+          EXIT();
         }
 
         *nodes = NULL;
@@ -443,7 +445,7 @@ void load_lyphviews( void )
       {
         log_string( "lyphviews.dat: Mismatched Nodes line -- aborting" );
         log_linenum( line );
-        abort();
+        EXIT();
       }
 
       ncnt = strtol( &buf[strlen("Nodes ")], NULL, 10 );
@@ -452,7 +454,7 @@ void load_lyphviews( void )
       {
         log_string( "lyphviews.dat: Number of nodes is not a nonnegative integer -- aborting" );
         log_linenum( line );
-        abort();
+        EXIT();
       }
 
       CREATE( views[id]->nodes, lyphnode *, ncnt + 1 );
@@ -472,7 +474,7 @@ void load_lyphviews( void )
       {
         log_string( "lyphviews.dat: Mismatched N line -- aborting" );
         log_linenum( line );
-        abort();
+        EXIT();
       }
 
       left = &buf[strlen("N ")];
@@ -495,9 +497,9 @@ void load_lyphviews( void )
 
             if ( !node )
             {
-              log_string( "lyphviews.dat: Specified lyphnode does not exist -- aborting" );
+              log_stringf( "lyphviews.dat: Specified lyphnode (%s) does not exist -- aborting", left );
               log_linenum( line );
-              abort();
+              EXIT();
             }
 
             *nodes++ = node;
@@ -516,7 +518,7 @@ void load_lyphviews( void )
           {
             log_string( "lyphviews.dat: too many entries on line -- aborting" );
             log_linenum( line );
-            abort();
+            EXIT();
           }
 
           left = &ptr[1];
@@ -528,7 +530,7 @@ void load_lyphviews( void )
 
     log_string( "lyphviews.dat: Unrecognized line -- aborting" );
     log_linenum( line );
-    abort();
+    EXIT();
   }
 
   if ( prev_view_index != -1 )
@@ -537,7 +539,7 @@ void load_lyphviews( void )
     {
       log_string( "lyphviews.dat: previous view did not finish loading -- aborting" );
       log_linenum( line );
-      exit(0);
+      EXIT();
     }
 
     *nodes = NULL;
@@ -1143,7 +1145,7 @@ void load_lyphs(void)
     sprintf( buf, "Failed to parse the lyphs-file (lyphs.dat):\n%s\n", err ? err : "(no error given)" );
 
     error_message( buf );
-    abort();
+    EXIT();
   }
 
   handle_loaded_layers( blank_nodes );
@@ -1154,7 +1156,7 @@ void load_lyphs(void)
 
     sprintf( buf, "Error in lyphs.dat: lyph %s has type %s but has no layers\n", trie_to_static( naked->id ), lyph_type_as_char( naked ) );
     error_message( buf );
-    abort();
+    EXIT();
   }
 }
 
