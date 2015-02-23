@@ -33,6 +33,7 @@ typedef struct LYPHEDGE lyphedge;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
+typedef struct VIEWED_NODE viewed_node;
 typedef struct LYPH_WRAPPER lyph_wrapper;
 typedef struct LYPHS_WRAPPER lyphs_wrapper;
 typedef struct EDGE_FILTER edge_filter;
@@ -189,6 +190,13 @@ struct LYPHVIEW
   char **coords;
 };
 
+struct VIEWED_NODE
+{
+  lyphnode *node;
+  char *x;
+  char *y;
+};
+
 struct LOAD_LAYERS_DATA
 {
   lyph *subj;
@@ -305,6 +313,7 @@ char *lyph_to_json( lyph *L );
 char *lyph_to_shallow_json( lyph *L );
 char *layer_to_json( layer *lyr );
 lyphview *lyphview_by_id( char *idstr );
+char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
 char *lyphedge_to_json( lyphedge *e );
 char *lyphpath_to_json( lyphedge **path );

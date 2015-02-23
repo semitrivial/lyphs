@@ -214,10 +214,30 @@ lyphview *lyphview_by_id( char *idstr )
   return views[id];
 }
 
+char *viewed_node_to_json( viewed_node *vn )
+{
+  return lyphnode_to_json_wrappee( vn->node, vn->x, vn->y );
+}
+
 char *lyphview_to_json( lyphview *v )
 {
   lyphnode **n;
-  char *result;
+  char *result, **coords;
+  viewed_node **vn, **vnptr;
+
+  CREATE( vn, viewed_node *, VOIDLEN( v->nodes ) + 1 );
+  vnptr = vn;
+  coords = v->coords;
+
+  for ( n = v->nodes; *n; n++ )
+  {
+    CREATE( *vnptr, viewed_node, 1 );
+    (*vnptr)->node = *n;
+    (*vnptr)->x = coords[0];
+    (*vnptr)->y = coords[1];
+    vnptr++;
+  }
+  *vnptr = NULL;
 
   for ( n = v->nodes; *n; n++ )
     SET_BIT( (*n)->flags, LYPHNODE_SELECTED );
@@ -227,8 +247,13 @@ char *lyphview_to_json( lyphview *v )
   result = JSON
   (
     "id": int_to_json( v->id ),
-    "nodes": JS_ARRAY( lyphnode_to_json, v->nodes )
+    "nodes": JS_ARRAY( viewed_node_to_json, vn )
   );
+
+  for ( vnptr = vn; *vnptr; vnptr++ )
+    free( *vnptr );
+
+  free( vn );
 
   lyphnode_to_json_flags = 0;
 
@@ -1559,6 +1584,11 @@ char *layer_to_json( layer *lyr )
 
 char *lyphnode_to_json( lyphnode *n )
 {
+  return lyphnode_to_json_wrappee( n, NULL, NULL );
+}
+
+char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
+{
   char *retval;
 
   if ( IS_SET( lyphnode_to_json_flags, LTJ_EXITS ) )
@@ -1584,7 +1614,9 @@ char *lyphnode_to_json( lyphnode *n )
     retval = JSON
     (
       "id": trie_to_json( n->id ),
-      "exits": JS_ARRAY( exit_to_json, exits )
+      "exits": JS_ARRAY( exit_to_json, exits ),
+      "x": x,
+      "y": y
     );
 
     if ( exits != n->exits )
@@ -1595,9 +1627,11 @@ char *lyphnode_to_json( lyphnode *n )
     return retval;
   }
   else
-    return JSON1
+    return JSON
     (
-      "id": trie_to_json( n->id )
+      "id": trie_to_json( n->id ),
+      "x": x,
+      "y": y
     );
 
 }
