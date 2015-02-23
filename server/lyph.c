@@ -30,6 +30,7 @@ int top_view;
 
 int lyphnode_to_json_flags;
 int exit_to_json_flags;
+char **lyphview_coords;   // To do: Figure out a more elegant way to avoid this kludge
 
 lyphview *create_new_view( lyphnode **nodes, char **coords )
 {
@@ -223,6 +224,7 @@ char *lyphview_to_json( lyphview *v )
     SET_BIT( (*n)->flags, LYPHNODE_SELECTED );
 
   lyphnode_to_json_flags = LTJ_EXITS | LTJ_SELECTIVE | LTJ_FULL_EXIT_DATA;
+  lyphview_coords = v->coords;
 
   result = JSON
   (
@@ -230,6 +232,7 @@ char *lyphview_to_json( lyphview *v )
     "nodes": JS_ARRAY( lyphnode_to_json, v->nodes )
   );
 
+  lyphview_coords = NULL;
   lyphnode_to_json_flags = 0;
 
   for ( n = v->nodes; *n; n++ )
@@ -1559,9 +1562,10 @@ char *layer_to_json( layer *lyr )
 
 char *lyphnode_to_json( lyphnode *n )
 {
+  char *retval;
+
   if ( IS_SET( lyphnode_to_json_flags, LTJ_EXITS ) )
   {
-    char *retval;
     exit_data **exits;
 
     if ( IS_SET( lyphnode_to_json_flags, LTJ_FULL_EXIT_DATA ) )
@@ -1580,16 +1584,39 @@ char *lyphnode_to_json( lyphnode *n )
     else
       exits = n->exits;
 
-    retval = JSON
-    (
-      "id": trie_to_json( n->id ),
-      "exits": JS_ARRAY( exit_to_json, exits )
-    );
+    if ( lyphview_coords )
+      retval = JSON
+      (
+        "id": trie_to_json( n->id ),
+        "exits": JS_ARRAY( exit_to_json, exits ),
+        "x": lyphview_coords[0],
+        "y": lyphview_coords[1]
+      );
+    else
+      retval = JSON
+      (
+        "id": trie_to_json( n->id ),
+        "exits": JS_ARRAY( exit_to_json, exits )
+      );
 
     if ( exits != n->exits )
       free( exits );
 
     exit_to_json_flags = 0;
+    if ( lyphview_coords )
+      lyphview_coords += 2;
+    return retval;
+  }
+  else
+  if ( lyphview_coords )
+  {
+    retval = JSON
+    (
+      "id": trie_to_json( n->id ),
+      "x": lyphview_coords[0],
+      "y": lyphview_coords[1]
+    );
+    lyphview_coords += 2;
     return retval;
   }
   else
@@ -1597,6 +1624,7 @@ char *lyphnode_to_json( lyphnode *n )
     (
       "id": trie_to_json( n->id )
     );
+
 }
 
 char *exit_to_json( exit_data *x )
