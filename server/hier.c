@@ -352,3 +352,35 @@ int is_superlyph( lyph *sup, lyph *sub )
 
   return 0;
 }
+
+void get_sublyphs_recurse( lyph *L, trie *t, lyph ***bptr )
+{
+  if ( t->data )
+  {
+    lyph *sub = (lyph *)t->data;
+
+    if ( is_superlyph( L, sub ) )
+    {
+      **bptr = sub;
+      (*bptr)++;
+    }
+  }
+
+  TRIE_RECURSE( get_sublyphs_recurse( L, *child, bptr ) );
+}
+
+lyph **get_sublyphs( lyph *L )
+{
+  /*
+   * To do: optimize this
+   */
+  lyph **buf, **bptr;
+
+  CREATE( buf, lyph *, 1024 * 1024 );
+  bptr = buf;
+
+  get_sublyphs_recurse( L, lyph_ids, &bptr );
+
+  *bptr = NULL;
+  return buf;
+}

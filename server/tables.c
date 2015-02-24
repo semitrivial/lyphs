@@ -31,6 +31,16 @@ void init_command_table(void)
   add_handler( "lyphedge", handle_lyphedge_request );
   add_handler( "lyphnode", handle_lyphnode_request );
   add_handler( "lyphview", handle_lyphview_request );
+  add_handler( "sublyphs", handle_sublyphs_request );
+  add_handler( "editedge", handle_editedge_request );
+  add_handler( "editlyph", handle_editlyph_request );
+  add_handler( "editview", handle_editview_request );
+  add_handler( "editlayer", handle_editlayer_request );
+  add_handler( "delete_edge", handle_delete_edge_request );
+  add_handler( "delete_node", handle_delete_node_request );
+  add_handler( "delete_lyph", handle_delete_lyph_request );
+  add_handler( "delete_view", handle_delete_view_request );
+  add_handler( "delete_layer", handle_delete_layer_request );
 }
 
 void add_handler( char *cmd, handle_function *fnc )

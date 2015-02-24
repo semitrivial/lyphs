@@ -1238,19 +1238,9 @@ HANDLER( handle_edgeconstrain_request )
 
 HANDLER( handle_assignlyph_request )
 {
-  lyphedge *e;
+  lyphedge **edges, **e;
   lyph *L;
   char *edgeid, *lyphid, *err;
-
-  edgeid = get_url_param( params, "edge" );
-
-  if ( !edgeid )
-    HND_ERR( "You did not specify an edge." );
-
-  e = lyphedge_by_id( edgeid );
-
-  if ( !e )
-    HND_ERR( "The database has no edge with that ID." );
 
   lyphid = get_url_param( params, "lyph" );
 
@@ -1262,20 +1252,43 @@ HANDLER( handle_assignlyph_request )
   if ( !L )
     HND_ERR( "The database has no edge with that ID." );
 
-  if ( !can_assign_lyph_to_edge( L, e, &err ) )
+  edgeid = get_url_param( params, "edge" );
+
+  if ( !edgeid )
+    HND_ERR( "You did not specify an edge." );
+
+  edges = lyphedges_by_ids( edgeid, &err );
+
+  if ( !edges )
   {
     if ( err )
     {
-      HND_ERR( err );
+      HND_ERR_NORETURN( err );
       free( err );
+      return;
     }
     else
-      HND_ERR( "That lyph cannot be assigned to that edge." );
-
-    return;
+      HND_ERR( "The database has no edge with that ID." );
   }
 
-  e->lyph = L;
+  for ( e = edges; *e; e++ )
+  {
+    if ( !can_assign_lyph_to_edge( L, *e, &err ) )
+    {
+      if ( err )
+      {
+        HND_ERR( err );
+        free( err );
+      }
+      else
+        HND_ERR( "That lyph cannot be assigned to that edge." );
+
+      return;
+    }
+  }
+
+  for ( e = edges; *e; e++ )
+    (*e)->lyph = L;
 
   save_lyphedges();
 
@@ -1521,6 +1534,28 @@ HANDLER( handle_all_lyphviews_request )
   send_200_response( req, JS_ARRAY( lyphview_to_json, v ) );
 
   free( v );
+}
+
+HANDLER( handle_sublyphs_request )
+{
+  lyph *L, **subs;
+  char *lyphstr;
+
+  lyphstr = get_url_param( params, "lyph" );
+
+  if ( !lyphstr )
+    HND_ERR( "You did not specify a lyph" );
+
+  L = lyph_by_id( lyphstr );
+
+  if ( !L )
+    HND_ERR( "The indicated lyph was not found in the database" );
+
+  subs = get_sublyphs( L );
+
+  send_200_response( req, JS_ARRAY( lyph_to_json, subs ) );
+
+  free( subs );
 }
 
 HANDLER( handle_all_lyphnodes_request )

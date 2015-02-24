@@ -1570,6 +1570,50 @@ lyphedge *lyphedge_by_id( char *id )
   return NULL;
 }
 
+lyphedge **lyphedges_by_ids( char *ids, char **err )
+{
+  lyphedge **buf, **bptr, *e;
+  char *left, *ptr;
+  int commas = count_commas( ids ), fEnd = 0;
+
+  CREATE( buf, lyphedge *, commas + 2 );
+  bptr = buf;
+
+  left = ids;
+  for ( ptr = ids; ; ptr++ )
+  {
+    switch ( *ptr )
+    {
+      case '\0':
+        fEnd = 1;
+      case ',':
+        *ptr = '\0';
+        e = lyphedge_by_id( left );
+
+        if ( !e )
+        {
+          free( buf );
+          *err = strdupf( "No lyphedge with id '%s'", left );
+          return NULL;
+        }
+
+        *bptr++ = e;
+
+        if ( fEnd )
+        {
+          *bptr = NULL;
+          return buf;
+        }
+
+        left = &ptr[1];
+        break;
+
+      default:
+        break;
+    }
+  }
+}
+
 char *lyph_to_json( lyph *L )
 {
   return JSON

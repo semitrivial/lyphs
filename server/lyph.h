@@ -284,6 +284,7 @@ void json_gc( void );
 size_t voidlen( void **x );
 char *constraints_comma_list( lyph **constraints );
 int copy_file( char *dest_ch, char *src_ch );
+int count_commas( char *str );
 
 /*
  * ucl.c
@@ -303,6 +304,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
 void compute_lyph_hierarchy_one_lyph( lyph *L );
 void add_lyph_as_super( lyph *sup, trie *t );
 int is_superlyph( lyph *sup, lyph *sub );
+lyph **get_sublyphs( lyph *L );
 
 /*
  * lyph.c
@@ -324,6 +326,7 @@ layer *layer_by_description_recurse( const lyph *L, const float thickness, const
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyphedge *lyphedge_by_id( char *id );
+lyphedge **lyphedges_by_ids( char *ids, char **err );
 trie *assign_new_layer_id( layer *lyr );
 lyph *lyph_by_layers( int type, layer **layers, char *name );
 lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t );

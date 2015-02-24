@@ -333,3 +333,15 @@ int copy_file( char *dest_ch, char *src_ch )
   fclose( src );
   return 1;
 }
+
+int count_commas( char *str )
+{
+  char *ptr;
+  int commas = 0;
+
+  for ( ptr = str; *ptr; ptr++ )
+    if ( *ptr == ',' )
+      commas++;
+
+  return commas;
+}

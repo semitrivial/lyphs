@@ -135,14 +135,14 @@ function ajax_run(inputbox)
         alert("You can't do 'lyph along path' and 'constrain along path' in the same command");
         return;
       }
-      query = '/lyph_along_path/';
+      query = '/lyph_along_path/?lyph=' + g('lyph_along_path_box').value;
     }
     else if ( g('constrain_along_path_box').value !== "" )
-      query = '/constrain_along_path/';
+      query = '/constrain_along_path/?lyph=' + g('constrain_along_path_box').value;
     else
-      query = '/lyphpath/';
+      query = '/lyphpath/?';
 
-    query += '?from='+encodeURIComponent(g('frombox').value)+'&to='+encodeURIComponent(g('tobox').value);
+    query += '&from='+encodeURIComponent(g('frombox').value)+'&to='+encodeURIComponent(g('tobox').value);
 
     var filter = g('filterbox').value.trim();
     if ( filter != "" )
