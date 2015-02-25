@@ -80,6 +80,50 @@ function ajax_run(inputbox)
     handle_parsed_data = assign_lyph_response_handler;
     g('assign_lyph_response_div').innerHTML = "";
   }
+  else if ( inputbox === 'editedge' )
+  {
+    query = '/editedge/';
+    query = add_param( query, 'edge', 'editedge_edge' );
+    query = add_param( query, 'name', 'editedge_name' );
+    query = add_param( query, 'type', 'editedge_type' );
+    query = add_param( query, 'from', 'editedge_from' );
+    query = add_param( query, 'to', 'editedge_to' );
+    query = add_param( query, 'lyph', 'editedge_lyph' );
+    query = add_param( query, 'constraint', 'editedge_constraint' );
+    query = add_param( query, 'fma', 'editedge_fma' );
+    handle_parsed_data = editedge_response_handler;
+    g('editedge_response').innerHTML = "";
+    use_raw_response = true;
+  }
+  else if ( inputbox === 'editlyph' )
+  {
+    query = '/editlyph/';
+    query = add_param( query, 'lyph', 'editlyph_lyph' );
+    query = add_param( query, 'type', 'editlyph_type' );
+    query = add_param( query, 'ont', 'editlyph_ont' );
+    handle_parsed_data = editlyph_response_handler;
+    g('editlyph_response').innerHTML = "";
+    use_raw_response = true;
+  }
+  else if ( inputbox === 'editview' )
+  {
+    query = '/editview/';
+    query = add_param( query, 'view', 'editview_view' );
+    query = add_param( query, 'name', 'editview_name' );
+    handle_parsed_data = editview_response_handler;
+    g('editview_response').innerHTML = "";
+    use_raw_response = true;
+  }
+  else if ( inputbox === 'editlayer' )
+  {
+    query = '/editlayer/';
+    query = add_param( query, 'layer', 'editlayer_layer' );
+    query = add_param( query, 'material', 'editlayer_material' );
+    query = add_param( query, 'thickness', 'editlayer_thickness' );
+    handle_parsed_data = editlayer_response_handler;
+    g('editview_response').innerHTML = "";
+    use_raw_response = true;
+  }
   else if ( inputbox === 'lyph_adder' )
   {
     var proposedname = g('lyphname').value.trim();
@@ -244,6 +288,42 @@ function material_to_palette( x )
   g('palette_list').innerHTML = palette;
 }
 
+function add_param( query, pname, locname )
+{
+  var loc = g(locname);
+  var prefix;
+
+  if ( loc === null || loc.value.trim() === "" )
+    return query;
+
+  if ( query.contains("?") )
+    prefix = "&";
+  else
+    prefix = "?";
+
+  return prefix + "pname=" + encodeURIComponent( loc.value.trim() );
+}
+
+function editedge_response_handler( x )
+{
+  g('editedge_response').innerHTML = addpre(x);
+}
+
+function editlyph_response_handler( x )
+{
+  g('editlyph_response').innerHTML = addpre(x);
+}
+
+function editview_response_handler( x )
+{
+  g('editview_response').innerHTML = addpre(x);
+}
+
+function editlayer_response_handler( x )
+{
+  g('editlayer_response').innerHTML = addpre(x);
+}
+
 function edge_constrain_response_handler( x )
 {
   if ( x.hasOwnProperty( "Error" ) )
@@ -360,4 +440,9 @@ function menuclick(x)
   {
     $("."+x+"_area").show(500);
   });  
+}
+
+function addpre(x)
+{
+  return "<pre>"+x+"</pre>"
 }

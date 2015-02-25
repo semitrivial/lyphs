@@ -35,6 +35,76 @@
           </p>
         </div>
 
+        <div class='area edit_commands_area' style='display:none'>
+          <h2>Edit something in the database...</h2>
+          <ul>
+            <li>
+              &raquo; <a href='javascript:void(0)' onclick='menuclick("editedge_form")'>Edit an edge</a>
+            </li>
+            <li>
+              &raquo; <a href='javascript:void(0)' onclick='menuclick("editlyph_form")'>Edit a lyph</a>
+            </li>
+            <li>
+              &raquo; <a href='javascript:void(0)' onclick='menuclick("editview_form")'>Edit a view</a>
+            </li>
+            <li>
+              &raquo; <a href='javascript:void(0)' onclick='menuclick("editlayer_form")'>Edit a layer</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class='area editedge_form_area' style='display:none'>
+          <h2>Edit a lyphedge</h2>
+          <hr>
+          <input id='editedge_edge' placeholder='Which edge?' style='width:100%'>
+          <input id='editedge_name' placeholder='(Optional) Name' style='width:100%'>
+          <input id='editedge_type' placeholder='(Optional) Type' style='width:100%'>
+          <input id='editedge_from' placeholder='(Optional) From' style='width:100%'>
+          <input id='editedge_to' placeholder='(Optional) To' style='width:100%'>
+          <input id='editedge_lyph' placeholder='(Optional) Lyph' style='width:100%'>
+          <input id='editedge_constraint' placeholder='(Optional) Constraint' style='width:100%'>
+          <input id='editedge_fma' placeholder='(Optional) Ontology term' style='width:100%'>
+          <button onclick='inputkey(13,"editedge")' style='width:100%'>Edit</button>
+          <hr>
+          <div id='editedge_results'>
+          </div>
+        </div>
+
+        <div class='area editlyph_form_area' style='display:none'>
+          <h2>Edit a lyph</h2>
+          <hr>
+          <input id='editlyph_lyph' placeholder='Which lyph?' style='width:100%'>
+          <input id='editlyph_type' placeholder='(Optional) Type' style='width:100%'>
+          <input id='editlyph_ont' placeholder='(Optional) Ontology term' style='width:100%'>
+          <button onclick='inputkey(13,"editlyph")' style='width:100%'>Edit</button>
+          <hr>
+          <div id='editlyph_results'>
+          </div>
+        </div>
+
+        <div class='area editview_form_area' style='display:none'>
+          <h2>Edit a view</h2>
+          <hr>
+          <input id='editview_view' placeholder='Which view?' style='width:100%'>
+          <input id='editview_name' placeholder='(Optional) Name' style='width:100%'>
+          <button onclick='inputkey(13,"editview")' style='width:100%'>Edit</button>
+          <hr>
+          <div id='editview_results'>
+          </div>
+        </div>
+
+        <div class='area editlayer_form_area' style='display:none'>
+          <h2>Edit a layer</h2>
+          <hr>
+          <input id='editlayer_layer' placeholder='Which layer?' style='width:100%'>
+          <input id='editlayer_material' placeholder='(Optional) Material' style='width:100%'>
+          <input id='editlayer_thickness' placeholder='(Optional) thickness' style='width:100%'>
+          <button onclick='inputkey(13,"editlayer")' style='width:100%'>Edit</button>
+          <hr>
+          <div id='editlayer_results'>
+          </div>
+        </div>
+
         <div class='area view_allers_area' style='display:none'>
           <h2>View all...</h2>
           <p>
@@ -197,6 +267,10 @@
             <li>
               &raquo;
               <a href='javascript:void(0)' onclick='menuclick("view_allers")'>View all...</a>
+            </li>
+            <li>
+              &raquo;
+              <a href='javascript:void(0)' onclick='menuclick("edit_commands")'>Edit...</a>
             </li>
             <li>
               &raquo;
