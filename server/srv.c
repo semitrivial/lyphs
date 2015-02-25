@@ -132,6 +132,8 @@ void main_loop( void )
 
       count++;
 
+      printf( "Got request:\n%s\n\n", req->query );
+
       if ( !strcmp( req->query, "gui" )
       ||   !strcmp( req->query, "/gui" )
       ||   !strcmp( req->query, "gui/" )
