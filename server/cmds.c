@@ -267,13 +267,7 @@ HANDLER( handle_editlyph_request )
   }
 
   if ( fQualitativeChange )
-  {
-    remove_lyph_as_super( L, lyph_ids );
-    free( L->supers );
-    L->supers = NULL;
-    compute_lyph_hierarchy_one_lyph( L );
-    add_lyph_as_super( L, lyph_ids );
-  }
+    recalculate_lyph_hierarchy();
 
   save_lyphs();
 
@@ -312,7 +306,63 @@ HANDLER( handle_editview_request )
 
 HANDLER( handle_editlayer_request )
 {
-  send_200_response( req, "This command is under construction." );
+  layer *lyr;
+  lyph *mat;
+  char *lyrstr, *matstr, *thkstr;
+  int thk, fQualitativeChange = 0;
+
+  lyrstr = get_url_param( params, "layer" );
+
+  if ( !lyrstr )
+    HND_ERR( "You did not indicate which layer to edit" );
+
+  lyr = layer_by_id( lyrstr );
+
+  if ( !lyr )
+    HND_ERR( "The indicated layer was not found in the database" );
+
+  matstr = get_url_param( params, "material" );
+
+  if ( matstr )
+  {
+    mat = lyph_by_id( matstr );
+
+    if ( !mat )
+      HND_ERR( "The indicated material was not found in the database" );
+  }
+  else
+    mat = NULL;
+
+  thkstr = get_url_param( params, "thickness" );
+
+  if ( thkstr )
+  {
+    thk = strtol( thkstr, NULL, 10 );
+
+    if ( thk < 1 )
+      HND_ERR( "Thickness must be a positive integer" );
+  }
+  else
+    thk = -1;
+
+  if ( mat )
+  {
+    fQualitativeChange = 1;
+    lyr->material = mat;
+  }
+
+  if ( thk != -1 )
+  {
+    fQualitativeChange = 1;
+    lyr->thickness = thk;
+  }
+
+  if ( fQualitativeChange )
+    recalculate_lyph_hierarchy();
+
+  save_lyphs();
+
+  send_200_response( req, layer_to_json( lyr ) );
 }
 
 HANDLER( handle_delete_edge_request )

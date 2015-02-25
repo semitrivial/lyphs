@@ -307,6 +307,7 @@ void add_lyph_as_super( lyph *sup, trie *t );
 int is_superlyph( lyph *sup, lyph *sub );
 lyph **get_sublyphs( lyph *L, int direct );
 void remove_lyph_as_super( lyph *L, trie *t );
+void recalculate_lyph_hierarchy( void );
 
 /*
  * lyph.c
