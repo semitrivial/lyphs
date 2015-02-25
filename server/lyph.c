@@ -13,7 +13,6 @@ lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, ly
 void maybe_update_top_id( int *top, char *idstr );
 trie *new_lyphnode_id(lyphnode *n);
 lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
-void lyphs_unset_bit( int bit, trie *t );
 lyph **parse_lyphedge_constraints( char *str );
 int edge_passes_filter( lyphedge *e, edge_filter *f );
 void save_lyphs(void);
@@ -2044,15 +2043,15 @@ void maybe_update_top_id( int *top, char *idstr )
     *top = id;
 }
 
-void lyphs_unset_bit( int bit, trie *t )
+void lyphs_unset_bits( int bits, trie *t )
 {
   if ( t->data )
   {
     lyph *L = (lyph *)t->data;
-    REMOVE_BIT( L->flags, bit );
+    REMOVE_BIT( L->flags, bits );
   }
 
-  TRIE_RECURSE( lyphs_unset_bit( bit, *child ) );
+  TRIE_RECURSE( lyphs_unset_bits( bits, *child ) );
 }
 
 /*

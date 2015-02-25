@@ -304,7 +304,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
 void compute_lyph_hierarchy_one_lyph( lyph *L );
 void add_lyph_as_super( lyph *sup, trie *t );
 int is_superlyph( lyph *sup, lyph *sub );
-lyph **get_sublyphs( lyph *L );
+lyph **get_sublyphs( lyph *L, int direct );
 
 /*
  * lyph.c
@@ -375,3 +375,4 @@ int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err );
 void free_all_views( void );
 void free_all_edges( void );
 void free_all_lyphs( void );
+void lyphs_unset_bits( int bits, trie *t );

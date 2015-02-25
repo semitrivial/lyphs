@@ -6,7 +6,6 @@ void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail )
 void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail );
 int is_superlayer( layer *sup, layer *sub );
 void get_next_lyph_hierarchy_level( lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t );
-char *hierarchy_member_to_json( lyph *L );
 int should_add_super_by_layers( lyph *sup, lyph *sub );
 
 void compute_lyph_hierarchy( trie *t )
@@ -108,19 +107,29 @@ void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapp
   TRIE_RECURSE( add_supers_by_layers( *child, sub, head, tail ) );
 }
 
+int ont_term_is_super( trie *sup, trie *sub )
+{
+  trie **super;
+
+  for ( super = sub->data; *super; super++ )
+  {
+    if ( *super == sup )
+      return 1;
+
+    if ( ont_term_is_super( sup, *super ) )
+      return 1;
+  }
+
+  return 0;
+}
+
 int should_add_super( lyph *sup, lyph *sub )
 {
   if ( sup == sub )
     return 0;
 
-  if ( sup->ont_term && sub->ont_term )
-  {
-    trie **parent;
-
-    for ( parent = sub->ont_term->data; *parent; parent++ )
-      if ( *parent == sup->ont_term )
-        return 1;
-  }
+  if ( sup->ont_term && sub->ont_term && ont_term_is_super( sup->ont_term, sub->ont_term ) )
+    return 1;
 
   return should_add_super_by_layers( sup, sub );
 }
@@ -209,107 +218,9 @@ int is_superlayer( layer *sup, layer *sub )
   return 0;
 }
 
-/*
- * Possible to-do: optimize this function
- */
-char *lyph_hierarchy_to_json( void )
-{
-  #define FOUND_IN_HIERARCHY 1
-  str_wrapper *first_level = NULL, *last_level = NULL, *lev, *lev_next;
-  char **levels, **lptr, *retval;
-  int levcnt = 0;
-
-  for ( ; ; )
-  {
-    lyph_wrapper *first_member = NULL, *last_member = NULL, *w, *w_next;
-    lyph **members, **mptr;
-    int cnt = 0;
-
-    get_next_lyph_hierarchy_level( &first_member, &last_member, &cnt, lyph_ids );
-
-    if ( !cnt )
-      break;
-
-    CREATE( members, lyph *, cnt + 1 );
-    mptr = members;
-
-    for ( w = first_member; w; w = w_next )
-    {
-      w_next = w->next;
-
-      *mptr++ = w->L;
-      SET_BIT( w->L->flags, FOUND_IN_HIERARCHY );
-      free( w );
-    }
-
-    *mptr = NULL;
-
-    CREATE( lev, str_wrapper, 1 );
-    lev->str = JS_ARRAY( hierarchy_member_to_json, members );
-
-    LINK2( lev, first_level, last_level, next, prev );
-    levcnt++;
-
-    free( members );
-  }
-
-  CREATE( levels, char *, levcnt + 1 );
-  lptr = levels;
-
-  for ( lev = first_level; lev; lev = lev_next )
-  {
-    lev_next = lev->next;
-
-    *lptr++ = lev->str;
-    free(lev);
-  }
-
-  *lptr = NULL;
-
-  retval = JS_ARRAY( str_to_json, levels );
-  free( levels );
-
-  lyphs_unset_bit( FOUND_IN_HIERARCHY, lyph_ids );
-
-  return JSON1( "levels": retval );
-}
-
-char *hierarchy_member_to_json( lyph *L )
-{
-  return JSON
-  (
-    "id": trie_to_json( L->id ),
-    "superclasses": JS_ARRAY( lyph_to_shallow_json, L->supers )
-  );
-}
-
 char *lyph_to_shallow_json( lyph *L )
 {
   return trie_to_json( L->id );
-}
-
-void get_next_lyph_hierarchy_level( lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
-{
-  if ( t->data )
-  {
-    lyph *L = (lyph *)t->data, **sup;
-    lyph_wrapper *w;
-
-    if ( IS_SET( L->flags, FOUND_IN_HIERARCHY ) )
-      goto get_next_lyph_hierarchy_level_escape;
-
-    for ( sup = L->supers; *sup; sup++ )
-      if ( !IS_SET( (*sup)->flags, FOUND_IN_HIERARCHY ) )
-        goto get_next_lyph_hierarchy_level_escape;
-
-    CREATE( w, lyph_wrapper, 1 );
-    w->L = L;
-    LINK( w, *head, *tail, next );
-    (*cnt)++;
-  }
-
-  get_next_lyph_hierarchy_level_escape:
-  TRIE_RECURSE( get_next_lyph_hierarchy_level( head, tail, cnt, *child ) );
 }
 
 /*
@@ -369,7 +280,51 @@ void get_sublyphs_recurse( lyph *L, trie *t, lyph ***bptr )
   TRIE_RECURSE( get_sublyphs_recurse( L, *child, bptr ) );
 }
 
-lyph **get_sublyphs( lyph *L )
+void get_direct_sublyphs_worker( lyph *L, lyph *sub, lyph ***bptr )
+{
+  #define GDSR_IS_DSUBLYPH 1
+  #define GDSR_ISNT_DSUBLYPH 2
+
+  if ( sub->flags )
+    return;
+
+  lyph **super;
+  int fMatch = 0;
+
+  for ( super = sub->supers; *super; super++ )
+  {
+    if ( *super == L )
+      fMatch = 1;
+    else if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPH ) )
+      break;
+    else if (!IS_SET( (*super)->flags, GDSR_ISNT_DSUBLYPH ) )
+    {
+      get_direct_sublyphs_worker( L, *super, bptr );
+
+      if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPH ) )
+        break;
+    }
+  }
+
+  if ( *super || !fMatch )
+    SET_BIT( sub->flags, GDSR_ISNT_DSUBLYPH );
+  else
+  {
+    SET_BIT( sub->flags, GDSR_IS_DSUBLYPH );
+    **bptr = sub;
+    (*bptr)++;
+  }
+}
+
+void get_direct_sublyphs_recurse( lyph *L, trie *t, lyph ***bptr )
+{
+  if ( t->data )
+    get_direct_sublyphs_worker( L, (lyph *)t->data, bptr );
+
+  TRIE_RECURSE( get_direct_sublyphs_recurse( L, *child, bptr ) );
+}
+
+lyph **get_sublyphs( lyph *L, int direct )
 {
   /*
    * To do: optimize this
@@ -379,8 +334,67 @@ lyph **get_sublyphs( lyph *L )
   CREATE( buf, lyph *, 1024 * 1024 );
   bptr = buf;
 
-  get_sublyphs_recurse( L, lyph_ids, &bptr );
+  if ( direct )
+  {
+    SET_BIT( L->flags, GDSR_ISNT_DSUBLYPH );
+    get_direct_sublyphs_recurse( L, lyph_ids, &bptr );
+    lyphs_unset_bits( GDSR_ISNT_DSUBLYPH | GDSR_IS_DSUBLYPH, lyph_ids );
+  }
+  else
+    get_sublyphs_recurse( L, lyph_ids, &bptr );
 
   *bptr = NULL;
   return buf;
+}
+
+void populate_superless( trie *t, lyph ***sptr )
+{
+  if ( t->data )
+  {
+    lyph *L = (lyph *)t->data;
+
+    if ( !*L->supers )
+    {
+      **sptr = L;
+      (*sptr)++;
+    }
+  }
+
+  TRIE_RECURSE( populate_superless( *child, sptr ) );
+}
+
+char *hierarchy_member_to_json( lyph *L )
+{
+  lyph **subs = get_sublyphs( L, 1 );
+  char *retval;
+
+  retval = JSON
+  (
+    "id": trie_to_json( L->id ),
+    "name": trie_to_json( L->name ),
+    "subclasses": JS_ARRAY( hierarchy_member_to_json, subs )
+  );
+
+  free( subs );
+  return retval;
+}
+
+char *lyph_hierarchy_to_json( void )
+{
+  lyph **superless, **sptr;
+  char *retval;
+
+  /*
+   * To do: Improve this next line
+   */
+  CREATE( superless, lyph *, 1024 * 1024 );
+  sptr = superless;
+
+  populate_superless( lyph_ids, &sptr );
+
+  retval = JS_ARRAY( hierarchy_member_to_json, superless );
+
+  free( superless );
+
+  return retval;
 }

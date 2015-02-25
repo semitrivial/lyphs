@@ -1541,7 +1541,8 @@ HANDLER( handle_all_lyphviews_request )
 HANDLER( handle_sublyphs_request )
 {
   lyph *L, **subs;
-  char *lyphstr;
+  char *lyphstr, *directstr;
+  int direct;
 
   lyphstr = get_url_param( params, "lyph" );
 
@@ -1553,7 +1554,21 @@ HANDLER( handle_sublyphs_request )
   if ( !L )
     HND_ERR( "The indicated lyph was not found in the database" );
 
-  subs = get_sublyphs( L );
+  directstr = get_url_param( params, "direct" );
+
+  if ( directstr )
+  {
+    if ( !strcmp( directstr, "yes" ) )
+      direct = 1;
+    else if ( !strcmp( directstr, "no" ) )
+      direct = 0;
+    else
+      HND_ERR( "The 'direct' parameter can be 'yes' or 'no'" );
+  }
+  else
+    direct = 0;
+
+  subs = get_sublyphs( L, direct );
 
   send_200_response( req, JS_ARRAY( lyph_to_json, subs ) );
 
