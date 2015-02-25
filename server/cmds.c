@@ -135,7 +135,7 @@ HANDLER( handle_editedge_request )
   }
 
   if ( fma )
-    e->fma = fma;    
+    e->fma = fma;
 
   if ( from )
   {
@@ -160,7 +160,7 @@ HANDLER( handle_editedge_request )
     free( e->from->exits );
     e->from->exits = xits;
 
-    e->from = from;        
+    e->from = from;
   }
 
   if ( to )
@@ -177,12 +177,107 @@ HANDLER( handle_editedge_request )
     e->to = to;
   }
 
+  save_lyphedges();
+
   send_200_response( req, lyphedge_to_json( e ) );
 }
 
 HANDLER( handle_editlyph_request )
 {
-  send_200_response( req, "This command is under construction." );
+  lyph *L;
+  trie *ont;
+  char *lyphstr, *namestr, *typestr, *ontstr;
+  int type, fQualitativeChange = 0;
+
+  lyphstr = get_url_param( params, "lyph" );
+
+  if ( !lyphstr )
+    HND_ERR( "You did not specify which lyph to edit" );
+
+  L = lyph_by_id( lyphstr );
+
+  if ( !L )
+    HND_ERR( "The specified lyph was not found in the database" );
+
+  namestr = get_url_param( params, "name" );
+
+  typestr = get_url_param( params, "type" );
+
+  if ( typestr )
+  {
+    if ( !strcmp( typestr, "basic" ) )
+    {
+      if ( L->type != LYPH_BASIC )
+        HND_ERR( "Currently, editing a non-basic lyph into type basic is not yet implemented" );
+
+      type = -1;
+    }
+    else if ( !strcmp( typestr, "mix" ) )
+    {
+      if ( L->type == LYPH_BASIC )
+        HND_ERR( "Currently, editing a basic lyph into type mix is not yet implemented" );
+
+      type = LYPH_MIX;
+    }
+    else if ( !strcmp( typestr, "shell" ) )
+    {
+      if ( L->type == LYPH_BASIC )
+        HND_ERR( "Currently, editing a basic lyph into type shell is not yet implemented" );
+
+      type = LYPH_SHELL;
+    }
+    else
+      HND_ERR( "Valid lyph types are 'basic', 'mix', and 'shell'" );
+  }
+  else
+    type = -1;
+
+  ontstr = get_url_param( params, "ont" );
+
+  if ( ontstr )
+  {
+    ont = trie_search( ontstr, superclasses );
+
+    if ( !ont )
+      HND_ERR( "The indicated ontology term was not found in the database" );
+
+    if ( lyph_by_ont_term( ont ) )
+      HND_ERR( "There is already a lyph with the indicated ontology term" );
+  }
+  else
+    ont = NULL;
+
+  if ( namestr )
+  {
+    L->name->data = NULL;
+    L->name = trie_strdup( namestr, lyph_names );
+    L->name->data = (trie **)L;
+  }
+
+  if ( type != -1 )
+  {
+    fQualitativeChange = 1;
+    L->type = type;
+  }
+
+  if ( ont )
+  {
+    fQualitativeChange = 1;
+    L->ont_term = ont;
+  }
+
+  if ( fQualitativeChange )
+  {
+    remove_lyph_as_super( L, lyph_ids );
+    free( L->supers );
+    L->supers = NULL;
+    compute_lyph_hierarchy_one_lyph( L );
+    add_lyph_as_super( L, lyph_ids );
+  }
+
+  save_lyphs();
+
+  send_200_response( req, lyph_to_json( L ) );
 }
 
 HANDLER( handle_editview_request )

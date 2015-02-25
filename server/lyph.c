@@ -15,7 +15,6 @@ trie *new_lyphnode_id(lyphnode *n);
 lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
 lyph **parse_lyphedge_constraints( char *str );
 int edge_passes_filter( lyphedge *e, edge_filter *f );
-void save_lyphs(void);
 
 int top_layer_id;
 int top_lyph_id;

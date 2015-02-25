@@ -398,3 +398,29 @@ char *lyph_hierarchy_to_json( void )
 
   return retval;
 }
+
+void remove_lyph_as_super( lyph *L, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *sub = (lyph *)t->data, **sup;
+
+    for ( sup = sub->supers; *sup; sup++ )
+    {
+      if ( *sup == L )
+      {
+        lyph **new_sup;
+        int pre = sup - sub->supers;
+        int post = VOIDLEN( &sup[1] );
+
+        CREATE( new_sup, lyph *, pre + post + 1 );
+        memcpy( new_sup, sub->supers, pre * sizeof(lyph*) );
+        memcpy( &new_sup[pre], &sup[1], post * sizeof(lyph*) );
+        new_sup[pre+post] = NULL;
+        break;
+      }
+    }
+  }
+
+  TRIE_RECURSE( remove_lyph_as_super( L, *child ) );
+}

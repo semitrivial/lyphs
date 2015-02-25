@@ -305,6 +305,7 @@ void compute_lyph_hierarchy_one_lyph( lyph *L );
 void add_lyph_as_super( lyph *sup, trie *t );
 int is_superlyph( lyph *sup, lyph *sub );
 lyph **get_sublyphs( lyph *L, int direct );
+void remove_lyph_as_super( lyph *L, trie *t );
 
 /*
  * lyph.c
@@ -376,3 +377,4 @@ void free_all_views( void );
 void free_all_edges( void );
 void free_all_lyphs( void );
 void lyphs_unset_bits( int bits, trie *t );
+void save_lyphs(void);
