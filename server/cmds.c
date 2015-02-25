@@ -282,7 +282,32 @@ HANDLER( handle_editlyph_request )
 
 HANDLER( handle_editview_request )
 {
-  send_200_response( req, "This command is under construction." );
+  char *viewstr, *namestr;
+  lyphview *v;
+
+  viewstr = get_url_param( params, "view" );
+
+  if ( !viewstr )
+    HND_ERR( "You did not specify which lyphview to edit" );
+
+  v = lyphview_by_id( viewstr );
+
+  if ( !v )
+    HND_ERR( "The indicated view was not found in the database" );
+
+  namestr = get_url_param( params, "name" );
+
+  if ( namestr )
+  {
+    if ( v->name )
+      free( v->name );
+
+    v->name = strdup( namestr );
+  }
+
+  save_lyphviews();
+
+  send_200_response( req, lyphview_to_json( v ) );
 }
 
 HANDLER( handle_editlayer_request )
