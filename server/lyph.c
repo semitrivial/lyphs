@@ -29,7 +29,7 @@ int top_view;
 int lyphnode_to_json_flags;
 int exit_to_json_flags;
 
-lyphview *create_new_view( lyphnode **nodes, char **coords )
+lyphview *create_new_view( lyphnode **nodes, char **coords, char *name )
 {
   lyphnode **inptr, **out;
   lyphview *v, **vbuf;
@@ -55,6 +55,7 @@ lyphview *create_new_view( lyphnode **nodes, char **coords )
   v->nodes = out;
   v->coords = coords_out;
   v->id = new_lyphview_id();
+  v->name = name;
 
   CREATE( vbuf, lyphview *, top_view + 3 );
   memcpy( vbuf, views, (top_view + 1) * sizeof(lyphview *) );
@@ -74,13 +75,16 @@ int new_lyphview_id(void)
   return top_view+1;
 }
 
-lyphview *search_duplicate_view( lyphnode **nodes, char **coords )
+lyphview *search_duplicate_view( lyphnode **nodes, char **coords, char *name )
 {
   lyphview **v;
 
   for ( v = views; *v; v++ )
   {
     if ( *v == &obsolete_lyphview )
+      continue;
+
+    if ( name && ( !(*v)->name || strcmp( (*v)->name, name ) ) )
       continue;
 
     if ( is_duplicate_view( *v, nodes, coords ) )
@@ -246,6 +250,7 @@ char *lyphview_to_json( lyphview *v )
   result = JSON
   (
     "id": int_to_json( v->id ),
+    "name": v->name,
     "nodes": JS_ARRAY( viewed_node_to_json, vn )
   );
 
@@ -301,6 +306,9 @@ void save_one_lyphview( lyphview *v, FILE *fp )
 
   for ( n = v->nodes; *n; n++ )
     ;
+
+  if ( v->name )
+    fprintf( fp, "Name %s\n", v->name );
 
   fprintf( fp, "Nodes %d\n", (int) (n - v->nodes) );
 
@@ -372,7 +380,7 @@ void load_lyphviews( void )
     init_default_lyphviews();
     fclose(fp);
     return;
-  }  
+  }
 
   top_view = cnt;
 
@@ -430,8 +438,18 @@ void load_lyphviews( void )
       v->id = id;
       v->nodes = NULL;
       v->coords = NULL;
+      v->name = NULL;
 
       views[id] = v;
+      continue;
+    }
+
+    if ( str_begins( buf, "Name " ) )
+    {
+      if ( v->name )
+        free( v->name );
+
+      v->name = strdup( &buf[strlen("Name ")] );
       continue;
     }
 

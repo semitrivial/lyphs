@@ -1075,7 +1075,7 @@ HANDLER( handle_makelyphedge_request )
 HANDLER( handle_makeview_request )
 {
   lyphnode **nodes, **nptr;
-  char **coords, **cptr, key[1024];
+  char **coords, **cptr, key[1024], *namestr;
   url_param **p;
   int param_cnt, i;
   lyphview *v;
@@ -1127,7 +1127,7 @@ HANDLER( handle_makeview_request )
     if ( !node )
     {
       char *errbuf = malloc( strlen(nodeid) + 1024 );
-      sprintf( errbuf, "{\"Error\": \"Node '%s' was not found in the database\"}", nodeid );
+      sprintf( errbuf, "Node '%s' was not found in the database", nodeid );
       HND_ERR_NORETURN( errbuf );
       free( errbuf );
       free( nodes );
@@ -1144,7 +1144,9 @@ HANDLER( handle_makeview_request )
   *cptr = NULL;
   *nptr = NULL;
 
-  v = search_duplicate_view( nodes, coords );
+  namestr = get_url_param( params, "name" );
+
+  v = search_duplicate_view( nodes, coords, namestr );
 
   if ( v )
   {
@@ -1155,7 +1157,7 @@ HANDLER( handle_makeview_request )
     return;
   }
 
-  v = create_new_view( nodes, coords );
+  v = create_new_view( nodes, coords, namestr ? strdup(namestr) : NULL );
 
   if ( !v )
     HND_ERR( "Could not create the view (out of memory?)" );

@@ -186,6 +186,7 @@ struct EDGE_FILTER
 struct LYPHVIEW
 {
   int id;
+  char *name;
   lyphnode **nodes;
   char **coords;
 };
@@ -363,8 +364,8 @@ void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
-lyphview *search_duplicate_view( lyphnode **nodes, char **coords );
-lyphview *create_new_view( lyphnode **nodes, char **coords );
+lyphview *search_duplicate_view( lyphnode **nodes, char **coords, char *name );
+lyphview *create_new_view( lyphnode **nodes, char **coords, char *name );
 lyphedge *make_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, char *fmastr, char *namestr );
 lyphnode *make_lyphnode( void );
 void compute_lyph_hierarchy( trie *t );
