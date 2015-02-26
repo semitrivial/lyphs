@@ -174,9 +174,9 @@ void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail )
 
       if ( *L->supers )
         add_lyphs_to_wrappers( L->supers, head, tail );
-
-      add_ont_term_parents( *parent, head, tail );
     }
+
+    add_ont_term_parents( *parent, head, tail );
   }
 }
 
