@@ -399,9 +399,10 @@ char *lyph_hierarchy_to_json( void )
 
   populate_superless( lyph_ids, &sptr );
 
-  retval = JSON1
+  retval = JSON
   (
-    "hierarchy": JS_ARRAY( hierarchy_member_to_json, superless )
+    "name": "Lyph Hierarchy",
+    "children": JS_ARRAY( hierarchy_member_to_json, superless )
   );
 
   free( superless );
