@@ -1114,22 +1114,37 @@ void load_layer_to_lld( char *bnode, char *obj_full )
   lld->layer_count++;
 }
 
+lyph *create_or_find_lyph( char *id )
+{
+  lyph *L = lyph_by_id( id );
+
+  if ( L )
+    return L;
+
+  CREATE( L, lyph, 1 );
+
+  L->id = trie_strdup( id, lyph_ids );
+  L->id->data = (void *)L;
+  L->type = LYPH_MISSING;
+  L->layers = NULL;
+  L->supers = NULL;
+  L->subs = NULL;
+  L->ont_term = NULL;
+  L->name = NULL;
+
+  return L;
+}
+
 void load_layer_material( char *subj_full, char *obj_full )
 {
   char *subj = get_url_shortform( subj_full );
   char *obj = get_url_shortform( obj_full );
   layer *lyr = layer_by_id( subj );
-  lyph *mat;
 
   if ( !lyr )
     return;
 
-  mat = lyph_by_id( obj );
-
-  if ( !mat )
-    return;
-
-  lyr->material = mat;
+  lyr->material = create_or_find_lyph( obj );
 }
 
 void load_layer_thickness( char *subj_full, char *obj )
