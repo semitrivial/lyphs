@@ -368,12 +368,19 @@ char *hierarchy_member_to_json( lyph *L )
   lyph **subs = get_sublyphs( L, 1 );
   char *retval;
 
-  retval = JSON
-  (
-    "id": trie_to_json( L->id ),
-    "name": trie_to_json( L->name ),
-    "subclasses": JS_ARRAY( hierarchy_member_to_json, subs )
-  );
+  if ( *subs )
+    retval = JSON
+    (
+      "id": trie_to_json( L->id ),
+      "name": trie_to_json( L->name ),
+      "children": JS_ARRAY( hierarchy_member_to_json, subs )
+    );
+  else
+    retval = JSON
+    (
+      "id": trie_to_json( L->id ),
+      "name": trie_to_json( L->name )
+    );
 
   free( subs );
   return retval;
@@ -392,7 +399,10 @@ char *lyph_hierarchy_to_json( void )
 
   populate_superless( lyph_ids, &sptr );
 
-  retval = JS_ARRAY( hierarchy_member_to_json, superless );
+  retval = JSON1
+  (
+    "hierarchy": JS_ARRAY( hierarchy_member_to_json, superless )
+  );
 
   free( superless );
 

@@ -54,7 +54,7 @@ HANDLER( handle_editedge_request )
   else
     fma = NULL;
 
-  constraintstr = get_url_param( params, "constraints" );
+  constraintstr = get_url_param( params, "constraint" );
 
   if ( constraintstr )
   {
@@ -236,12 +236,16 @@ HANDLER( handle_editlyph_request )
 
   if ( ontstr )
   {
+    lyph *rival;
+
     ont = trie_search( ontstr, superclasses );
 
     if ( !ont )
       HND_ERR( "The indicated ontology term was not found in the database" );
 
-    if ( lyph_by_ont_term( ont ) )
+    rival = lyph_by_ont_term( ont );
+
+    if ( rival && rival != L )
       HND_ERR( "There is already a lyph with the indicated ontology term" );
   }
   else
