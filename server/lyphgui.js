@@ -92,7 +92,7 @@ function ajax_run(inputbox)
     query = add_param( query, 'constraint', 'editedge_constraint' );
     query = add_param( query, 'fma', 'editedge_fma' );
     handle_parsed_data = editedge_response_handler;
-    g('editedge_response').innerHTML = "";
+    g('editedge_results').innerHTML = "";
     use_raw_response = true;
   }
   else if ( inputbox === 'editlyph' )
@@ -102,7 +102,7 @@ function ajax_run(inputbox)
     query = add_param( query, 'type', 'editlyph_type' );
     query = add_param( query, 'ont', 'editlyph_ont' );
     handle_parsed_data = editlyph_response_handler;
-    g('editlyph_response').innerHTML = "";
+    g('editlyph_results').innerHTML = "";
     use_raw_response = true;
   }
   else if ( inputbox === 'editview' )
@@ -111,7 +111,7 @@ function ajax_run(inputbox)
     query = add_param( query, 'view', 'editview_view' );
     query = add_param( query, 'name', 'editview_name' );
     handle_parsed_data = editview_response_handler;
-    g('editview_response').innerHTML = "";
+    g('editview_results').innerHTML = "";
     use_raw_response = true;
   }
   else if ( inputbox === 'editlayer' )
@@ -121,7 +121,7 @@ function ajax_run(inputbox)
     query = add_param( query, 'material', 'editlayer_material' );
     query = add_param( query, 'thickness', 'editlayer_thickness' );
     handle_parsed_data = editlayer_response_handler;
-    g('editview_response').innerHTML = "";
+    g('editview_results').innerHTML = "";
     use_raw_response = true;
   }
   else if ( inputbox === 'lyph_adder' )
@@ -306,22 +306,22 @@ function add_param( query, pname, locname )
 
 function editedge_response_handler( x )
 {
-  g('editedge_response').innerHTML = addpre(x);
+  g('editedge_results').innerHTML = addpre(x);
 }
 
 function editlyph_response_handler( x )
 {
-  g('editlyph_response').innerHTML = addpre(x);
+  g('editlyph_results').innerHTML = addpre(x);
 }
 
 function editview_response_handler( x )
 {
-  g('editview_response').innerHTML = addpre(x);
+  g('editview_results').innerHTML = addpre(x);
 }
 
 function editlayer_response_handler( x )
 {
-  g('editlayer_response').innerHTML = addpre(x);
+  g('editlayer_results').innerHTML = addpre(x);
 }
 
 function edge_constrain_response_handler( x )
