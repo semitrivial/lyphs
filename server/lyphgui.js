@@ -301,7 +301,7 @@ function add_param( query, pname, locname )
   else
     prefix = "?";
 
-  return query + prefix + "pname=" + encodeURIComponent( loc.value.trim() );
+  return query + prefix + name + "=" + encodeURIComponent( loc.value.trim() );
 }
 
 function editedge_response_handler( x )
