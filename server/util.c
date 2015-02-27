@@ -27,6 +27,31 @@ void log_stringf( char *fmt, ... )
   free( buf );
 }
 
+void to_logfile( char *fmt, ... )
+{
+  FILE *fp;
+  va_list args;
+  char *buf;
+
+  va_start( args, fmt );
+  buf = vstrdupf( fmt, args );
+  va_end( args );
+
+  printf( "%s\n", buf );
+
+  fp = fopen( LOG_FILE, "a" );
+
+  if ( !fp )
+    fprintf( stderr, "Warning: Could not open " LOG_FILE " for appending\n" );
+  else
+  {
+    fprintf( fp, "%s\n", buf );
+    fclose( fp );
+  }
+
+  free( buf );
+}
+
 void log_linenum( int linenum )
 {
     printf( "(Line %d)\n", linenum );

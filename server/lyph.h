@@ -16,6 +16,8 @@
 #define MAX_LYPHEDGE_LINE_LEN (MAX_IRI_LEN * 3)
 #define MAX_INT_LEN (strlen("-2147483647"))
 
+#define LOG_FILE "log.txt"
+
 /*
  * Typedefs
  */
@@ -271,6 +273,7 @@ int count_nontrivial_members( trie *t );
 void log_string( char *txt );
 void log_stringf( char *fmt, ... );
 void log_linenum( int linenum );
+void to_logfile( char *fmt, ... );
 char *html_encode( char *str );
 void init_html_codes( void );
 char *lowercaserize( char *x );
