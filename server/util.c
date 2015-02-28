@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 char **html_codes;
 int *html_code_lengths;
@@ -32,6 +33,7 @@ void to_logfile( char *fmt, ... )
   FILE *fp;
   va_list args;
   char *buf;
+  time_t curr_time;
 
   va_start( args, fmt );
   buf = vstrdupf( fmt, args );
@@ -45,7 +47,9 @@ void to_logfile( char *fmt, ... )
     fprintf( stderr, "Warning: Could not open " LOG_FILE " for appending\n" );
   else
   {
-    fprintf( fp, "%s\n", buf );
+    time(&curr_time);
+
+    fprintf( fp, "%s%s\n", ctime(&curr_time), buf );
     fclose( fp );
   }
 
