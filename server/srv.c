@@ -643,7 +643,12 @@ void send_200_response( http_request *req, char *txt )
 
 void send_200_with_type( http_request *req, char *txt, char *type )
 {
-  char *buf;
+  char *buf, *fmt;
+
+  fmt = json_format( txt, 2, NULL );
+
+  if ( fmt )
+    txt = fmt;
 
   /*
    * JSONP support
