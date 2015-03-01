@@ -1079,11 +1079,38 @@ HANDLER( handle_makelyphedge_request )
 
 HANDLER( handle_makeview_request )
 {
+  makeview_worker( request, req, params, 1 );
+}
+
+HANDLER( handle_nodes_to_view_request )
+{
+  makeview_worker( request, req, params, 0 );
+}
+
+/*
+ *  Makeview = 1:  makeview
+ *  Makeview = 0:  nodes_to_view
+ */
+void makeview_worker( char *request, http_request *req, url_param **params, int makeview )
+{
   lyphnode **nodes, **nptr;
   char **coords, **cptr, key[1024], *namestr;
   url_param **p;
-  int param_cnt, i;
+  int param_cnt, i, cnt;
   lyphview *v;
+
+  if ( !makeview )
+  {
+    char *viewstr = get_url_param( params, "view" );
+
+    if ( !viewstr )
+      HND_ERR( "You did not specify which view to add nodes to." );
+
+    v = lyphview_by_id( viewstr );
+
+    if ( !v )
+      HND_ERR( "The indicated view was not found in the database." );
+  }
 
   for ( p = params; *p; p++ )
     ;
@@ -1151,26 +1178,102 @@ HANDLER( handle_makeview_request )
 
   namestr = get_url_param( params, "name" );
 
-  v = search_duplicate_view( nodes, coords, namestr );
-
-  if ( v )
+  if ( makeview )
   {
-    free( nodes );
-    free( coords );
+    v = search_duplicate_view( nodes, coords, namestr );
 
-    send_200_response( req, lyphview_to_json( v ) );
+    if ( v )
+    {
+      free( nodes );
+      free( coords );
+
+      send_200_response( req, lyphview_to_json( v ) );
+      return;
+    }
+
+    v = create_new_view( nodes, coords, namestr ? strdup(namestr) : NULL );
+
+    if ( !v )
+      HND_ERR( "Could not create the view (out of memory?)" );
+    else
+      send_200_response( req, lyphview_to_json( v ) );
+
+    free( coords );
+    free( nodes );
+
     return;
   }
 
-  v = create_new_view( nodes, coords, namestr ? strdup(namestr) : NULL );
+  /*
+   * Remaining case is nodes_to_view
+   */
+  #define LYPHNODE_ALREADY_IN_VIEW 1
+  #define LYPHNODE_QUEUED_FOR_ADDING 2
 
-  if ( !v )
-    HND_ERR( "Could not create the view (out of memory?)" );
-  else
-    send_200_response( req, lyphview_to_json( v ) );
+  for ( nptr = v->nodes; *nptr; nptr++ )
+    SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
 
-  free( coords );
+  for ( nptr = nodes, cnt = 0; *nptr; nptr++ )
+  {
+    if ( IS_SET( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW )
+    ||   IS_SET( (*nptr)->flags, LYPHNODE_QUEUED_FOR_ADDING ) )
+      continue;
+
+    SET_BIT( (*nptr)->flags, LYPHNODE_QUEUED_FOR_ADDING );
+    cnt++;
+  }
+
+  if ( cnt )
+  {
+    lyphnode **buf, **bptr;
+    char **newc, **newcptr;
+    int oldlen = VOIDLEN( v->nodes );
+
+    CREATE( buf, lyphnode *, oldlen + cnt + 1 );
+    memcpy( buf, v->nodes, oldlen * sizeof(lyphnode *) );
+    bptr = &buf[oldlen];
+
+    CREATE( newc, char *, (oldlen + cnt) * 2 + 1 );
+    memcpy( newc, v->coords, oldlen * 2 * sizeof(char *) );
+    newcptr = &newc[oldlen*2];
+
+    for ( nptr = nodes, cptr = coords; *nptr; nptr++ )
+    {
+      if ( IS_SET( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW ) )
+      {
+        cptr += 2;
+        continue;
+      }
+
+      SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
+
+      *bptr++ = *nptr;
+      *newcptr++ = strdup( *cptr++ );
+      *newcptr++ = strdup( *cptr++ );
+    }
+
+    *bptr = NULL;
+    *newcptr = NULL;
+
+    free( v->nodes );
+    v->nodes = buf;
+    free( v->coords );
+    v->coords = newc;
+  }
+
+  for ( nptr = v->nodes; *nptr; nptr++ )
+  {
+    REMOVE_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
+    REMOVE_BIT( (*nptr)->flags, LYPHNODE_QUEUED_FOR_ADDING );
+  }
+
   free( nodes );
+  free( coords );
+
+  if ( cnt )
+    save_lyphviews();
+
+  send_200_response( req, lyphview_to_json( v ) );
 }
 
 HANDLER( handle_makelayer_request )

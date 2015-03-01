@@ -163,6 +163,7 @@ const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_requ
 void free_url_params( url_param **buf );
 char *get_url_param( url_param **params, char *key );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
+void makeview_worker( char *request, http_request *req, url_param **params, int makeview );
 
 /*
  * tables.c
@@ -178,6 +179,7 @@ HANDLER( handle_ucl_syntax_request );
 HANDLER( handle_makelayer_request );
 HANDLER( handle_makelyph_request );
 HANDLER( handle_makeview_request );
+HANDLER( handle_nodes_to_view_request );
 HANDLER( handle_makelyphnode_request );
 HANDLER( handle_makelyphedge_request );
 HANDLER( handle_lyph_request );
