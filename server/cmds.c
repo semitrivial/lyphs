@@ -439,7 +439,7 @@ HANDLER( handle_nodes_from_view_request )
   for ( nptr = n; *nptr; nptr++ )
     SET_BIT( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED );
 
-  for ( nptr = v->nodes, size=0, fMatch = 0; *nptr; nptr++ )
+  for ( nptr = v->nodes, size = 0, fMatch = 0; *nptr; nptr++ )
   {
     if ( IS_SET( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED ) )
       fMatch = 1;
@@ -447,7 +447,7 @@ HANDLER( handle_nodes_from_view_request )
       size++;
   }
 
-  if ( !fMatch || !size )
+  if ( !fMatch )
   {
     send_200_response( req, lyphview_to_json( v ) );
     goto nodes_from_view_cleanup;
