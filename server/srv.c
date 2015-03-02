@@ -1160,11 +1160,9 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     {
       char *errbuf = malloc( strlen(nodeid) + 1024 );
       sprintf( errbuf, "Node '%s' was not found in the database", nodeid );
-      HND_ERR_NORETURN( errbuf );
-      free( errbuf );
       free( nodes );
       free( coords );
-      return;
+      HND_ERR_FREE( errbuf );
     }
 
     *nptr++ = node;
@@ -1374,11 +1372,7 @@ HANDLER( handle_assignlyph_request )
   if ( !edges )
   {
     if ( err )
-    {
-      HND_ERR_NORETURN( err );
-      free( err );
-      return;
-    }
+      HND_ERR_FREE( err );
     else
       HND_ERR( "The database has no edge with that ID." );
   }
@@ -1459,10 +1453,8 @@ HANDLER( handle_makelyph_request )
       char *errmsg = malloc( strlen(lyrid) + 256 );
 
       sprintf( errmsg, "No layer with id '%s'", lyrid );
-      HND_ERR_NORETURN( errmsg );
 
-      free( errmsg );
-      return;
+      HND_ERR_FREE( errmsg );
     }
 
     *lptr++ = lyr;
@@ -1545,20 +1537,15 @@ HANDLER( handle_ucl_syntax_request )
 
   if ( !s )
   {
-    if ( err )
-    {
-      HND_ERR_NORETURN( err );
-      free( err );
-    }
-    else
-      HND_ERR_NORETURN( "Malformed UCL Syntax" );
-
     if ( head )
       free_ambigs( head );
     if ( maybe_err )
       free( maybe_err );
 
-    return;
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "Malformed UCL Syntax" );
   }
 
   output = ucl_syntax_output( s, head, tail, maybe_err );

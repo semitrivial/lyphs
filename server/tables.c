@@ -38,11 +38,11 @@ void init_command_table(void)
   add_handler( "editlyph", handle_editlyph_request );
   add_handler( "editview", handle_editview_request );
   add_handler( "editlayer", handle_editlayer_request );
-  add_handler( "delete_edge", handle_delete_edge_request );
-  add_handler( "delete_node", handle_delete_node_request );
-  add_handler( "delete_lyph", handle_delete_lyph_request );
-  add_handler( "delete_view", handle_delete_view_request );
-  add_handler( "delete_layer", handle_delete_layer_request );
+  add_handler( "delete_edges", handle_delete_edges_request );
+  add_handler( "delete_nodes", handle_delete_nodes_request );
+  add_handler( "delete_lyphs", handle_delete_lyphs_request );
+  add_handler( "delete_views", handle_delete_views_request );
+  add_handler( "delete_layers", handle_delete_layers_request );
 }
 
 void add_handler( char *cmd, handle_function *fnc )

@@ -63,6 +63,15 @@ do\
 }\
 while(0)
 
+#define HND_ERR_FREE( x )\
+do\
+{\
+  HND_ERR_NORETURN( x );\
+  free( x );\
+  return;\
+}\
+while(0)
+
 #define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
 
 /*
@@ -205,8 +214,8 @@ HANDLER( handle_editedge_request );
 HANDLER( handle_editlyph_request );
 HANDLER( handle_editview_request );
 HANDLER( handle_editlayer_request );
-HANDLER( handle_delete_edge_request );
-HANDLER( handle_delete_node_request );
-HANDLER( handle_delete_lyph_request );
-HANDLER( handle_delete_view_request );
-HANDLER( handle_delete_layer_request );
+HANDLER( handle_delete_edges_request );
+HANDLER( handle_delete_nodes_request );
+HANDLER( handle_delete_lyphs_request );
+HANDLER( handle_delete_views_request );
+HANDLER( handle_delete_layers_request );
