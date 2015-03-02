@@ -957,6 +957,8 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
         if ( f )
           free( f );
 
+        free( p );
+
         HND_ERR( err ? err : "One of the edges on the path could not be assigned the lyph, due to a constraint on it" );
       }
     }
@@ -968,6 +970,19 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   }
   else if ( along_path_type == ALONG_PATH_CONSTRAIN )
   {
+    for ( pptr = p; *pptr; pptr++ )
+    {
+      if ( (*pptr)->lyph && !is_superlyph( L, (*pptr)->lyph ) )
+      {
+        if ( f )
+          free( f );
+
+        free( p );
+
+        HND_ERR( "One of the edges on the path already has a lyph inconsistent with that constraint" );
+      }
+    }
+
     for ( pptr = p; *pptr; pptr++ )
     {
       lyphedge *e = *pptr;
@@ -1329,6 +1344,9 @@ HANDLER( handle_edgeconstrain_request )
   for ( c = e->constraints; *c; c++ )
     if ( *c == L )
       HND_ERR( "The edge in question already has the constraint in question." );
+
+  if ( e->lyph && !is_superlyph( L, e->lyph ) )
+    HND_ERR( "The edge in question already has a lyph that violates this constraint." );
 
   cnt = VOIDLEN( e->constraints );
   CREATE( c, lyph *, cnt + 2 );
