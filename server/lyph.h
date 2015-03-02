@@ -333,7 +333,6 @@ layer *layer_by_description_recurse( const lyph *L, const float thickness, const
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyphedge *lyphedge_by_id( char *id );
-lyphedge **lyphedges_by_ids( char *ids, char **err );
 trie *assign_new_layer_id( layer *lyr );
 lyph *lyph_by_layers( int type, layer **layers, char *name );
 lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t );

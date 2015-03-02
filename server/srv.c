@@ -1367,7 +1367,7 @@ HANDLER( handle_assignlyph_request )
   if ( !edgeid )
     HND_ERR( "You did not specify an edge." );
 
-  edges = lyphedges_by_ids( edgeid, &err );
+  edges = (lyphedge **) PARSE_LIST( edgeid, lyphedge_by_id, "edge", &err );
 
   if ( !edges )
   {
