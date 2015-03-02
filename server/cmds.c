@@ -393,3 +393,108 @@ HANDLER( handle_delete_layer_request )
 {
   send_200_response( req, "This command is under construction." );
 }
+
+HANDLER( handle_nodes_from_view_request )
+{
+  char *viewstr, *nodestr, *err = NULL, **newc, **newcptr, **cptr;
+  lyphview *v;
+  lyphnode **n, **nptr, **newn, **newnptr;
+  int size, fMatch;
+
+  viewstr = get_url_param( params, "view" );
+
+  if ( !viewstr )
+    HND_ERR( "You did not specify which view to remove nodes from" );
+
+  v = lyphview_by_id( viewstr );
+
+  if ( !v )
+    HND_ERR( "The indicated lyphview was not found in the database" );
+
+  nodestr = get_url_param( params, "nodes" );
+
+  if ( !nodestr )
+  {
+    nodestr = get_url_param( params, "node" );
+
+    if ( !nodestr )
+      HND_ERR( "You did not specify which nodes to remove from the view" );
+  }
+
+  n = (lyphnode **) PARSE_LIST( nodestr, lyphnode_by_id, "node", &err );
+
+  if ( !n )
+  {
+    if ( err )
+    {
+      HND_ERR_NORETURN( err );
+      free( err );
+      return;
+    }
+    HND_ERR( "One of the indicated nodes could not be found in the database" );
+  }
+
+  #define LYPHNODE_TO_BE_REMOVED 1
+
+  for ( nptr = n; *nptr; nptr++ )
+    SET_BIT( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED );
+
+  for ( nptr = v->nodes, size=0, fMatch = 0; *nptr; nptr++ )
+  {
+    if ( IS_SET( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED ) )
+      fMatch = 1;
+    else
+      size++;
+  }
+
+  if ( !fMatch || !size )
+  {
+    send_200_response( req, lyphview_to_json( v ) );
+    goto nodes_from_view_cleanup;
+  }
+
+  if ( !size )
+  {
+    HND_ERR_NORETURN( "Could not remove indicated nodes: the view would become empty!" );
+    goto nodes_from_view_cleanup;
+  }
+
+  CREATE( newn, lyphnode *, size + 1 );
+  newnptr = newn;
+  CREATE( newc, char *, (size*2) + 1 );
+  newcptr = newc;
+
+  for ( nptr = v->nodes, cptr = v->coords; *nptr; nptr++ )
+  {
+    if ( IS_SET( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED ) )
+    {
+      free( *cptr++ );
+      free( *cptr++ );
+    }
+    else
+    {
+      *newnptr++ = *nptr;
+      *newcptr++ = *cptr++;
+      *newcptr++ = *cptr++;
+    }
+  }
+
+  *newcptr = NULL;
+  *newnptr = NULL;
+
+  free( v->nodes );
+  v->nodes = newn;
+  free( v->coords );
+  v->coords = newc;
+
+  send_200_response( req, lyphview_to_json( v ) );
+
+  nodes_from_view_cleanup:
+
+  for ( nptr = n; *nptr; nptr++ )
+    REMOVE_BIT( (*nptr)->flags, LYPHNODE_TO_BE_REMOVED );
+
+  free( n );
+
+  #undef LYPHNODE_TO_BE_REMOVED
+}

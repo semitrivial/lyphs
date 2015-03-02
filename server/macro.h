@@ -188,4 +188,6 @@ while(0)
 
 #define EXIT() do exit(EXIT_SUCCESS); while(0)
 
+#define PARSE_LIST( list, fnc, name, err ) parse_list( (list), (char * (*) (void*))(fnc), (name), (err) )
+
 #endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD

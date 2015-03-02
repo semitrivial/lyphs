@@ -374,3 +374,51 @@ int count_commas( char *str )
 
   return commas;
 }
+
+void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
+{
+  void **buf, **bptr;
+  char *left, *ptr;
+  int commas = 0, fEnd = 0;
+
+  for ( ptr = list; *ptr; ptr++ )
+    if ( *ptr == ',' )
+      commas++;
+
+  CREATE( buf, void *, commas + 2 );
+  bptr = buf;
+
+  for ( ptr = list, left = list; ; ptr++ )
+  {
+    switch( *ptr )
+    {
+      case '\0':
+        fEnd = 1;
+      case ',':
+        *ptr = '\0';
+        *bptr = (*fnc) (left);
+
+        if ( !*bptr )
+        {
+          free( buf );
+
+          if ( err )
+            *err = strdupf( "There was no %s with id '%s' in the database", name, left );
+
+          return NULL;
+        }
+
+        bptr++;
+
+        if ( fEnd )
+        {
+          *bptr = NULL;
+          return buf;
+        }
+
+        left = &ptr[1];
+      default:
+        break;
+    }
+  }
+}

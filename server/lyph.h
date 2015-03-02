@@ -289,6 +289,7 @@ size_t voidlen( void **x );
 char *constraints_comma_list( lyph **constraints );
 int copy_file( char *dest_ch, char *src_ch );
 int count_commas( char *str );
+void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err );
 
 /*
  * ucl.c
