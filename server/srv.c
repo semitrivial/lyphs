@@ -1399,11 +1399,10 @@ HANDLER( handle_assignlyph_request )
   {
     if ( !can_assign_lyph_to_edge( L, *e, &err ) )
     {
+      free( edges );
+
       if ( err )
-      {
-        HND_ERR( err );
-        free( err );
-      }
+        HND_ERR_FREE( err );
       else
         HND_ERR( "That lyph cannot be assigned to that edge." );
 
@@ -1413,6 +1412,8 @@ HANDLER( handle_assignlyph_request )
 
   for ( e = edges; *e; e++ )
     (*e)->lyph = L;
+
+  free( edges );
 
   save_lyphedges();
 

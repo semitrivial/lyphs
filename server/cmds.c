@@ -876,8 +876,12 @@ HANDLER( handle_delete_layers_request )
   }
 
   for ( lyrptr = lyr; *lyrptr; lyrptr++ )
+  {
     if ( (*lyrptr)->thickness == LAYER_BEING_DELETED_THICKNESS )
       *lyrptr = &dupe;
+    else
+      (*lyrptr)->thickness = LAYER_BEING_DELETED_THICKNESS;
+  }
 
   free( lyr );
 
@@ -886,13 +890,13 @@ HANDLER( handle_delete_layers_request )
   while ( spread_lyphdoom( lyph_ids ) )
     ;
 
+  if ( remove_doomed_lyphs_from_edges( lyphedge_ids ) )
+    save_lyphedges();
+
   delete_doomed_layers( layer_ids );
   delete_doomed_lyphs( lyph_ids );
 
   save_lyphs();
-
-  if ( remove_doomed_lyphs_from_edges( lyphedge_ids ) )
-    save_lyphedges();
 
   recalculate_lyph_hierarchy();
 
