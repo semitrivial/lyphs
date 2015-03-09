@@ -13,7 +13,7 @@ void init_labels(FILE *fp)
   lyphplate_names = blank_trie();
   lyphplate_ids = blank_trie();
   layer_ids = blank_trie();
-  lyph_ids = blank_trie();
+  lyphnode_ids = blank_trie();
   lyph_ids = blank_trie();
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
