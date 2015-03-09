@@ -1,37 +1,37 @@
 #include "lyph.h"
 #include "srv.h"
 
-HANDLER( handle_editedge_request )
+HANDLER( handle_editlyph_request )
 {
-  char *edgeid, *lyphid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr;
+  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr;
   char *err = NULL;
-  lyphedge *e;
+  lyph *e;
   lyphnode *from, *to;
-  lyph *L, *constraint;
+  lyphplate *L, *constraint;
   trie *fma;
   int type;
 
-  edgeid = get_url_param( params, "edge" );
-
-  if ( !edgeid )
-    HND_ERR( "You did not specify which edge to edit." );
-
-  e = lyphedge_by_id( edgeid );
-
-  if ( !e )
-    HND_ERR( "The specified edge was not found in the database." );
-
   lyphid = get_url_param( params, "lyph" );
 
-  if ( lyphid )
+  if ( !lyphid )
+    HND_ERR( "You did not specify which lyph to edit." );
+
+  e = lyph_by_id( lyphid );
+
+  if ( !e )
+    HND_ERR( "The specified lyph was not found in the database." );
+
+  tmpltid = get_url_param( params, "template" );
+
+  if ( tmpltid )
   {
-    L = lyph_by_id( lyphid );
+    L = lyphplate_by_id( tmpltid );
 
     if ( !L )
-      HND_ERR( "The indicated lyph was not found in the database." );
+      HND_ERR( "The indicated template was not found in the database." );
 
-    if ( !can_assign_lyph_to_edge( L, e, &err ) )
-      HND_ERR( err ? err : "The indicated lyph could not be assigned to the indicated edge." );
+    if ( !can_assign_lyphplate_to_lyph( L, e, &err ) )
+      HND_ERR( err ? err : "The indicated template could not be assigned to the indicated lyph." );
   }
   else
     L = NULL;
@@ -50,7 +50,7 @@ HANDLER( handle_editedge_request )
   fmastr = get_url_param( params, "fma" );
 
   if ( fmastr )
-    fma = trie_strdup( fmastr, lyphedge_fmas );
+    fma = trie_strdup( fmastr, lyph_fmas );
   else
     fma = NULL;
 
@@ -58,7 +58,7 @@ HANDLER( handle_editedge_request )
 
   if ( constraintstr )
   {
-    constraint = lyph_by_id( constraintstr );
+    constraint = lyphplate_by_id( constraintstr );
 
     if ( !constraint )
       HND_ERR( "The indicated constraint was not found in the database." );
@@ -92,26 +92,26 @@ HANDLER( handle_editedge_request )
 
   if ( L && constraint )
   {
-    if ( !is_superlyph( constraint, L ) )
-      HND_ERR( "The indicated lyph is not a sublyph of the indicated constraint" );
+    if ( !is_superlyphplate( constraint, L ) )
+      HND_ERR( "The indicated template is not a subtemplate of the indicated constraint" );
   }
   else if ( L )
   {
-    lyph **c;
+    lyphplate **c;
 
     for ( c = e->constraints; *c; c++ )
-      if ( !is_superlyph( *c, L ) )
-        HND_ERR( "The indicated lyph is ruled out by one of the edge's constraints" );
+      if ( !is_superlyphplate( *c, L ) )
+        HND_ERR( "The indicated template is ruled out by one of the lyph's constraints" );
   }
   else if ( constraint )
   {
-    if ( e->lyph && !is_superlyph( constraint, e->lyph ) )
-      HND_ERR( "The edge's lyph is not a sublyph of the indicated constraint" );
+    if ( e->lyphplate && !is_superlyphplate( constraint, e->lyphplate ) )
+      HND_ERR( "The lyph's template is not a subtemplate of the indicated constraint" );
   }
 
   if ( namestr )
   {
-    trie *name = trie_strdup( namestr, lyphedge_names );
+    trie *name = trie_strdup( namestr, lyph_names );
 
     if ( e->name )
       e->name->data = NULL;
@@ -124,12 +124,12 @@ HANDLER( handle_editedge_request )
     e->type = type;
 
   if ( L )
-    e->lyph = L;
+    e->lyphplate = L;
 
   if ( constraint )
   {
     free( e->constraints );
-    CREATE( e->constraints, lyph *, 2 );
+    CREATE( e->constraints, lyphplate *, 2 );
     e->constraints[0] = constraint;
     e->constraints[1] = NULL;
   }
@@ -177,27 +177,27 @@ HANDLER( handle_editedge_request )
     e->to = to;
   }
 
-  save_lyphedges();
+  save_lyphs();
 
-  send_200_response( req, lyphedge_to_json( e ) );
+  send_200_response( req, lyph_to_json( e ) );
 }
 
-HANDLER( handle_editlyph_request )
+HANDLER( handle_edit_template_request )
 {
-  lyph *L;
+  lyphplate *L;
   trie *ont;
-  char *lyphstr, *namestr, *typestr, *ontstr;
+  char *tmpltstr, *namestr, *typestr, *ontstr;
   int type, fQualitativeChange = 0;
 
-  lyphstr = get_url_param( params, "lyph" );
+  tmpltstr = get_url_param( params, "template" );
 
-  if ( !lyphstr )
-    HND_ERR( "You did not specify which lyph to edit" );
+  if ( !tmpltstr )
+    HND_ERR( "You did not specify which template to edit" );
 
-  L = lyph_by_id( lyphstr );
+  L = lyphplate_by_id( tmpltstr );
 
   if ( !L )
-    HND_ERR( "The specified lyph was not found in the database" );
+    HND_ERR( "The specified template was not found in the database" );
 
   namestr = get_url_param( params, "name" );
 
@@ -207,27 +207,27 @@ HANDLER( handle_editlyph_request )
   {
     if ( !strcmp( typestr, "basic" ) )
     {
-      if ( L->type != LYPH_BASIC )
-        HND_ERR( "Currently, editing a non-basic lyph into type basic is not yet implemented" );
+      if ( L->type != LYPHPLATE_BASIC )
+        HND_ERR( "Currently, editing a non-basic template into type basic is not yet implemented" );
 
       type = -1;
     }
     else if ( !strcmp( typestr, "mix" ) )
     {
-      if ( L->type == LYPH_BASIC )
-        HND_ERR( "Currently, editing a basic lyph into type mix is not yet implemented" );
+      if ( L->type == LYPHPLATE_BASIC )
+        HND_ERR( "Currently, editing a basic template into type mix is not yet implemented" );
 
-      type = LYPH_MIX;
+      type = LYPHPLATE_MIX;
     }
     else if ( !strcmp( typestr, "shell" ) )
     {
-      if ( L->type == LYPH_BASIC )
-        HND_ERR( "Currently, editing a basic lyph into type shell is not yet implemented" );
+      if ( L->type == LYPHPLATE_BASIC )
+        HND_ERR( "Currently, editing a basic template into type shell is not yet implemented" );
 
-      type = LYPH_SHELL;
+      type = LYPHPLATE_SHELL;
     }
     else
-      HND_ERR( "Valid lyph types are 'basic', 'mix', and 'shell'" );
+      HND_ERR( "Valid template types are 'basic', 'mix', and 'shell'" );
   }
   else
     type = -1;
@@ -236,17 +236,17 @@ HANDLER( handle_editlyph_request )
 
   if ( ontstr )
   {
-    lyph *rival;
+    lyphplate *rival;
 
     ont = trie_search( ontstr, superclasses );
 
     if ( !ont )
       HND_ERR( "The indicated ontology term was not found in the database" );
 
-    rival = lyph_by_ont_term( ont );
+    rival = lyphplate_by_ont_term( ont );
 
     if ( rival && rival != L )
-      HND_ERR( "There is already a lyph with the indicated ontology term" );
+      HND_ERR( "There is already a template with the indicated ontology term" );
   }
   else
     ont = NULL;
@@ -254,7 +254,7 @@ HANDLER( handle_editlyph_request )
   if ( namestr )
   {
     L->name->data = NULL;
-    L->name = trie_strdup( namestr, lyph_names );
+    L->name = trie_strdup( namestr, lyphplate_names );
     L->name->data = (trie **)L;
   }
 
@@ -271,11 +271,11 @@ HANDLER( handle_editlyph_request )
   }
 
   if ( fQualitativeChange )
-    recalculate_lyph_hierarchy();
+    recalculate_lyphplate_hierarchy();
 
-  save_lyphs();
+  save_lyphplates();
 
-  send_200_response( req, lyph_to_json( L ) );
+  send_200_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( handle_editview_request )
@@ -311,7 +311,7 @@ HANDLER( handle_editview_request )
 HANDLER( handle_editlayer_request )
 {
   layer *lyr;
-  lyph *mat;
+  lyphplate *mat;
   char *lyrstr, *matstr, *thkstr;
   int thk, fQualitativeChange = 0;
 
@@ -329,7 +329,7 @@ HANDLER( handle_editlayer_request )
 
   if ( matstr )
   {
-    mat = lyph_by_id( matstr );
+    mat = lyphplate_by_id( matstr );
 
     if ( !mat )
       HND_ERR( "The indicated material was not found in the database" );
@@ -362,14 +362,14 @@ HANDLER( handle_editlayer_request )
   }
 
   if ( fQualitativeChange )
-    recalculate_lyph_hierarchy();
+    recalculate_lyphplate_hierarchy();
 
-  save_lyphs();
+  save_lyphplates();
 
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-void remove_exit_data( lyphnode *n, lyphedge *e )
+void remove_exit_data( lyphnode *n, lyph *e )
 {
   exit_data **xptr, **xnew, **xnewptr;
 
@@ -387,7 +387,7 @@ void remove_exit_data( lyphnode *n, lyphedge *e )
  n->exits = xnew;
 }
 
-void delete_lyphedge( lyphedge *e )
+void delete_lyph( lyph *e )
 {
   e->id->data = NULL;
 
@@ -398,67 +398,64 @@ void delete_lyphedge( lyphedge *e )
   free( e );
 }
 
-HANDLER( handle_delete_edges_request )
+HANDLER( handle_delete_lyphs_request )
 {
-  char *edgestr, *err;
-  lyphedge **e, **eptr, dupe;
+  char *lyphstr, *err;
+  lyph **e, **eptr, dupe;
 
-  edgestr = get_url_param( params, "edges" );
+  lyphstr = get_url_param( params, "lyphs" );
 
-  if ( !edgestr )
+  if ( !lyphstr )
   {
-    edgestr = get_url_param( params, "edge" );
+    lyphstr = get_url_param( params, "lyph" );
 
-    if ( !edgestr )
-      HND_ERR( "You did not specify which edge to delete." );
+    if ( !lyphstr )
+      HND_ERR( "You did not specify which lyphs to delete." );
   }
 
-  e = (lyphedge **) PARSE_LIST( edgestr, lyphedge_by_id, "edge", &err );
+  e = (lyph **) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
 
   if ( !e )
   {
     if ( err )
-    {
-      HND_ERR_NORETURN( err );
-      free( err );
-      return;
-    }
-    HND_ERR( "One of the indicated edges was not found in the database." );
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs was not found in the database." );
   }
 
   for ( eptr = e; *eptr; eptr++ )
   {
-    if ( (*eptr)->type == LYPHEDGE_DELETED )
+    if ( (*eptr)->type == LYPH_DELETED )
       *eptr = &dupe;
     else
-      (*eptr)->type = LYPHEDGE_DELETED;
+      (*eptr)->type = LYPH_DELETED;
   }
 
   for ( eptr = e; *eptr; eptr++ )
     if ( *eptr != &dupe )
-      delete_lyphedge( *eptr );
+      delete_lyph( *eptr );
 
   free( e );
 
-  save_lyphedges();
+  save_lyphs();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
 #define LYPHNODE_BEING_DELETED 1
 
-void remove_edges_with_doomed_nodes( trie *t )
+void remove_lyphs_with_doomed_nodes( trie *t )
 {
   if ( t->data )
   {
-    lyphedge *e = (lyphedge *)t->data;
+    lyph *e = (lyph *)t->data;
 
     if ( e->from->flags == LYPHNODE_BEING_DELETED
     ||   e->to->flags   == LYPHNODE_BEING_DELETED )
-      delete_lyphedge( e );
+      delete_lyph( e );
   }
 
-  TRIE_RECURSE( remove_edges_with_doomed_nodes( *child ) );
+  TRIE_RECURSE( remove_lyphs_with_doomed_nodes( *child ) );
 }
 
 int remove_doomed_nodes_from_views( void )
@@ -565,7 +562,7 @@ HANDLER( handle_delete_nodes_request )
       (*nptr)->flags = LYPHNODE_BEING_DELETED;
   }
 
-  remove_edges_with_doomed_nodes( lyphedge_ids );
+  remove_lyphs_with_doomed_nodes( lyph_ids );
 
   if ( remove_doomed_nodes_from_views() )
     save_lyphviews();
@@ -574,7 +571,7 @@ HANDLER( handle_delete_nodes_request )
     if ( *nptr != &dupe )
       delete_lyphnode( *nptr );
 
-  save_lyphedges();
+  save_lyphs();
 
   free( n );
 
@@ -583,41 +580,41 @@ HANDLER( handle_delete_nodes_request )
 
 #undef LYPHNODE_BEING_DELETED
 
-#define LYPH_BEING_DELETED 1
+#define LYPHPLATE_BEING_DELETED 1
 #define LAYER_BEING_DELETED_THICKNESS -2
 
-int remove_doomed_lyphs_from_edges( trie *t )
+int remove_doomed_lyphplates_from_lyphs( trie *t )
 {
   int fMatch = 0;
 
   if ( t->data )
   {
-    lyphedge *e = (lyphedge *)t->data;
-    lyph **c;
+    lyph *e = (lyph *)t->data;
+    lyphplate **c;
 
-    if ( e->lyph && e->lyph->flags == LYPH_BEING_DELETED )
+    if ( e->lyphplate && e->lyphplate->flags == LYPHPLATE_BEING_DELETED )
     {
-      e->lyph = NULL;
+      e->lyphplate = NULL;
       fMatch = 1;
     }
 
     for ( c = e->constraints; *c; c++ )
-      if ( (*c)->flags == LYPH_BEING_DELETED )
+      if ( (*c)->flags == LYPHPLATE_BEING_DELETED )
         break;
 
     if ( *c )
     {
-      lyph **newc, **newcptr;
+      lyphplate **newc, **newcptr;
       int size = 0;
 
       for ( c = e->constraints; *c; c++ )
-        if ( (*c)->flags != LYPH_BEING_DELETED )
+        if ( (*c)->flags != LYPHPLATE_BEING_DELETED )
           size++;
 
-      CREATE( newc, lyph *, size + 1 );
+      CREATE( newc, lyphplate *, size + 1 );
 
       for ( c = e->constraints, newcptr = newc; *c; c++ )
-        if ( (*c)->flags != LYPH_BEING_DELETED )
+        if ( (*c)->flags != LYPHPLATE_BEING_DELETED )
           *newcptr++ = *c;
 
       *newcptr = NULL;
@@ -627,37 +624,37 @@ int remove_doomed_lyphs_from_edges( trie *t )
     }
   }
 
-  TRIE_RECURSE( fMatch |= remove_doomed_lyphs_from_edges( *child ) );
+  TRIE_RECURSE( fMatch |= remove_doomed_lyphplates_from_lyphs( *child ) );
 
   return fMatch;
 }
 
-int spread_lyphdoom( trie *t )
+int spread_lyphplate_doom( trie *t )
 {
   int fMatch = 0;
 
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
-    if ( L->flags != LYPH_BEING_DELETED
-    && ( L->type == LYPH_MIX || L->type == LYPH_SHELL ) )
+    if ( L->flags != LYPHPLATE_BEING_DELETED
+    && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
     {
       layer **lyr;
 
       for ( lyr = L->layers; *lyr; lyr++ )
-        if ( (*lyr)->material->flags == LYPH_BEING_DELETED )
+        if ( (*lyr)->material->flags == LYPHPLATE_BEING_DELETED )
           break;
 
       if ( *lyr )
       {
-        L->flags = LYPH_BEING_DELETED;
+        L->flags = LYPHPLATE_BEING_DELETED;
         fMatch = 1;
       }
     }
   }
 
-  TRIE_RECURSE( fMatch |= spread_lyphdoom( *child ) );
+  TRIE_RECURSE( fMatch |= spread_lyphplate_doom( *child ) );
 
   return fMatch;
 }
@@ -669,7 +666,7 @@ void delete_doomed_layers( trie *t )
     layer *lyr = (layer *)t->data;
 
     if ( lyr->thickness == LAYER_BEING_DELETED_THICKNESS
-    ||   lyr->material->flags == LYPH_BEING_DELETED )
+    ||   lyr->material->flags == LYPHPLATE_BEING_DELETED )
     {
       t->data = NULL;
       free( lyr );
@@ -679,13 +676,13 @@ void delete_doomed_layers( trie *t )
   TRIE_RECURSE( delete_doomed_layers( *child ) );
 }
 
-void delete_doomed_lyphs( trie *t )
+void delete_doomed_lyphplates( trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
-    if ( L->flags == LYPH_BEING_DELETED )
+    if ( L->flags == LYPHPLATE_BEING_DELETED )
     {
       t->data = NULL;
 
@@ -700,59 +697,59 @@ void delete_doomed_lyphs( trie *t )
     }
   }
 
-  TRIE_RECURSE( delete_doomed_lyphs( *child ) );
+  TRIE_RECURSE( delete_doomed_lyphplates( *child ) );
 }
 
-HANDLER( handle_delete_lyphs_request )
+HANDLER( handle_delete_templates_request )
 {
-  char *lyphstr, *err;
-  lyph **L, **Lptr, dupe;
+  char *tmpltstr, *err;
+  lyphplate **L, **Lptr, dupe;
 
-  lyphstr = get_url_param( params, "lyphs" );
+  tmpltstr = get_url_param( params, "templates" );
 
-  if ( !lyphstr )
+  if ( !tmpltstr )
   {
-    lyphstr = get_url_param( params, "lyph" );
+    tmpltstr = get_url_param( params, "template" );
 
-    if ( !lyphstr )
-      HND_ERR( "You did not indicate which lyphs to delete." );
+    if ( !tmpltstr )
+      HND_ERR( "You did not indicate which templates to delete." );
   }
 
-  L = (lyph **) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
+  L = (lyphplate **) PARSE_LIST( tmpltstr, lyphplate_by_id, "template", &err );
 
   if ( !L )
   {
     if ( err )
       HND_ERR_FREE( err );
     else
-      HND_ERR( "One of the indicated lyphs could not be found in the database" );
+      HND_ERR( "One of the indicated templates could not be found in the database" );
   }
 
   for ( Lptr = L; *Lptr; Lptr++ )
   {
-    if ( (*Lptr)->flags == LYPH_BEING_DELETED )
+    if ( (*Lptr)->flags == LYPHPLATE_BEING_DELETED )
       *Lptr = &dupe;
     else
-      (*Lptr)->flags = LYPH_BEING_DELETED;
+      (*Lptr)->flags = LYPHPLATE_BEING_DELETED;
   }
 
   free( L );
 
   /*
-   * Any lyph/layer which refers to a doomed lyph/layer should also be doomed
+   * Any lyphplate/layer which refers to a doomed lyphplate/layer should also be doomed
    */
-  while ( spread_lyphdoom( lyph_ids ) )
+  while ( spread_lyphplate_doom( lyphplate_ids ) )
     ;
 
-  if ( remove_doomed_lyphs_from_edges( lyphedge_ids ) )
-    save_lyphedges();
+  if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
+    save_lyphs();
 
   delete_doomed_layers( layer_ids );
-  delete_doomed_lyphs( lyph_ids );
+  delete_doomed_lyphplates( lyphplate_ids );
 
-  save_lyphs();
+  save_lyphplates();
 
-  recalculate_lyph_hierarchy();
+  recalculate_lyphplate_hierarchy();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -827,14 +824,14 @@ HANDLER( handle_delete_views_request )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-void spread_lyphdoom_from_layers( trie *t )
+void spread_lyphplate_doom_from_layers( trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
-    if ( L->flags != LYPH_BEING_DELETED
-    && ( L->type == LYPH_MIX || L->type == LYPH_SHELL ) )
+    if ( L->flags != LYPHPLATE_BEING_DELETED
+    && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
     {
       layer **lyr;
 
@@ -843,17 +840,17 @@ void spread_lyphdoom_from_layers( trie *t )
           break;
 
       if ( *lyr )
-        L->flags = LYPH_BEING_DELETED;
+        L->flags = LYPHPLATE_BEING_DELETED;
     }
   }
 
-  TRIE_RECURSE( spread_lyphdoom_from_layers( *child ) );
+  TRIE_RECURSE( spread_lyphplate_doom_from_layers( *child ) );
 }
 
 HANDLER( handle_delete_layers_request )
 {
   char *layerstr, *err;
-  layer **lyr, **lyrptr, dupe;
+  layer **lyr, **lyrptr;
 
   layerstr = get_url_param( params, "layers" );
 
@@ -876,29 +873,24 @@ HANDLER( handle_delete_layers_request )
   }
 
   for ( lyrptr = lyr; *lyrptr; lyrptr++ )
-  {
-    if ( (*lyrptr)->thickness == LAYER_BEING_DELETED_THICKNESS )
-      *lyrptr = &dupe;
-    else
-      (*lyrptr)->thickness = LAYER_BEING_DELETED_THICKNESS;
-  }
+    (*lyrptr)->thickness = LAYER_BEING_DELETED_THICKNESS;
 
   free( lyr );
 
-  spread_lyphdoom_from_layers( lyph_ids );
+  spread_lyphplate_doom_from_layers( lyphplate_ids );
 
-  while ( spread_lyphdoom( lyph_ids ) )
+  while ( spread_lyphplate_doom( lyphplate_ids ) )
     ;
 
-  if ( remove_doomed_lyphs_from_edges( lyphedge_ids ) )
-    save_lyphedges();
+  if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
+    save_lyphs();
 
   delete_doomed_layers( layer_ids );
-  delete_doomed_lyphs( lyph_ids );
+  delete_doomed_lyphplates( lyphplate_ids );
 
-  save_lyphs();
+  save_lyphplates();
 
-  recalculate_lyph_hierarchy();
+  recalculate_lyphplate_hierarchy();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -936,7 +928,8 @@ HANDLER( handle_nodes_from_view_request )
   {
     if ( err )
       HND_ERR_FREE( err );
-    HND_ERR( "One of the indicated nodes could not be found in the database" );
+    else
+      HND_ERR( "One of the indicated nodes could not be found in the database" );
   }
 
   #define LYPHNODE_TO_BE_REMOVED 1

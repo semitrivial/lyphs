@@ -13,7 +13,7 @@
 #define MAX_AUTOCOMPLETE_RESULTS_POSTSORT 10
 #define MAX_URL_PARAMS 300
 #define MAX_URL_PARAM_LEN 512
-#define MAX_LYPHEDGE_LINE_LEN (MAX_IRI_LEN * 3)
+#define MAX_LYPH_LINE_LEN (MAX_IRI_LEN * 3)
 #define MAX_INT_LEN (strlen("-2147483647"))
 
 #define LOG_FILE "log.txt"
@@ -26,19 +26,19 @@ typedef struct TRIE trie;
 typedef struct TRIE_WRAPPER trie_wrapper;
 typedef struct UCL_SYNTAX ucl_syntax;
 typedef struct AMBIG ambig;
-typedef struct LYPH lyph;
+typedef struct LYPHPLATE lyphplate;
 typedef struct LAYER layer;
 typedef struct LAYER_LOADING layer_loading;
 typedef struct LOAD_LAYERS_DATA load_layers_data;
 typedef struct LYPHNODE lyphnode;
-typedef struct LYPHEDGE lyphedge;
+typedef struct LYPH lyph;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
 typedef struct VIEWED_NODE viewed_node;
-typedef struct LYPH_WRAPPER lyph_wrapper;
-typedef struct LYPHS_WRAPPER lyphs_wrapper;
-typedef struct EDGE_FILTER edge_filter;
+typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
+typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
+typedef struct LYPH_FILTER lyph_filter;
 
 /*
  * Structures
@@ -88,38 +88,38 @@ struct AMBIG
   char *label;
 };
 
-struct LYPH
+struct LYPHPLATE
 {
   trie *name;
   trie *id;
   int type;
   layer **layers;
-  lyph **supers;
-  lyph **subs;
+  lyphplate **supers;
+  lyphplate **subs;
   trie *ont_term;
   int flags;
 };
 
 typedef enum
 {
-  LYPH_BASIC, LYPH_SHELL, LYPH_MIX, LYPH_MISSING
-} lyph_types;
+  LYPHPLATE_BASIC, LYPHPLATE_SHELL, LYPHPLATE_MIX, LYPHPLATE_MISSING
+} lyphplate_types;
 
-struct LYPH_WRAPPER
+struct LYPHPLATE_WRAPPER
 {
-  lyph_wrapper *next;
-  lyph *L;
+  lyphplate_wrapper *next;
+  lyphplate *L;
 };
 
-struct LYPHS_WRAPPER
+struct LYPHPLATES_WRAPPER
 {
-  lyphs_wrapper *next;
-  lyph **L;
+  lyphplates_wrapper *next;
+  lyphplate **L;
 };
 
 struct LAYER
 {
-  lyph *material;
+  lyphplate *material;
   int thickness;
   trie *id;
 };
@@ -146,27 +146,27 @@ typedef enum
   ETJ_FULL_EXIT_DATA = 1
 } exit_to_json_flag_types;
 
-struct LYPHEDGE
+struct LYPH
 {
   trie *id;
   trie *name;
   int type;
   lyphnode *from;
   lyphnode *to;
-  lyph *lyph;
-  lyph **constraints;
+  lyphplate *lyphplate;
+  lyphplate **constraints;
   trie *fma;
 };
 
 typedef enum
 {
-  LYPHEDGE_ARTERIAL, LYPHEDGE_MICROCIRC, LYPHEDGE_VENOUS, LYPHEDGE_CARDIAC, LYPHEDGE_DELETED
-} lyphedge_types;
+  LYPH_ARTERIAL, LYPH_MICROCIRC, LYPH_VENOUS, LYPH_CARDIAC, LYPH_DELETED
+} lyph_types;
 
 struct EXIT_DATA
 {
   lyphnode *to;
-  lyphedge *via;
+  lyph *via;
 };
 
 struct LYPHSTEP
@@ -176,12 +176,12 @@ struct LYPHSTEP
   int depth;
   lyphstep *backtrace;
   lyphnode *location;
-  lyphedge *edge;
+  lyph *lyph;
 };
 
-struct EDGE_FILTER
+struct LYPH_FILTER
 {
-  lyph *sup;
+  lyphplate *sup;
   int accept_na_edges;
 };
 
@@ -202,7 +202,7 @@ struct VIEWED_NODE
 
 struct LOAD_LAYERS_DATA
 {
-  lyph *subj;
+  lyphplate *subj;
   layer_loading *first_layer_loading;
   layer_loading *last_layer_loading;
   int layer_count;
@@ -222,13 +222,13 @@ extern trie *iri_to_labels;
 extern trie *label_to_iris;
 extern trie *label_to_iris_lowercase;
 
-extern trie *lyph_names;
-extern trie *lyph_ids;
+extern trie *lyphplate_names;
+extern trie *lyphplate_ids;
 extern trie *layer_ids;
 extern trie *lyphnode_ids;
-extern trie *lyphedge_ids;
-extern trie *lyphedge_fmas;
-extern trie *lyphedge_names;
+extern trie *lyph_ids;
+extern trie *lyph_fmas;
+extern trie *lyph_names;
 
 extern trie *superclasses;
 
@@ -281,15 +281,15 @@ char *get_url_shortform( char *iri );
 char *url_decode(char *str);
 int is_number( const char *arg );
 void error_message( char *err );
-char *pretty_free( char *json );
 char *strdupf( const char *fmt, ... );
 char *jsonf( int paircnt, ... );;
 void json_gc( void );
 size_t voidlen( void **x );
-char *constraints_comma_list( lyph **constraints );
+char *constraints_comma_list( lyphplate **constraints );
 int copy_file( char *dest_ch, char *src_ch );
 int count_commas( char *str );
 void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err );
+void maybe_update_top_id( int *top, char *idstr );
 
 /*
  * ucl.c
@@ -306,80 +306,79 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
 /*
  * hier.c
  */
-void compute_lyph_hierarchy_one_lyph( lyph *L );
-void add_lyph_as_super( lyph *sup, trie *t );
-int is_superlyph( lyph *sup, lyph *sub );
-lyph **get_sublyphs( lyph *L, int direct );
-void remove_lyph_as_super( lyph *L, trie *t );
-void recalculate_lyph_hierarchy( void );
+void compute_lyphplate_hierarchy_one_lyphplate( lyphplate *L );
+void add_lyphplate_as_super( lyphplate *sup, trie *t );
+int is_superlyphplate( lyphplate *sup, lyphplate *sub );
+lyphplate **get_sublyphplates( lyphplate *L, int direct );
+void remove_lyphplate_as_super( lyphplate *L, trie *t );
+void recalculate_lyphplate_hierarchy( void );
 
 /*
  * lyph.c
  */
-lyph *lyph_by_name( char *name );
-lyph *lyph_by_id( char *id );
-char *lyph_to_json( lyph *L );
-char *lyph_to_shallow_json( lyph *L );
+lyphplate *lyphplate_by_name( char *name );
+lyphplate *lyphplate_by_id( char *id );
+char *lyphplate_to_json( lyphplate *L );
+char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
 lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
-char *lyphedge_to_json( lyphedge *e );
-char *lyphpath_to_json( lyphedge **path );
+char *lyph_to_json( lyph *e );
+char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
 layer *layer_by_description( char *mtid, int thickness );
-layer *layer_by_description_recurse( const lyph *L, const float thickness, const trie *t );
+layer *layer_by_description_recurse( const lyphplate *L, const float thickness, const trie *t );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
-lyphedge *lyphedge_by_id( char *id );
+lyph *lyph_by_id( char *id );
 trie *assign_new_layer_id( layer *lyr );
-lyph *lyph_by_layers( int type, layer **layers, char *name );
-lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t );
+lyphplate *lyphplate_by_layers( int type, layer **layers, char *name );
+lyphplate *lyphplate_by_layers_recurse( int type, layer **layers, trie *t );
 int same_layers( layer **x, layer **y );
 layer **copy_layers( layer **src );
-int layers_len( layer **layers );
 void sort_layers( layer **layers );
-trie *assign_new_lyph_id( lyph *L );
-void free_lyphdupe_trie( trie *t );
-void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes );
+trie *assign_new_lyphplate_id( lyphplate *L );
+void free_lyphplate_dupe_trie( trie *t );
+void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes );
 char *id_as_iri( trie *id );
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes );
-void load_lyphs( void );
-int parse_lyph_type( char *str );
-void load_lyph_label( char *subj_full, char *label );
-void load_lyph_type( char *subj_full, char *type_str );
+void load_lyphplates( void );
+int parse_lyphplate_type( char *str );
+void load_lyphplate_label( char *subj_full, char *label );
+void load_lyphplate_type( char *subj_full, char *type_str );
 void acknowledge_has_layers( char *subj_full, char *bnode_id );
 void load_layer_material( char *subj_full, char *obj_full );
 void load_layer_to_lld( char *bnode, char *obj_full );
 void load_layer_thickness( char *subj_full, char *obj );
-lyph *missing_layers( trie *t );
+lyphplate *missing_layers( trie *t );
 void handle_loaded_layers( trie *t );
-int load_lyphedges( void );
-int load_lyphedges_one_line( char *line, char **err );
-void save_lyphedges_recurse( trie *t, FILE *fp );
-void save_lyphedges( void );
+int load_lyphs( void );
+int load_lyphs_one_line( char *line, char **err );
+void save_lyphs_recurse( trie *t, FILE *fp );
+void save_lyphs( void );
 int word_from_line( char **line, char *buf );
-char *lyphedge_type_str( int type );
-int parse_lyph_type_str( char *type );
-void add_exit( lyphedge *e, lyphnode *n );
-lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter );
+char *lyph_type_str( int type );
+int parse_lyphplate_type_str( char *type );
+void add_exit( lyph *e, lyphnode *n );
+lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter );
 void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
 lyphview *search_duplicate_view( lyphnode **nodes, char **coords, char *name );
 lyphview *create_new_view( lyphnode **nodes, char **coords, char *name );
-lyphedge *make_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, char *fmastr, char *namestr );
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr );
 lyphnode *make_lyphnode( void );
-void compute_lyph_hierarchy( trie *t );
-lyph *lyph_by_ont_term( trie *term );
+void compute_lyphplate_hierarchy( trie *t );
+lyphplate *lyphplate_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
-char *lyph_hierarchy_to_json( void );
-void lyphs_unset_bit( int bit, trie *t );
-int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err );
+char *lyphplate_hierarchy_to_json( void );
+void lyphplates_unset_bit( int bit, trie *t );
+void lyphplates_unset_bits( int bits, trie *t );
+int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err );
 void free_all_views( void );
-void free_all_edges( void );
 void free_all_lyphs( void );
-void lyphs_unset_bits( int bits, trie *t );
-void save_lyphs(void);
+void free_all_lyphplates( void );
+void save_lyphplates(void);

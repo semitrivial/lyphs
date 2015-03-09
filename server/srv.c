@@ -860,9 +860,9 @@ HANDLER( handle_lyphpath_request )
   along_path_abstractor( req, params, ALONG_PATH_COMPUTE );
 }
 
-HANDLER( handle_lyph_along_path_request )
+HANDLER( handle_template_along_path_request )
 {
-  along_path_abstractor( req, params, ALONG_PATH_LYPH );
+  along_path_abstractor( req, params, ALONG_PATH_TEMPLATE );
 }
 
 HANDLER( handle_constrain_along_path_request )
@@ -873,14 +873,14 @@ HANDLER( handle_constrain_along_path_request )
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type )
 {
   lyphnode *x, *y;
-  lyph *L;
-  lyphedge **p, **pptr;
-  edge_filter *f;
+  lyphplate *L;
+  lyph **p, **pptr;
+  lyph_filter *f;
   char *xid, *yid, *Lid, *fid;
 
   xid = get_url_param( params, "from" );
   yid = get_url_param( params, "to" );
-  Lid = get_url_param( params, "lyph" );
+  Lid = get_url_param( params, "template" );
   fid = get_url_param( params, "filter" );
 
   if ( !xid )
@@ -890,7 +890,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
     HND_ERR( "You did not specify the 'to' node" );
 
   if ( !Lid && along_path_type != ALONG_PATH_COMPUTE )
-    HND_ERR( "You did not specify the lyph" );
+    HND_ERR( "You did not specify the template to assign along the path" );
 
   x = lyphnode_by_id( xid );
 
@@ -904,32 +904,32 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 
   if ( along_path_type != ALONG_PATH_COMPUTE )
   {
-    L = lyph_by_id( Lid );
+    L = lyphplate_by_id( Lid );
 
     if ( !L )
-      HND_ERR( "The indicated lyph was not found in the database" );
+      HND_ERR( "The indicated template was not found in the database" );
   }
 
   if ( fid )
   {
-    lyph *filt = lyph_by_id( fid );
+    lyphplate *filt = lyphplate_by_id( fid );
     char *na_param;
 
     if ( !filt )
-      HND_ERR( "The indicated filter-lyph was not found in the database" );
+      HND_ERR( "The indicated template (to act as filter)  was not found in the database" );
 
-    CREATE( f, edge_filter, 1 );
+    CREATE( f, lyph_filter, 1 );
 
     f->sup = filt;
 
-    na_param = get_url_param( params, "include_lyphless" );
+    na_param = get_url_param( params, "include_templateless" );
 
     if ( na_param && !strcmp( na_param, "yes" ) )
       f->accept_na_edges = 1;
     else if ( na_param && !strcmp( na_param, "no" ) )
       f->accept_na_edges = 0;
     else if ( na_param )
-      HND_ERR( "'include_lyphless' must be 'yes' or 'no'" );
+      HND_ERR( "'include_templateless' must be 'yes' or 'no'" );
     else
       f->accept_na_edges = 0;
   }
@@ -946,47 +946,47 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
     HND_ERR( "No path found" );
   }
 
-  if ( along_path_type == ALONG_PATH_LYPH )
+  if ( along_path_type == ALONG_PATH_TEMPLATE )
   {
     for ( pptr = p; *pptr; pptr++ )
     {
       char *err;
 
-      if ( !can_assign_lyph_to_edge( L, *pptr, &err ) )
+      if ( !can_assign_lyphplate_to_lyph( L, *pptr, &err ) )
       {
         if ( f )
           free( f );
 
         free( p );
 
-        HND_ERR( err ? err : "One of the edges on the path could not be assigned the lyph, due to a constraint on it" );
+        HND_ERR( err ? err : "One of the lyphs on the path could not be assigned the template, due to a constraint on it" );
       }
     }
 
     for ( pptr = p; *pptr; pptr++ )
-      (*pptr)->lyph = L;
+      (*pptr)->lyphplate = L;
 
-    save_lyphedges();
+    save_lyphs();
   }
   else if ( along_path_type == ALONG_PATH_CONSTRAIN )
   {
     for ( pptr = p; *pptr; pptr++ )
     {
-      if ( (*pptr)->lyph && !is_superlyph( L, (*pptr)->lyph ) )
+      if ( (*pptr)->lyphplate && !is_superlyphplate( L, (*pptr)->lyphplate ) )
       {
         if ( f )
           free( f );
 
         free( p );
 
-        HND_ERR( "One of the edges on the path already has a lyph inconsistent with that constraint" );
+        HND_ERR( "One of the lyphs on the path already has a template inconsistent with that constraint" );
       }
     }
 
     for ( pptr = p; *pptr; pptr++ )
     {
-      lyphedge *e = *pptr;
-      lyph **dupe, **c;
+      lyph *e = *pptr;
+      lyphplate **dupe, **c;
       int len;
 
       for ( dupe = e->constraints; *dupe; dupe++ )
@@ -998,8 +998,8 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 
       len = dupe - e->constraints;
 
-      CREATE( c, lyph *, len + 2 );
-      memcpy( c, e->constraints, len * sizeof(lyph *) );
+      CREATE( c, lyphplate *, len + 2 );
+      memcpy( c, e->constraints, len * sizeof(lyphplate *) );
       c[len] = L;
       c[len+1] = NULL;
       free( e->constraints );
@@ -1034,12 +1034,12 @@ HANDLER( handle_makelyphnode_request )
   lyphnode_to_json_flags = 0;
 }
 
-HANDLER( handle_makelyphedge_request )
+HANDLER( handle_makelyph_request )
 {
   lyphnode *from, *to;
-  lyphedge *e;
-  lyph *L;
-  char *fmastr, *fromstr, *tostr, *namestr, *lyphstr, *typestr;
+  lyph *e;
+  lyphplate *L;
+  char *fmastr, *fromstr, *tostr, *namestr, *tmpltstr, *typestr;
   int type;
 
   typestr = get_url_param( params, "type" );
@@ -1072,24 +1072,24 @@ HANDLER( handle_makelyphedge_request )
 
   namestr = get_url_param( params, "name" );
 
-  lyphstr = get_url_param( params, "lyph" );
+  tmpltstr = get_url_param( params, "template" );
 
-  if ( lyphstr )
+  if ( tmpltstr )
   {
-    L = lyph_by_id( lyphstr );
+    L = lyphplate_by_id( tmpltstr );
 
     if ( !L )
-      HND_ERR( "The indicated lyph was not found" );
+      HND_ERR( "The indicated template was not found" );
   }
   else
     L = NULL;
 
-  e = make_lyphedge( type, from, to, L, fmastr, namestr );
+  e = make_lyph( type, from, to, L, fmastr, namestr );
 
   if ( !e )
-    HND_ERR( "The lyphedge could not be created (out of memory?)" );
+    HND_ERR( "The lyph could not be created (out of memory?)" );
 
-  send_200_response( req, lyphedge_to_json( e ) );
+  send_200_response( req, lyph_to_json( e ) );
 }
 
 HANDLER( handle_makeview_request )
@@ -1315,43 +1315,43 @@ HANDLER( handle_makelayer_request )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-HANDLER( handle_edgeconstrain_request )
+HANDLER( handle_lyphconstrain_request )
 {
-  lyphedge *e;
-  lyph *L, **c;
-  char *edgeid, *lyphid;
+  lyph *e;
+  lyphplate *L, **c;
+  char *lyphid, *tmpltid;
   int cnt;
 
-  edgeid = get_url_param( params, "edge" );
   lyphid = get_url_param( params, "lyph" );
-
-  if ( !edgeid )
-    HND_ERR( "You did not specify an edge." );
+  tmpltid = get_url_param( params, "template" );
 
   if ( !lyphid )
     HND_ERR( "You did not specify a lyph." );
 
-  e = lyphedge_by_id( edgeid );
+  if ( !tmpltid )
+    HND_ERR( "You did not specify a template." );
+
+  e = lyph_by_id( lyphid );
 
   if ( !e )
-    HND_ERR( "The database does not contain an edge with that ID." );
+    HND_ERR( "The database does not contain a lyph with that ID." );
 
-  L = lyph_by_id( lyphid );
+  L = lyphplate_by_id( tmpltid );
 
   if ( !L )
-    HND_ERR( "The database does not contain a lyph with that ID." );
+    HND_ERR( "The database does not contain a template with that ID." );
 
   for ( c = e->constraints; *c; c++ )
     if ( *c == L )
-      HND_ERR( "The edge in question already has the constraint in question." );
+      HND_ERR( "The lyph in question already has the constraint in question." );
 
-  if ( e->lyph && !is_superlyph( L, e->lyph ) )
-    HND_ERR( "The edge in question already has a lyph that violates this constraint." );
+  if ( e->lyphplate && !is_superlyphplate( L, e->lyphplate ) )
+    HND_ERR( "The lyph in question already has a template that violates this constraint." );
 
   cnt = VOIDLEN( e->constraints );
-  CREATE( c, lyph *, cnt + 2 );
+  CREATE( c, lyphplate *, cnt + 2 );
 
-  memcpy( c, e->constraints, cnt * sizeof(lyph*) );
+  memcpy( c, e->constraints, cnt * sizeof(lyphplate *) );
 
   c[cnt] = L;
   c[cnt+1] = NULL;
@@ -1359,74 +1359,74 @@ HANDLER( handle_edgeconstrain_request )
   free( e->constraints );
   e->constraints = c;
 
-  save_lyphedges();
+  save_lyphs();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-HANDLER( handle_assignlyph_request )
+HANDLER( handle_assign_template_request )
 {
-  lyphedge **edges, **e;
-  lyph *L;
-  char *edgeid, *lyphid, *err;
+  lyph **lyphs, **e;
+  lyphplate *L;
+  char *lyphid, *tmpltid, *err;
+
+  tmpltid = get_url_param( params, "template" );
+
+  if ( !tmpltid )
+    HND_ERR( "You did not specify a template." );
+
+  L = lyphplate_by_id( tmpltid );
+
+  if ( !L )
+    HND_ERR( "The database has no template with that ID." );
 
   lyphid = get_url_param( params, "lyph" );
 
   if ( !lyphid )
     HND_ERR( "You did not specify a lyph." );
 
-  L = lyph_by_id( lyphid );
+  lyphs = (lyph **) PARSE_LIST( lyphid, lyph_by_id, "lyph", &err );
 
-  if ( !L )
-    HND_ERR( "The database has no edge with that ID." );
-
-  edgeid = get_url_param( params, "edge" );
-
-  if ( !edgeid )
-    HND_ERR( "You did not specify an edge." );
-
-  edges = (lyphedge **) PARSE_LIST( edgeid, lyphedge_by_id, "edge", &err );
-
-  if ( !edges )
+  if ( !lyphs )
   {
     if ( err )
       HND_ERR_FREE( err );
     else
-      HND_ERR( "The database has no edge with that ID." );
+      HND_ERR( "The database has no lyph with that ID." );
   }
 
-  for ( e = edges; *e; e++ )
+  for ( e = lyphs; *e; e++ )
   {
-    if ( !can_assign_lyph_to_edge( L, *e, &err ) )
+    if ( !can_assign_lyphplate_to_lyph( L, *e, &err ) )
     {
-      free( edges );
+      free( lyphs );
 
       if ( err )
         HND_ERR_FREE( err );
       else
-        HND_ERR( "That lyph cannot be assigned to that edge." );
+        HND_ERR( "That template cannot be assigned to that lyph." );
 
       return;
     }
   }
 
-  for ( e = edges; *e; e++ )
-    (*e)->lyph = L;
+  for ( e = lyphs; *e; e++ )
+    (*e)->lyphplate = L;
 
-  free( edges );
+  free( lyphs );
 
-  save_lyphedges();
+  save_lyphs();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-HANDLER( handle_makelyph_request )
+HANDLER( handle_maketemplate_request )
 {
   char *name, *typestr;
   int type, lcnt;
   static layer **lyrs;
   layer **lptr;
-  lyph *L;
+  lyphplate *L;
 
   if ( !lyrs )
     CREATE( lyrs, layer *, MAX_URL_PARAMS + 2 );
@@ -1434,20 +1434,20 @@ HANDLER( handle_makelyph_request )
   name = get_url_param( params, "name" );
 
   if ( !name )
-    HND_ERR( "No name specified for lyph" );
+    HND_ERR( "No name specified for template" );
 
   typestr = get_url_param( params, "type" );
 
   if ( !typestr )
-    HND_ERR( "No type specified for lyph" );
+    HND_ERR( "No type specified for template" );
 
-  type = parse_lyph_type( typestr );
+  type = parse_lyphplate_type( typestr );
 
   if ( type == -1 )
-    HND_ERR( "Invalid type specified for lyph" );
+    HND_ERR( "Invalid type specified for template" );
 
-  if ( type == LYPH_BASIC )
-    HND_ERR( "Only lyph types 'mix' and 'shell' are created by makelyph" );
+  if ( type == LYPHPLATE_BASIC )
+    HND_ERR( "Only template types 'mix' and 'shell' are created by maketemplate" );
 
   lcnt = 1;
   lptr = lyrs;
@@ -1469,10 +1469,7 @@ HANDLER( handle_makelyph_request )
 
     if ( !lyr )
     {
-      char *errmsg = malloc( strlen(lyrid) + 256 );
-
-      sprintf( errmsg, "No layer with id '%s'", lyrid );
-
+      char *errmsg = strdupf( "No layer with id '%s'", lyrid );
       HND_ERR_FREE( errmsg );
     }
 
@@ -1482,34 +1479,34 @@ HANDLER( handle_makelyph_request )
 
   *lptr = NULL;
 
-  L = lyph_by_layers( type, lyrs, name );
+  L = lyphplate_by_layers( type, lyrs, name );
 
   if ( !L )
-    HND_ERR( "Could not create the desired lyph" );
+    HND_ERR( "Could not create the desired template" );
 
-  send_200_response( req, lyph_to_json( L ) );
+  send_200_response( req, lyphplate_to_json( L ) );
+}
+
+HANDLER( handle_template_request )
+{
+  lyphplate *L;
+
+  L = lyphplate_by_id( request );
+
+  if ( !L )
+    HND_ERR( "No template with that id" );
+
+  send_200_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( handle_lyph_request )
 {
-  lyph *L;
-
-  L = lyph_by_id( request );
-
-  if ( !L )
-    HND_ERR( "No lyph with that id" );
-
-  send_200_response( req, lyph_to_json( L ) );
-}
-
-HANDLER( handle_lyphedge_request )
-{
-  lyphedge *e = lyphedge_by_id( request );
+  lyph *e = lyph_by_id( request );
 
   if ( !e )
-    HND_ERR( "No lyphedge by that id" );
+    HND_ERR( "No lyph by that id" );
 
-  send_200_response( req, lyphedge_to_json( e ) );
+  send_200_response( req, lyph_to_json( e ) );
 }
 
 HANDLER( handle_lyphnode_request )
@@ -1606,15 +1603,6 @@ char *get_url_param( url_param **params, char *key )
   return NULL;
 }
 
-HANDLER( handle_all_lyphedges_request )
-{
-  lyphedge **edges = (lyphedge **)datas_to_array( lyphedge_ids );
-
-  send_200_response( req, JS_ARRAY( lyphedge_to_json, edges ) );
-
-  free( edges );
-}
-
 HANDLER( handle_all_lyphs_request )
 {
   lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
@@ -1624,9 +1612,18 @@ HANDLER( handle_all_lyphs_request )
   free( lyphs );
 }
 
-HANDLER( handle_lyph_hierarchy_request )
+HANDLER( handle_all_templates_request )
 {
-  send_200_response( req, lyph_hierarchy_to_json() );
+  lyphplate **tmps = (lyphplate **)datas_to_array( lyphplate_ids );
+
+  send_200_response( req, JS_ARRAY( lyphplate_to_json, tmps ) );
+
+  free( tmps );
+}
+
+HANDLER( handle_template_hierarchy_request )
+{
+  send_200_response( req, lyphplate_hierarchy_to_json() );
 }
 
 HANDLER( handle_all_ont_terms_request )
@@ -1654,21 +1651,21 @@ HANDLER( handle_all_lyphviews_request )
   free( v );
 }
 
-HANDLER( handle_sublyphs_request )
+HANDLER( handle_subtemplates_request )
 {
-  lyph *L, **subs;
-  char *lyphstr, *directstr;
+  lyphplate *L, **subs;
+  char *tmpltstr, *directstr;
   int direct;
 
-  lyphstr = get_url_param( params, "lyph" );
+  tmpltstr = get_url_param( params, "template" );
 
-  if ( !lyphstr )
-    HND_ERR( "You did not specify a lyph" );
+  if ( !tmpltstr )
+    HND_ERR( "You did not specify a template" );
 
-  L = lyph_by_id( lyphstr );
+  L = lyphplate_by_id( tmpltstr );
 
   if ( !L )
-    HND_ERR( "The indicated lyph was not found in the database" );
+    HND_ERR( "The indicated template was not found in the database" );
 
   directstr = get_url_param( params, "direct" );
 
@@ -1684,9 +1681,9 @@ HANDLER( handle_sublyphs_request )
   else
     direct = 0;
 
-  subs = get_sublyphs( L, direct );
+  subs = get_sublyphplates( L, direct );
 
-  send_200_response( req, JS_ARRAY( lyph_to_json, subs ) );
+  send_200_response( req, JS_ARRAY( lyphplate_to_json, subs ) );
 
   free( subs );
 }
@@ -1719,28 +1716,28 @@ HANDLER( handle_reset_db_request )
     free_all_views();
   }
 
-  if ( get_url_param( params, "lyphs" ) )
+  if ( get_url_param( params, "templates" ) )
   {
     fMatch = 1;
-    free_all_lyphs();
+    free_all_lyphplates();
   }
 
   if ( get_url_param( params, "graph" ) )
   {
     fMatch = 1;
-    free_all_edges();
+    free_all_lyphs();
 
-    if ( !copy_file( "lyphedges.dat", "lyphedges.dat.bak" ) )
+    if ( !copy_file( "lyphs.dat", "lyphs.dat.bak" ) )
       fWarning = 1;
     else
-      load_lyphedges();
+      load_lyphs();
   }
 
   if ( !fMatch )
-    HND_ERR( "You did not specify anything to delete (options are 'views', 'lyphs', and 'graph')" );
+    HND_ERR( "You did not specify anything to delete (options are 'views', 'templates', and 'graph')" );
 
   if ( fWarning )
-    send_200_response( req, JSON1( "Response": "Warning: Could not copy 'lyphedges.dat.bak' to 'lyphedges.dat'" ) );
+    send_200_response( req, JSON1( "Response": "Warning: Could not copy 'lyphs.dat.bak' to 'lyphs.dat'" ) );
   else
     send_200_response( req, JSON1( "Response": "OK" ) );
 }

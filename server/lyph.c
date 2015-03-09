@@ -1,24 +1,24 @@
 #include "lyph.h"
 #include "nt_parse.h"
 
-char *lyph_type_as_char( lyph *L );
+char *lyphplate_type_as_char( lyphplate *L );
 void save_one_lyphview( lyphview *v, FILE *fp );
 int is_duplicate_view( lyphview *v, lyphnode **nodes, char **coords );
 int new_lyphview_id(void);
-trie *new_lyphedge_id(lyphedge *e);
+trie *new_lyph_id(lyph *e);
 lyphnode *lyphnode_by_id_or_new( char *id );
-trie *parse_lyphedge_name_field( char *namebuf, lyphedge *e );
-lyphedge *find_duplicate_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, trie *fma, char *namestr );
-lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyph *L, trie *fma, trie *name );
+trie *parse_lyph_name_field( char *namebuf, lyph *e );
+lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr );
+lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name );
 void maybe_update_top_id( int *top, char *idstr );
 trie *new_lyphnode_id(lyphnode *n);
-lyph *lyph_by_ont_term_recurse( trie *term, trie *t );
-lyph **parse_lyphedge_constraints( char *str );
-int edge_passes_filter( lyphedge *e, edge_filter *f );
+lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
+lyphplate **parse_lyph_constraints( char *str );
+int lyph_passes_filter( lyph *e, lyph_filter *f );
 
 int top_layer_id;
+int top_lyphplate_id;
 int top_lyph_id;
-int top_lyphedge_id;
 int top_lyphnode_id;
 trie *blank_nodes;
 
@@ -117,59 +117,59 @@ int is_duplicate_view( lyphview *v, lyphnode **nodes, char **coords )
   return 1;
 }
 
-void strip_lyphs_from_graph( trie *t )
+void strip_lyphplates_from_graph( trie *t )
 {
   if ( t->data )
   {
-    lyphedge *e = (lyphedge *)t->data;
+    lyph *e = (lyph *)t->data;
 
-    e->lyph = NULL;
+    e->lyphplate = NULL;
 
     if ( *e->constraints )
     {
       free( e->constraints );
-      CREATE( e->constraints, lyph *, 1 );
-      *e->constraints = NULL;
+      CREATE( e->constraints, lyphplate *, 1 );
+      e->constraints[0] = NULL;
     }
   }
 
-  TRIE_RECURSE( strip_lyphs_from_graph( *child ) );
+  TRIE_RECURSE( strip_lyphplates_from_graph( *child ) );
 }
 
-void free_all_edges( void )
+void free_all_lyphs( void )
 {
   /*
    * Memory leak here is deliberate: this function should only
    * be called on the devport, not on production.
    */
   lyphnode_ids = blank_trie();
-  lyphedge_ids = blank_trie();
-  lyphedge_names = blank_trie();
-  lyphedge_fmas = blank_trie();
+  lyph_ids = blank_trie();
+  lyph_names = blank_trie();
+  lyph_fmas = blank_trie();
 
-  top_lyphedge_id = 0;
+  top_lyph_id = 0;
 
   free_all_views();
 
-  save_lyphedges();
+  save_lyphs();
 }
 
-void free_all_lyphs( void )
+void free_all_lyphplates( void )
 {
   /*
    * Memory leak here is deliberate: this function should only be
    * called on the devport, not on production.
    */
-  lyph_ids = blank_trie();
-  lyph_names = blank_trie();
+  lyphplate_ids = blank_trie();
+  lyphplate_names = blank_trie();
   layer_ids = blank_trie();
-  save_lyphs();
+  save_lyphplates();
 
-  top_lyph_id = 0;
+  top_lyphplate_id = 0;
   top_layer_id = 0;
 
-  strip_lyphs_from_graph( lyphedge_ids );
-  save_lyphedges();
+  strip_lyphplates_from_graph( lyph_ids );
+  save_lyphs();
 }
 
 void free_view( lyphview *v )
@@ -573,11 +573,11 @@ void load_lyphviews( void )
   fclose(fp);
 }
 
-int load_lyphedges( void )
+int load_lyphs( void )
 {
   FILE *fp;
   int line = 1;
-  char c, row[MAX_LYPHEDGE_LINE_LEN], *rptr = row, *end = &row[MAX_LYPHEDGE_LINE_LEN - 1], *err = NULL;
+  char c, row[MAX_LYPH_LINE_LEN], *rptr = row, *end = &row[MAX_LYPH_LINE_LEN - 1], *err = NULL;
 
   /*
    * Variables for QUICK_GETC
@@ -585,13 +585,13 @@ int load_lyphedges( void )
   char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
   int fread_len;
 
-  log_string( "Loading lyphedges..." );
+  log_string( "Loading lyphs..." );
 
-  fp = fopen( "lyphedges.dat", "r" );
+  fp = fopen( "lyphs.dat", "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphedges.dat for reading" );
+    log_string( "Could not open lyphs.dat for reading" );
     return 0;
   }
 
@@ -614,9 +614,9 @@ int load_lyphedges( void )
 
       *rptr = '\0';
 
-      if ( !load_lyphedges_one_line( row, &err ) )
+      if ( !load_lyphs_one_line( row, &err ) )
       {
-        log_string( "Error while loading lyphedges file." );
+        log_string( "Error while loading lyphs file." );
         log_linenum( line );
         log_string( err );
 
@@ -633,7 +633,7 @@ int load_lyphedges( void )
     {
       if ( rptr >= end )
       {
-        log_string( "Error while loading lyphedges file." );
+        log_string( "Error while loading lyphs file." );
         log_linenum( line );
         log_string( "Line exceeds maximum length" );
 
@@ -647,34 +647,34 @@ int load_lyphedges( void )
   return 1;
 }
 
-void save_lyphedges( void )
+void save_lyphs( void )
 {
-  FILE *fp = fopen( "lyphedges.dat", "w" );
+  FILE *fp = fopen( "lyphs.dat", "w" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphedges.dat for writing" );
+    log_string( "Could not open lyphs.dat for writing" );
     return;
   }
 
-  save_lyphedges_recurse( lyphedge_ids, fp );
+  save_lyphs_recurse( lyph_ids, fp );
 
   fclose( fp );
 }
 
-void save_lyphedges_recurse( trie *t, FILE *fp )
+void save_lyphs_recurse( trie *t, FILE *fp )
 {
   if ( t->data )
   {
-    lyphedge *e = (lyphedge *)t->data;
+    lyph *e = (lyph *)t->data;
 
     fprintf( fp, "%s\t", trie_to_static( e->id ) );
     fprintf( fp, "%d\t%s\t", e->type, e->fma ? trie_to_static( e->fma ) : "(nofma)" );
     fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
     fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
 
-    if ( e->lyph )
-      fprintf( fp, "lyph:%s ", trie_to_static( e->lyph->id ) );
+    if ( e->lyphplate )
+      fprintf( fp, "lyphplate:%s ", trie_to_static( e->lyphplate->id ) );
 
     if ( *e->constraints )
       fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
@@ -682,18 +682,18 @@ void save_lyphedges_recurse( trie *t, FILE *fp )
     fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
   }
 
-  TRIE_RECURSE( save_lyphedges_recurse( *child, fp ) );
+  TRIE_RECURSE( save_lyphs_recurse( *child, fp ) );
 }
 
-int load_lyphedges_one_line( char *line, char **err )
+int load_lyphs_one_line( char *line, char **err )
 {
-  char edgeidbuf[MAX_LYPHEDGE_LINE_LEN+1];
-  char typebuf[MAX_LYPHEDGE_LINE_LEN+1];
-  char fmabuf[MAX_LYPHEDGE_LINE_LEN+1];
-  char frombuf[MAX_LYPHEDGE_LINE_LEN+1];
-  char tobuf[MAX_LYPHEDGE_LINE_LEN+1];
-  char namebuf[MAX_LYPHEDGE_LINE_LEN+1];
-  lyphedge *e;
+  char lyphidbuf[MAX_LYPH_LINE_LEN+1];
+  char typebuf[MAX_LYPH_LINE_LEN+1];
+  char fmabuf[MAX_LYPH_LINE_LEN+1];
+  char frombuf[MAX_LYPH_LINE_LEN+1];
+  char tobuf[MAX_LYPH_LINE_LEN+1];
+  char namebuf[MAX_LYPH_LINE_LEN+1];
+  lyph *e;
   lyphnode *from, *to;
   trie *etr, *fromtr, *totr;
 
@@ -711,28 +711,28 @@ int load_lyphedges_one_line( char *line, char **err )
     }\
     while(0)
 
-  KEY( edgeidbuf, "Missing edge ID" );
+  KEY( lyphidbuf, "Missing edge ID" );
   KEY( typebuf, "Missing edge type" );
   KEY( fmabuf, "Missing FMA ID" );
   KEY( frombuf, "Missing initial node ID" );
   KEY( tobuf, "Missing terminal node ID" );
   KEY( namebuf, "Missing description" );
 
-  etr = trie_strdup( edgeidbuf, lyphedge_ids );
+  etr = trie_strdup( lyphidbuf, lyph_ids );
 
   if ( !etr->data )
   {
-    CREATE( e, lyphedge, 1 );
+    CREATE( e, lyph, 1 );
     e->id = etr;
     etr->data = (trie **)e;
 
-    maybe_update_top_id( &top_lyphedge_id, edgeidbuf );
+    maybe_update_top_id( &top_lyph_id, lyphidbuf );
 
-    CREATE( e->constraints, lyph *, 1 );
+    CREATE( e->constraints, lyphplate *, 1 );
     *e->constraints = NULL;
   }
   else
-    e = (lyphedge *)etr->data;
+    e = (lyph *)etr->data;
 
   e->type = strtol( typebuf, NULL, 10 );
 
@@ -742,7 +742,7 @@ int load_lyphedges_one_line( char *line, char **err )
     return 0;
   }
 
-  e->fma = strcmp( fmabuf, "(nofma)" ) ? trie_strdup( fmabuf, lyphedge_fmas ) : NULL;
+  e->fma = strcmp( fmabuf, "(nofma)" ) ? trie_strdup( fmabuf, lyph_fmas ) : NULL;
 
   fromtr = trie_strdup( frombuf, lyphnode_ids );
 
@@ -778,8 +778,8 @@ int load_lyphedges_one_line( char *line, char **err )
   else
     to = (lyphnode *)totr->data;
 
-  e->lyph = NULL;
-  e->name = parse_lyphedge_name_field( namebuf, e );
+  e->lyphplate = NULL;
+  e->name = parse_lyph_name_field( namebuf, e );
 
   e->from = from;
   e->to = to;
@@ -814,30 +814,33 @@ int parse_name_preamble( char **name, char *needle, char **dest )
   return 1;
 }
 
-trie *parse_lyphedge_name_field( char *namebuf, lyphedge *e )
+trie *parse_lyph_name_field( char *namebuf, lyph *e )
 {
   char *preamble;
 
-  if ( parse_name_preamble( &namebuf, "lyph:", &preamble ) )
+  if ( parse_name_preamble( &namebuf, "lyphplate:", &preamble ) )
   {
-    lyph *L = lyph_by_id( preamble );
+    lyphplate *L = lyphplate_by_id( preamble );
 
     if ( !L )
+    {
+      log_stringf( "lyphs.dat referred to a nonexistent lyphplate: %s", namebuf );
       return NULL;
+    }
 
-    e->lyph = L;
+    e->lyphplate = L;
   }
 
   if ( parse_name_preamble( &namebuf, "constraints:", &preamble ) )
-    e->constraints = parse_lyphedge_constraints( preamble );
+    e->constraints = parse_lyph_constraints( preamble );
 
   if ( !strcmp( namebuf, "(noname)" ) )
     return NULL;
 
-  return trie_strdup( namebuf, lyphedge_names );
+  return trie_strdup( namebuf, lyph_names );
 }
 
-void add_exit( lyphedge *e, lyphnode *n )
+void add_exit( lyph *e, lyphnode *n )
 {
   lyphnode *to;
   exit_data **x;
@@ -892,33 +895,33 @@ void add_exit( lyphedge *e, lyphnode *n )
   }
 }
 
-char *lyphedge_type_str( int type )
+char *lyph_type_str( int type )
 {
   switch( type )
   {
-    case LYPHEDGE_ARTERIAL:
+    case LYPH_ARTERIAL:
       return "arterial";
-    case LYPHEDGE_MICROCIRC:
+    case LYPH_MICROCIRC:
       return "microcirculation";
-    case LYPHEDGE_VENOUS:
+    case LYPH_VENOUS:
       return "venous";
-    case LYPHEDGE_CARDIAC:
+    case LYPH_CARDIAC:
       return "cardiac-chamber";
     default:
       return "unknown";
   }
 }
 
-int parse_lyph_type_str( char *type )
+int parse_lyphplate_type_str( char *type )
 {
   if ( !strcmp( type, "arterial" ) )
-    return LYPHEDGE_ARTERIAL;
+    return LYPH_ARTERIAL;
   if ( !strcmp( type, "microcirculation" ) )
-    return LYPHEDGE_MICROCIRC;
+    return LYPH_MICROCIRC;
   if ( !strcmp( type, "venous" ) )
-    return LYPHEDGE_VENOUS;
+    return LYPH_VENOUS;
   if ( !strcmp( type, "cardiac-chamber" ) )
-    return LYPHEDGE_CARDIAC;
+    return LYPH_CARDIAC;
 
   return -1;
 }
@@ -955,7 +958,7 @@ int word_from_line( char **line, char *buf )
   }
 }
 
-void got_lyph_triple( char *subj, char *pred, char *obj )
+void got_lyphplate_triple( char *subj, char *pred, char *obj )
 {
   char *s = subj, *p = pred, *o = obj;
 
@@ -969,9 +972,9 @@ void got_lyph_triple( char *subj, char *pred, char *obj )
     obj[strlen(obj)-1] = '\0';
 
   if ( !strcmp( p, "http://www.w3.org/2000/01/rdf-schema#label" ) )
-    load_lyph_label( s, o );
+    load_lyphplate_label( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#lyph_type" ) )
-    load_lyph_type( s, o );
+    load_lyphplate_type( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#ont_term" ) )
     load_ont_term( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_layers" ) )
@@ -1002,47 +1005,47 @@ void load_ont_term( char *subj_full, char *ont_term_str )
     return;
   }
 
-  iri = trie_search( subj, lyph_ids );
+  iri = trie_search( subj, lyphplate_ids );
 
   if ( !iri )
     return;
 
-  ((lyph*)iri->data)->ont_term = ont_term;
+  ((lyphplate*)iri->data)->ont_term = ont_term;
 }
 
-void load_lyph_type( char *subj_full, char *type_str )
+void load_lyphplate_type( char *subj_full, char *type_str )
 {
   char *subj = get_url_shortform( subj_full );
-  int type = parse_lyph_type( type_str );
+  int type = parse_lyphplate_type( type_str );
   trie *iri;
 
   if ( type != -1 )
-    iri = trie_search( subj, lyph_ids );
+    iri = trie_search( subj, lyphplate_ids );
 
   if ( type == -1 || !iri )
     return;
 
-  ((lyph *)iri->data)->type = type;
+  ((lyphplate *)iri->data)->type = type;
 }
 
-void load_lyph_label( char *subj_full, char *label )
+void load_lyphplate_label( char *subj_full, char *label )
 {
   char *subj = get_url_shortform( subj_full );
   trie *iri;
 
-  if ( str_begins( subj, "LYPH_" ) )
+  if ( str_begins( subj, "LYPHPLATE_" ) )
   {
-    lyph *L;
+    lyphplate *L;
 
-    maybe_update_top_id( &top_lyph_id, subj + strlen("LYPH_") );
+    maybe_update_top_id( &top_lyphplate_id, subj + strlen("LYPHPLATE_") );
 
-    iri = trie_strdup( subj, lyph_ids );
+    iri = trie_strdup( subj, lyphplate_ids );
 
     if ( !iri->data )
     {
-      CREATE( L, lyph, 1 );
+      CREATE( L, lyphplate, 1 );
       L->id = iri;
-      L->type = LYPH_MISSING;
+      L->type = LYPHPLATE_MISSING;
       L->layers = NULL;
       L->supers = NULL;
       L->subs = NULL;
@@ -1050,9 +1053,9 @@ void load_lyph_label( char *subj_full, char *label )
       iri->data = (void *)L;
     }
     else
-      L = (lyph *)iri->data;
+      L = (lyphplate *)iri->data;
 
-    L->name = trie_strdup( label, lyph_names );
+    L->name = trie_strdup( label, lyphplate_names );
     L->name->data = (void *)L;
   }
 }
@@ -1060,7 +1063,7 @@ void load_lyph_label( char *subj_full, char *label )
 void acknowledge_has_layers( char *subj_full, char *bnode_id )
 {
   char *subj = get_url_shortform( subj_full );
-  trie *iri = trie_search( subj, lyph_ids );
+  trie *iri = trie_search( subj, lyphplate_ids );
   trie *bnode;
   load_layers_data *lld;
 
@@ -1070,7 +1073,7 @@ void acknowledge_has_layers( char *subj_full, char *bnode_id )
   bnode = trie_strdup( bnode_id, blank_nodes );
 
   CREATE( lld, load_layers_data, 1 );
-  lld->subj = (lyph *)iri->data;
+  lld->subj = (lyphplate *)iri->data;
   lld->first_layer_loading = NULL;
   lld->last_layer_loading = NULL;
   lld->layer_count = 0;
@@ -1114,18 +1117,18 @@ void load_layer_to_lld( char *bnode, char *obj_full )
   lld->layer_count++;
 }
 
-lyph *create_or_find_lyph( char *id )
+lyphplate *create_or_find_lyphplate( char *id )
 {
-  lyph *L = lyph_by_id( id );
+  lyphplate *L = lyphplate_by_id( id );
 
   if ( L )
     return L;
 
-  CREATE( L, lyph, 1 );
+  CREATE( L, lyphplate, 1 );
 
-  L->id = trie_strdup( id, lyph_ids );
+  L->id = trie_strdup( id, lyphplate_ids );
   L->id->data = (void *)L;
-  L->type = LYPH_MISSING;
+  L->type = LYPHPLATE_MISSING;
   L->layers = NULL;
   L->supers = NULL;
   L->subs = NULL;
@@ -1144,7 +1147,7 @@ void load_layer_material( char *subj_full, char *obj_full )
   if ( !lyr )
     return;
 
-  lyr->material = create_or_find_lyph( obj );
+  lyr->material = create_or_find_lyphplate( obj );
 }
 
 void load_layer_thickness( char *subj_full, char *obj )
@@ -1161,29 +1164,25 @@ void load_layer_thickness( char *subj_full, char *obj )
   lyr->thickness = strtol( obj, NULL, 10 );
 }
 
-void load_lyphs(void)
+void load_lyphplates(void)
 {
   FILE *fp;
   char *err = NULL;
-  lyph *naked;
+  lyphplate *naked;
 
-  fp = fopen( "lyphs.dat", "r" );
+  fp = fopen( "lyphplates.dat", "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphs.dat for reading" );
+    log_string( "Could not open lyphplates.dat for reading" );
     return;
   }
 
   blank_nodes = blank_trie();
 
-  if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_lyph_triple ) )
+  if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_lyphplate_triple ) )
   {
-    char *buf = malloc(strlen(err) + 1024);
-
-    sprintf( buf, "Failed to parse the lyphs-file (lyphs.dat):\n%s\n", err ? err : "(no error given)" );
-
-    error_message( buf );
+    error_message( strdupf( "Failed to parse the lyphplates-file (lyphplates.dat):\n%s\n", err ? err : "(no error given)" ) );
     EXIT();
   }
 
@@ -1191,27 +1190,24 @@ void load_lyphs(void)
 
   if ( (naked=missing_layers( lyph_ids )) != NULL )
   {
-    char buf[1024 + MAX_IRI_LEN];
-
-    sprintf( buf, "Error in lyphs.dat: lyph %s has type %s but has no layers\n", trie_to_static( naked->id ), lyph_type_as_char( naked ) );
-    error_message( buf );
+    error_message( strdupf( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) ) );
     EXIT();
   }
 }
 
-lyph *missing_layers( trie *t )
+lyphplate *missing_layers( trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
-    if ( ( L->type == LYPH_MIX || L->type == LYPH_SHELL ) && ( !L->layers || !L->layers[0] ) )
+    if ( ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) && ( !L->layers || !L->layers[0] ) )
       return L;
   }
 
   TRIE_RECURSE
   (
-    lyph *L = missing_layers( *child );
+    lyphplate *L = missing_layers( *child );
 
     if ( L )
       return L;
@@ -1226,7 +1222,7 @@ void handle_loaded_layers( trie *t )
   {
     load_layers_data *lld = (load_layers_data *)t->data;
     layer_loading *load, *load_next;
-    lyph *L = lld->subj;
+    lyphplate *L = lld->subj;
     layer **lyrs, **lptr;
 
     CREATE( lyrs, layer *, lld->layer_count + 1 );
@@ -1254,43 +1250,43 @@ void handle_loaded_layers( trie *t )
   free( t );
 }
 
-void save_lyphs(void)
+void save_lyphplates(void)
 {
   FILE *fp;
   trie *avoid_dupe_layers;
 
-  fp = fopen( "lyphs.dat", "w" );
+  fp = fopen( "lyphplates.dat", "w" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphs.dat for writing" );
+    log_string( "Could not open lyphplates.dat for writing" );
     return;
   }
 
   avoid_dupe_layers = blank_trie();
 
-  save_lyphs_recurse( lyph_ids, fp, avoid_dupe_layers );
+  save_lyphplates_recurse( lyphplate_ids, fp, avoid_dupe_layers );
 
   fclose(fp);
 
-  free_lyphdupe_trie( avoid_dupe_layers );
+  free_lyphplate_dupe_trie( avoid_dupe_layers );
 
   return;
 }
 
-void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes )
+void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
 {
   /*
    * Save in N-Triples format for improved interoperability
    */
   static int bnodes;
 
-  if ( t == lyph_ids )
+  if ( t == lyphplate_ids )
     bnodes = 0;
 
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
     char *ch, *id;
 
     id = id_as_iri( t );
@@ -1299,12 +1295,12 @@ void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
     free( ch );
 
-    fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyph_type_as_char( L ) );
+    fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyphplate_type_as_char( L ) );
 
     if ( L->ont_term )
       fprintf( fp, "%s <http://open-physiology.org/lyph#ont_term> \"%s\" .\n", id, trie_to_static(L->ont_term) );
 
-    if ( L->type == LYPH_SHELL || L->type == LYPH_MIX )
+    if ( L->type == LYPHPLATE_SHELL || L->type == LYPHPLATE_MIX )
     {
       layer **lyrs;
       int cnt = 1;
@@ -1319,7 +1315,7 @@ void save_lyphs_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     free( id );
   }
 
-  TRIE_RECURSE( save_lyphs_recurse( *child, fp, avoid_dupes ) );
+  TRIE_RECURSE( save_lyphplates_recurse( *child, fp, avoid_dupes ) );
 }
 
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes )
@@ -1352,52 +1348,44 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
 
 char *id_as_iri( trie *id )
 {
-  char *iri = "<http://open-physiology.org/lyphs/#%s>";
-  char *retval;
-  char *tmp = trie_to_static( id );
-
-  CREATE( retval, char, strlen(iri) + strlen(tmp) + 1 );
-
-  sprintf( retval, iri, tmp );
-
-  return retval;
+  return strdupf( "<http://open-physiology.org/lyphs/#%s>", trie_to_static(id) );
 }
 
-lyph *lyph_by_layers( int type, layer **layers, char *name )
+lyphplate *lyphplate_by_layers( int type, layer **layers, char *name )
 {
-  lyph *L;
+  lyphplate *L;
 
-  if ( type == LYPH_MIX )
+  if ( type == LYPHPLATE_MIX )
     sort_layers( layers );
 
-  L = lyph_by_layers_recurse( type, layers, lyph_ids );
+  L = lyphplate_by_layers_recurse( type, layers, lyphplate_ids );
 
   if ( !L )
   {
     if ( !name )
       return NULL;
 
-    CREATE( L, lyph, 1 );
-    L->name = trie_strdup( name, lyph_names );
-    L->id = assign_new_lyph_id( L );
+    CREATE( L, lyphplate, 1 );
+    L->name = trie_strdup( name, lyphplate_names );
+    L->id = assign_new_lyphplate_id( L );
     L->type = type;
     L->layers = copy_layers( layers );
     L->ont_term = NULL;
     L->supers = NULL;
-    compute_lyph_hierarchy_one_lyph( L );
-    add_lyph_as_super( L, lyph_ids );
+    compute_lyphplate_hierarchy_one_lyphplate( L );
+    add_lyphplate_as_super( L, lyphplate_ids );
 
-    save_lyphs();
+    save_lyphplates();
   }
 
   return L;
 }
 
-lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t )
+lyphplate *lyphplate_by_layers_recurse( int type, layer **layers, trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
     if ( L->type == type && same_layers( L->layers, layers ) )
       return L;
@@ -1405,7 +1393,7 @@ lyph *lyph_by_layers_recurse( int type, layer **layers, trie *t )
 
   TRIE_RECURSE
   (
-    lyph *L = lyph_by_layers_recurse( type, layers, *child );
+    lyphplate *L = lyphplate_by_layers_recurse( type, layers, *child );
 
     if ( L )
       return L;
@@ -1431,7 +1419,7 @@ int same_layers( layer **x, layer **y )
 
 layer *layer_by_description( char *mtid, int thickness )
 {
-  lyph *L = lyph_by_id( mtid );
+  lyphplate *L = lyphplate_by_id( mtid );
   layer *lyr;
 
   if ( !L )
@@ -1449,21 +1437,22 @@ layer *layer_by_description( char *mtid, int thickness )
     lyr->id = assign_new_layer_id( lyr );
     lyr->thickness = thickness;
 
-    save_lyphs();
+    save_lyphplates();
   }
 
   return lyr;
 }
 
-trie *assign_new_lyph_id( lyph *L )
+trie *assign_new_lyphplate_id( lyphplate *L )
 {
-  top_lyph_id++;
   char buf[128];
   trie *t;
 
-  sprintf( buf, "LYPH_%d", top_lyph_id );
+  top_lyphplate_id++;
 
-  t = trie_strdup( buf, lyph_ids );
+  sprintf( buf, "LYPH_%d", top_lyphplate_id );
+
+  t = trie_strdup( buf, lyphplate_ids );
 
   t->data = (trie **)L;
 
@@ -1485,7 +1474,7 @@ trie *assign_new_layer_id( layer *lyr )
   return t;
 }
 
-int layer_matches( layer *candidate, const lyph *material, const float thickness )
+int layer_matches( layer *candidate, const lyphplate *material, const float thickness )
 {
   if ( candidate->material != material )
     return 0;
@@ -1496,7 +1485,7 @@ int layer_matches( layer *candidate, const lyph *material, const float thickness
   return 1;
 }
 
-layer *layer_by_description_recurse( const lyph *L, const float thickness, const trie *t )
+layer *layer_by_description_recurse( const lyphplate *L, const float thickness, const trie *t )
 {
   if ( t->data && layer_matches( (layer *)t->data, L, thickness ) )
       return (layer *)t->data;
@@ -1521,51 +1510,51 @@ layer *layer_by_id( char *id )
   return NULL;
 }
 
-lyph *lyph_by_name( char *name )
+lyphplate *lyphplate_by_name( char *name )
 {
-  trie *t = trie_search( name, lyph_names );
+  trie *t = trie_search( name, lyphplate_names );
 
   if ( t && t->data )
-    return (lyph *) t->data;
+    return (lyphplate *) t->data;
 
   return NULL;
 }
 
-lyph *lyph_by_id( char *id )
+lyphplate *lyphplate_by_id( char *id )
 {
-  trie *t = trie_search( id, lyph_ids );
+  trie *t = trie_search( id, lyphplate_ids );
 
   if ( t && t->data )
-    return (lyph *) t->data;
+    return (lyphplate *) t->data;
 
   t = trie_search( id, superclasses );
 
   if ( t && t->data )
   {
-    lyph *L;
+    lyphplate *L;
     trie *label;
 
-    if ( (L = lyph_by_ont_term( t )) != NULL )
+    if ( (L = lyphplate_by_ont_term( t )) != NULL )
       return L;
 
     label = trie_search( id, iri_to_labels );
 
-    CREATE( L, lyph, 1 );
+    CREATE( L, lyphplate, 1 );
 
-    L->type = LYPH_BASIC;
-    L->id = assign_new_lyph_id( L );
+    L->type = LYPHPLATE_BASIC;
+    L->id = assign_new_lyphplate_id( L );
     L->ont_term = t;
-    L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyph_names );
+    L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyphplate_names );
     L->layers = NULL;
     L->supers = NULL;
 
-    compute_lyph_hierarchy_one_lyph( L );
-    add_lyph_as_super( L, lyph_ids );
+    compute_lyphplate_hierarchy_one_lyphplate( L );
+    add_lyphplate_as_super( L, lyphplate_ids );
 
     L->id->data = (trie **)L;
     L->name->data = (trie **)L;
 
-    save_lyphs();
+    save_lyphplates();
 
     return L;
   }
@@ -1591,23 +1580,23 @@ lyphnode *lyphnode_by_id_or_new( char *id )
     return lyphnode_by_id( id );
 }
 
-lyphedge *lyphedge_by_id( char *id )
+lyph *lyph_by_id( char *id )
 {
-  trie *t = trie_search( id, lyphedge_ids );
+  trie *t = trie_search( id, lyph_ids );
 
   if ( t )
-    return (lyphedge *)t->data;
+    return (lyph *)t->data;
 
   return NULL;
 }
 
-char *lyph_to_json( lyph *L )
+char *lyphplate_to_json( lyphplate *L )
 {
   return JSON
   (
     "id": trie_to_json( L->id ),
     "name": trie_to_json( L->name ),
-    "type": lyph_type_as_char( L ),
+    "type": lyphplate_type_as_char( L ),
     "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
     "layers": JS_ARRAY( layer_to_json, L->layers )
   );
@@ -1668,14 +1657,12 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
 
     return retval;
   }
-  else
-    return JSON
-    (
-      "id": trie_to_json( n->id ),
-      "x": x,
-      "y": y
-    );
-
+  else return JSON
+  (
+    "id": trie_to_json( n->id ),
+    "x": x,
+    "y": y
+  );
 }
 
 char *exit_to_json( exit_data *x )
@@ -1685,12 +1672,12 @@ char *exit_to_json( exit_data *x )
     "to": trie_to_json( x->to->id ),
     "via":
       IS_SET( exit_to_json_flags, ETJ_FULL_EXIT_DATA ) ?
-      lyphedge_to_json( x->via ) :
+      lyph_to_json( x->via ) :
       trie_to_json( x->via->id )
   );
 }
 
-char *lyphedge_to_json( lyphedge *e )
+char *lyph_to_json( lyph *e )
 {
   char *retval;
   int old_LTJ_flags = lyphnode_to_json_flags;
@@ -1704,32 +1691,32 @@ char *lyphedge_to_json( lyphedge *e )
     "type": int_to_json( e->type ),
     "from": lyphnode_to_json( e->from ),
     "to": lyphnode_to_json( e->to ),
-    "lyph": e->lyph ? lyph_to_json( e->lyph ) : NULL,
-    "constraints": JS_ARRAY( lyph_to_shallow_json, e->constraints )
+    "template": e->lyphplate ? lyphplate_to_json( e->lyphplate ) : NULL,
+    "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints )
   );
 
   lyphnode_to_json_flags = old_LTJ_flags;
   return retval;
 }
 
-char *lyphpath_to_json( lyphedge **path )
+char *lyphpath_to_json( lyph **path )
 {
   return JSON
   (
     "length": int_to_json( VOIDLEN( path ) ),
-    "edges": JS_ARRAY( lyphedge_to_json, path )
+    "edges": JS_ARRAY( lyph_to_json, path )
   );
 }
 
-char *lyph_type_as_char( lyph *L )
+char *lyphplate_type_as_char( lyphplate *L )
 {
   switch( L->type )
   {
-    case LYPH_BASIC:
+    case LYPHPLATE_BASIC:
       return "basic";
-    case LYPH_SHELL:
+    case LYPHPLATE_SHELL:
       return "shell";
-    case LYPH_MIX:
+    case LYPHPLATE_MIX:
       return "mix";
     default:
       return "unknown";
@@ -1738,7 +1725,7 @@ char *lyph_type_as_char( lyph *L )
 
 layer **copy_layers( layer **src )
 {
-  int len = layers_len( src );
+  int len = VOIDLEN( src );
   layer **dest;
 
   CREATE( dest, layer *, len + 1 );
@@ -1746,16 +1733,6 @@ layer **copy_layers( layer **src )
   memcpy( dest, src, sizeof( layer * ) * (len + 1) );
 
   return dest;
-}
-
-int layers_len( layer **layers )
-{
-  layer **ptr;
-
-  for ( ptr = layers; *ptr; ptr++ )
-    ;
-
-  return ptr - layers;
 }
 
 /*
@@ -1782,14 +1759,12 @@ int cmp_layers(const void * a, const void * b)
 
 void sort_layers( layer **layers )
 {
-  qsort( layers, layers_len( layers ), sizeof(layer *), cmp_layers );
-
-  return;
+  qsort( layers, VOIDLEN( layers ), sizeof(layer *), cmp_layers );
 }
 
-void free_lyphdupe_trie( trie *t )
+void free_lyphplate_dupe_trie( trie *t )
 {
-  TRIE_RECURSE( free_lyphdupe_trie( *child ) );
+  TRIE_RECURSE( free_lyphplate_dupe_trie( *child ) );
 
   if ( t->children )
     free( t->children );
@@ -1800,29 +1775,29 @@ void free_lyphdupe_trie( trie *t )
   free( t );
 }
 
-int parse_lyph_type( char *str )
+int parse_lyphplate_type( char *str )
 {
   if ( !strcmp( str, "mix" ) )
-    return LYPH_MIX;
+    return LYPHPLATE_MIX;
 
   if ( !strcmp( str, "shell" ) )
-    return LYPH_SHELL;
+    return LYPHPLATE_SHELL;
 
   if ( !strcmp( str, "basic" ) )
-    return LYPH_BASIC;
+    return LYPHPLATE_BASIC;
 
   return -1;
 }
 
-lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter )
+lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter )
 {
   lyphstep *head = NULL, *tail = NULL, *step, *curr;
 
   if ( from == to )
   {
-    lyphedge **path;
+    lyph **path;
 
-    CREATE( path, lyphedge *, 1 );
+    CREATE( path, lyph *, 1 );
     path[0] = NULL;
 
     return path;
@@ -1832,7 +1807,7 @@ lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter )
   step->depth = 0;
   step->backtrace = NULL;
   step->location = from;
-  step->edge = NULL;
+  step->lyph = NULL;
 
   LINK2( step, head, tail, next, prev );
   curr = step;
@@ -1850,15 +1825,15 @@ lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter )
 
     if ( curr->location == to )
     {
-      lyphedge **path, **pptr;
+      lyph **path, **pptr;
 
-      CREATE( path, lyphedge *, curr->depth + 1 );
+      CREATE( path, lyph *, curr->depth + 1 );
       pptr = &path[curr->depth-1];
       path[curr->depth] = NULL;
 
       do
       {
-        *pptr-- = curr->edge;
+        *pptr-- = curr->lyph;
         curr = curr->backtrace;
       }
       while( curr->backtrace );
@@ -1872,19 +1847,20 @@ lyphedge **compute_lyphpath( lyphnode *from, lyphnode *to, edge_filter *filter )
       if ( IS_SET( (*x)->to->flags, LYPHNODE_SEEN ) )
         continue;
 
-      if ( filter && !edge_passes_filter( (*x)->via, filter ) )
+      if ( filter && !lyph_passes_filter( (*x)->via, filter ) )
         continue;
 
       CREATE( step, lyphstep, 1 );
       step->depth = curr->depth + 1;
       step->backtrace = curr;
       step->location = (*x)->to;
-      step->edge = (*x)->via;
+      step->lyph = (*x)->via;
       LINK2( step, head, tail, next, prev );
       SET_BIT( step->location->flags, LYPHNODE_SEEN );
     }
   }
 
+  free_lyphsteps( head );
   return NULL;
 }
 
@@ -1932,61 +1908,61 @@ trie *new_lyphnode_id(lyphnode *n)
   return id;
 }
 
-lyphedge *make_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, char *fmastr, char *namestr )
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr )
 {
   trie *fma;
-  lyphedge *e;
+  lyph *e;
 
-  fma = fmastr ? trie_strdup( fmastr, lyphedge_fmas ) : NULL;
+  fma = fmastr ? trie_strdup( fmastr, lyph_fmas ) : NULL;
 
-  e = find_duplicate_lyphedge( type, from, to, L, fma, namestr );
+  e = find_duplicate_lyph( type, from, to, L, fma, namestr );
 
   if ( e )
     return e;
 
-  CREATE( e, lyphedge, 1 );
+  CREATE( e, lyph, 1 );
 
-  e->id = new_lyphedge_id(e);
-  e->name = namestr ? trie_strdup( namestr, lyphedge_names ) : NULL;
+  e->id = new_lyph_id(e);
+  e->name = namestr ? trie_strdup( namestr, lyph_names ) : NULL;
   e->type = type;
   e->from = from;
   e->to = to;
-  e->lyph = L;
+  e->lyphplate = L;
   e->fma = fma;
 
-  CREATE( e->constraints, lyph *, 1 );
-  *e->constraints = NULL;
+  CREATE( e->constraints, lyphplate *, 1 );
+  e->constraints[0] = NULL;
 
   add_exit( e, from );
 
-  save_lyphedges();
+  save_lyphs();
 
   return e;
 }
 
-trie *new_lyphedge_id(lyphedge *e)
+trie *new_lyph_id(lyph *e)
 {
   trie *id;
   char idstr[MAX_INT_LEN+1];
 
-  top_lyphedge_id++;
+  top_lyph_id++;
 
-  sprintf( idstr, "%d", top_lyphedge_id );
+  sprintf( idstr, "%d", top_lyph_id );
 
-  id = trie_strdup( idstr, lyphedge_ids );
+  id = trie_strdup( idstr, lyph_ids );
 
   id->data = (trie **)e;
 
   return id;
 }
 
-lyphedge *find_duplicate_lyphedge( int type, lyphnode *from, lyphnode *to, lyph *L, trie *fma, char *namestr )
+lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr )
 {
   trie *name;
 
   if ( namestr )
   {
-    name = trie_search( namestr, lyphedge_names );
+    name = trie_search( namestr, lyph_names );
 
     if ( !name )
       return NULL;
@@ -1994,27 +1970,27 @@ lyphedge *find_duplicate_lyphedge( int type, lyphnode *from, lyphnode *to, lyph 
   else
     name = NULL;
 
-  return find_duplicate_lyphedge_recurse( lyphedge_ids, type, from, to, L, fma, name );
+  return find_duplicate_lyph_recurse( lyph_ids, type, from, to, L, fma, name );
 }
 
-lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyph *L, trie *fma, trie *name )
+lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name )
 {
   if ( t->data )
   {
-    lyphedge *e = (lyphedge *)t->data;
+    lyph *e = (lyph *)t->data;
 
     if ( e->name == name
     &&   e->type == type
     &&   e->from == from
     &&   e->to   == to
-    &&   e->lyph == L
+    &&   e->lyphplate == L
     &&   e->fma  == fma )
       return e;
   }
 
   TRIE_RECURSE
   (
-    lyphedge *e = find_duplicate_lyphedge_recurse( *child, type, from, to, L, fma, name );
+    lyph *e = find_duplicate_lyph_recurse( *child, type, from, to, L, fma, name );
 
     if ( e )
       return e;
@@ -2023,45 +1999,37 @@ lyphedge *find_duplicate_lyphedge_recurse( trie *t, int type, lyphnode *from, ly
   return NULL;
 }
 
-void maybe_update_top_id( int *top, char *idstr )
-{
-  int id = strtol( idstr, NULL, 10 );
-
-  if ( id > *top )
-    *top = id;
-}
-
-void lyphs_unset_bits( int bits, trie *t )
+void lyphplates_unset_bits( int bits, trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
     REMOVE_BIT( L->flags, bits );
   }
 
-  TRIE_RECURSE( lyphs_unset_bits( bits, *child ) );
+  TRIE_RECURSE( lyphplates_unset_bits( bits, *child ) );
 }
 
 /*
  * To do: optimize this
  */
-lyph *lyph_by_ont_term( trie *term )
+lyphplate *lyphplate_by_ont_term( trie *term )
 {
-  return lyph_by_ont_term_recurse( term, lyph_ids );
+  return lyphplate_by_ont_term_recurse( term, lyphplate_ids );
 }
 
-lyph *lyph_by_ont_term_recurse( trie *term, trie *t )
+lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
     if ( L->ont_term == term )
       return L;
   }
 
   TRIE_RECURSE
   (
-    lyph *L = lyph_by_ont_term_recurse( term, *child );
+    lyphplate *L = lyphplate_by_ont_term_recurse( term, *child );
 
     if ( L )
       return L;
@@ -2070,10 +2038,10 @@ lyph *lyph_by_ont_term_recurse( trie *term, trie *t )
   return NULL;
 }
 
-lyph **parse_lyphedge_constraints( char *str )
+lyphplate **parse_lyph_constraints( char *str )
 {
-  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
-  lyph *L, **buf, **bptr;
+  lyphplate_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyphplate *L, **buf, **bptr;
   char *ptr, *left = str;
   int fEnd = 0, cnt = 0;
 
@@ -2085,20 +2053,20 @@ lyph **parse_lyphedge_constraints( char *str )
         fEnd = 1;
       case ',':
         *ptr = '\0';
-        L = lyph_by_id( left );
+        L = lyphplate_by_id( left );
 
         if ( !L )
-          log_stringf( "Unrecognized lyph (%s) while parsing lyph constraints", left );
+          log_stringf( "Unrecognized lyphplate (%s) while parsing lyphplate constraints", left );
         else
         {
-          CREATE( w, lyph_wrapper, 1 );
+          CREATE( w, lyphplate_wrapper, 1 );
           w->L = L;
           LINK( w, head, tail, next );
           cnt++;
         }
 
         if ( fEnd )
-          goto parse_lyphedge_constraints_escape;
+          goto parse_lyph_constraints_escape;
 
         left = &ptr[1];
         break;
@@ -2108,9 +2076,9 @@ lyph **parse_lyphedge_constraints( char *str )
     }
   }
 
-  parse_lyphedge_constraints_escape:
+  parse_lyph_constraints_escape:
 
-  CREATE( buf, lyph *, cnt + 1 );
+  CREATE( buf, lyphplate *, cnt + 1 );
   bptr = buf;
 
   for ( w = head; w; w = w_next )
@@ -2125,15 +2093,15 @@ lyph **parse_lyphedge_constraints( char *str )
   return buf;
 }
 
-int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err )
+int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
 {
-  lyph **c;
+  lyphplate **c;
 
   for ( c = e->constraints; *c; c++ )
   {
-    if ( !is_superlyph( *c, L ) )
+    if ( !is_superlyphplate( *c, L ) )
     {
-      *err = strdupf( "That edge is constrained to have lyph a sublyph of %s", trie_to_static( (*c)->id ) );
+      *err = strdupf( "That lyph is constrained to have template a subtemplate of %s", trie_to_static( (*c)->id ) );
       return 0;
     }
   }
@@ -2141,19 +2109,19 @@ int can_assign_lyph_to_edge( lyph *L, lyphedge *e, char **err )
   return 1;
 }
 
-int edge_passes_filter( lyphedge *e, edge_filter *f )
+int lyph_passes_filter( lyph *e, lyph_filter *f )
 {
-  if ( e->lyph )
-    return is_superlyph( f->sup, e->lyph );
+  if ( e->lyphplate )
+    return is_superlyphplate( f->sup, e->lyphplate );
 
   if ( !*e->constraints )
     return f->accept_na_edges;
   else
   {
-    lyph **c;
+    lyphplate **c;
 
     for ( c = e->constraints; *c; c++ )
-      if ( !is_superlyph( f->sup, *c ) )
+      if ( !is_superlyphplate( f->sup, *c ) )
         return 0;
 
     return 1;

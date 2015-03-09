@@ -253,28 +253,6 @@ int is_number( const char *arg )
   return 1;
 }
 
-char *pretty_free( char *json )
-{
-  static char *pretty;
-  char *err;
-
-  if ( pretty )
-    free( pretty );
-
-  pretty = json_format( json, 2, &err );
-
-  if ( !pretty )
-  {
-    pretty = json;
-    log_string( "json_format failed during a call to pretty_free" );
-    log_string( err );
-  }
-  else
-    free( json );
-
-  return pretty;
-}
-
 size_t voidlen( void **x )
 {
   void **ptr;
@@ -285,9 +263,9 @@ size_t voidlen( void **x )
   return ptr - x;
 }
 
-char *constraints_comma_list( lyph **constraints )
+char *constraints_comma_list( lyphplate **constraints )
 {
-  lyph **ptr;
+  lyphplate **ptr;
   static char *buf;
   char **ids, **iptr, *bptr;
   int len = 0;
@@ -421,4 +399,12 @@ void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
         break;
     }
   }
+}
+
+void maybe_update_top_id( int *top, char *idstr )
+{
+  int id = strtol( idstr, NULL, 10 );
+
+  if ( id > *top )
+    *top = id;
 }

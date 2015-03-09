@@ -10,21 +10,21 @@ void init_labels(FILE *fp)
 
   parse_ontology_file( fp );
 
-  lyph_names = blank_trie();
-  lyph_ids = blank_trie();
+  lyphplate_names = blank_trie();
+  lyphplate_ids = blank_trie();
   layer_ids = blank_trie();
-  lyphnode_ids = blank_trie();
-  lyphedge_ids = blank_trie();
-  lyphedge_names = blank_trie();
-  lyphedge_fmas = blank_trie();
+  lyph_ids = blank_trie();
+  lyph_ids = blank_trie();
+  lyph_names = blank_trie();
+  lyph_fmas = blank_trie();
 
   init_html_codes();
 
+  load_lyphplates();
   load_lyphs();
-  load_lyphedges();
   load_lyphviews();
 
-  compute_lyph_hierarchy( lyph_ids );
+  compute_lyphplate_hierarchy( lyphplate_ids );
 
   return;
 }
@@ -87,12 +87,11 @@ void add_to_data( trie ***dest, trie *datum )
   }
   else
   {
-    for ( data = *dest, cnt = 0; *data; data++ )
-      cnt++;
-
+    cnt = VOIDLEN( *dest );
     CREATE( data, trie *, cnt + 2 );
     memcpy( data, *dest, cnt * sizeof(trie*) );
     data[cnt] = datum;
+    data[cnt+1] = NULL;
     free( *dest );
     *dest = data;
   }

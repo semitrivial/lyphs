@@ -1,27 +1,26 @@
 #include "lyph.h"
 
-void add_lyph_to_wrappers( lyph *L, lyphs_wrapper **head, lyphs_wrapper **tail );
-void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail );
-void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail );
-void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail );
+void add_lyphplate_to_wrappers( lyphplate *L, lyphplates_wrapper **head, lyphplates_wrapper **tail );
+void add_lyphplates_to_wrappers( lyphplate **L, lyphplates_wrapper **head, lyphplates_wrapper **tail );
+void add_ont_term_parents( trie *t, lyphplates_wrapper **head, lyphplates_wrapper **tail );
+void add_supers_by_layers( trie *t, lyphplate *sub, lyphplates_wrapper **head, lyphplates_wrapper **tail );
 int is_superlayer( layer *sup, layer *sub );
-void get_next_lyph_hierarchy_level( lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t );
-int should_add_super_by_layers( lyph *sup, lyph *sub );
+int should_add_super_by_layers( lyphplate *sup, lyphplate *sub );
 
-void compute_lyph_hierarchy( trie *t )
+void compute_lyphplate_hierarchy( trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
     if ( !L->supers )
     {
-      compute_lyph_hierarchy_one_lyph( L );
-      TRIE_RECURSE( compute_lyph_hierarchy( *child ) );
+      compute_lyphplate_hierarchy_one_lyphplate( L );
+      TRIE_RECURSE( compute_lyphplate_hierarchy( *child ) );
     }
   }
   else
-    TRIE_RECURSE( compute_lyph_hierarchy( *child ) );
+    TRIE_RECURSE( compute_lyphplate_hierarchy( *child ) );
 }
 
 #define PARENT_ADDED 1
@@ -29,10 +28,10 @@ void compute_lyph_hierarchy( trie *t )
 /*
  * To do: Optimize this
  */
-void compute_lyph_hierarchy_one_lyph( lyph *L )
+void compute_lyphplate_hierarchy_one_lyphplate( lyphplate *L )
 {
-  lyphs_wrapper *head = NULL, *tail = NULL, *w, *w_next;
-  lyph **parent, **supers, **sptr, avoid_dupes;
+  lyphplates_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyphplate **parent, **supers, **sptr, avoid_dupes;
   int cnt = 0;
 
   if ( L->ont_term )
@@ -45,9 +44,9 @@ void compute_lyph_hierarchy_one_lyph( lyph *L )
     for ( lyr = L->layers; *lyr; lyr++ )
     {
       if ( !(*lyr)->material->supers )
-        compute_lyph_hierarchy_one_lyph( (*lyr)->material );
+        compute_lyphplate_hierarchy_one_lyphplate( (*lyr)->material );
     }
-    add_supers_by_layers( lyph_ids, L, &head, &tail );
+    add_supers_by_layers( lyphplate_ids, L, &head, &tail );
   }
 
   for ( w = head; w; w = w->next )
@@ -62,7 +61,7 @@ void compute_lyph_hierarchy_one_lyph( lyph *L )
       *parent = &avoid_dupes;
   }
 
-  CREATE( supers, lyph *, cnt + 1 );
+  CREATE( supers, lyphplate *, cnt + 1 );
   sptr = supers;
 
   for ( w = head; w; w = w_next )
@@ -86,21 +85,21 @@ void compute_lyph_hierarchy_one_lyph( lyph *L )
   L->supers = supers;
 }
 
-void add_supers_by_layers( trie *t, lyph *sub, lyphs_wrapper **head, lyphs_wrapper **tail )
+void add_supers_by_layers( trie *t, lyphplate *sub, lyphplates_wrapper **head, lyphplates_wrapper **tail )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
     if ( should_add_super_by_layers( L, sub ) )
     {
-      add_lyph_to_wrappers( L, head, tail );
+      add_lyphplate_to_wrappers( L, head, tail );
 
       if ( !L->supers )
-        compute_lyph_hierarchy_one_lyph( L );
+        compute_lyphplate_hierarchy_one_lyphplate( L );
 
       if ( *L->supers )
-        add_lyphs_to_wrappers( L->supers, head, tail );
+        add_lyphplates_to_wrappers( L->supers, head, tail );
     }
   }
 
@@ -123,7 +122,7 @@ int ont_term_is_super( trie *sup, trie *sub )
   return 0;
 }
 
-int should_add_super( lyph *sup, lyph *sub )
+int should_add_super( lyphplate *sup, lyphplate *sub )
 {
   if ( sup == sub )
     return 0;
@@ -134,7 +133,7 @@ int should_add_super( lyph *sup, lyph *sub )
   return should_add_super_by_layers( sup, sub );
 }
 
-int should_add_super_by_layers( lyph *sup, lyph *sub )
+int should_add_super_by_layers( lyphplate *sup, lyphplate *sub )
 {
   layer **Llyr, **slyr;
 
@@ -157,89 +156,89 @@ int should_add_super_by_layers( lyph *sup, lyph *sub )
   return 1;
 }
 
-void add_ont_term_parents( trie *t, lyphs_wrapper **head, lyphs_wrapper **tail )
+void add_ont_term_parents( trie *t, lyphplates_wrapper **head, lyphplates_wrapper **tail )
 {
   trie **parent;
 
   for ( parent = t->data; *parent; parent++ )
   {
-    lyph *L = lyph_by_ont_term( *parent );
+    lyphplate *L = lyphplate_by_ont_term( *parent );
 
     if ( L )
     {
-      add_lyph_to_wrappers( L, head, tail );
+      add_lyphplate_to_wrappers( L, head, tail );
 
       if ( !L->supers )
-        compute_lyph_hierarchy_one_lyph( L );
+        compute_lyphplate_hierarchy_one_lyphplate( L );
 
       if ( *L->supers )
-        add_lyphs_to_wrappers( L->supers, head, tail );
+        add_lyphplates_to_wrappers( L->supers, head, tail );
     }
 
     add_ont_term_parents( *parent, head, tail );
   }
 }
 
-void add_lyph_to_wrappers( lyph *L, lyphs_wrapper **head, lyphs_wrapper **tail )
+void add_lyphplate_to_wrappers( lyphplate *L, lyphplates_wrapper **head, lyphplates_wrapper **tail )
 {
-  lyphs_wrapper *w;
+  lyphplates_wrapper *w;
 
-  CREATE( w, lyphs_wrapper, 1 );
-  CREATE( w->L, lyph *, 2 );
+  CREATE( w, lyphplates_wrapper, 1 );
+  CREATE( w->L, lyphplate *, 2 );
   w->L[0] = L;
   w->L[1] = NULL;
 
   LINK( w, *head, *tail, next );
 }
 
-void add_lyphs_to_wrappers( lyph **L, lyphs_wrapper **head, lyphs_wrapper **tail )
+void add_lyphplates_to_wrappers( lyphplate **L, lyphplates_wrapper **head, lyphplates_wrapper **tail )
 {
-  lyphs_wrapper *w;
+  lyphplates_wrapper *w;
   int len = VOIDLEN( L );
 
-  CREATE( w, lyphs_wrapper, 1 );
-  CREATE( w->L, lyph *, len + 1 );
-  memcpy( w->L, L, sizeof(lyph*) * (len+1) );
+  CREATE( w, lyphplates_wrapper, 1 );
+  CREATE( w->L, lyphplate *, len + 1 );
+  memcpy( w->L, L, sizeof(lyphplate*) * (len+1) );
 
   LINK( w, *head, *tail, next );
 }
 
 int is_superlayer( layer *sup, layer *sub )
 {
-  lyph *sup_lyph = sup->material, *sub_lyph = sub->material, **supers;
+  lyphplate *sup_lyphplate = sup->material, *sub_lyphplate = sub->material, **supers;
 
   if ( sup == sub )
     return 1;
 
-  for ( supers = sub_lyph->supers; *supers; supers++ )
-    if ( *supers == sup_lyph )
+  for ( supers = sub_lyphplate->supers; *supers; supers++ )
+    if ( *supers == sup_lyphplate )
       return 1;
 
   return 0;
 }
 
-char *lyph_to_shallow_json( lyph *L )
+char *lyphplate_to_shallow_json( lyphplate *L )
 {
   return trie_to_json( L->id );
 }
 
 /*
- * add_lyph_as_super is for adding a new lyph to the hierarchy when it is
+ * add_lyphplate_as_super is for adding a new lyphplate to the hierarchy when it is
  * first created (as opposed to when it is loaded).
  */
-void add_lyph_as_super( lyph *sup, trie *t )
+void add_lyphplate_as_super( lyphplate *sup, trie *t )
 {
   if ( t->data )
   {
-    lyph *sub = (lyph *)t->data;
+    lyphplate *sub = (lyphplate *)t->data;
 
     if ( should_add_super( sup, sub ) )
     {
-      lyph **new_supers;
+      lyphplate **new_supers;
       int cnt = VOIDLEN(sub->supers);
 
-      CREATE( new_supers, lyph *, cnt + 2 );
-      memcpy( new_supers, sub->supers, cnt * sizeof(lyph *) );
+      CREATE( new_supers, lyphplate *, cnt + 2 );
+      memcpy( new_supers, sub->supers, cnt * sizeof(lyphplate *) );
       new_supers[cnt] = sup;
       new_supers[cnt+1] = NULL;
       free( sub->supers );
@@ -247,12 +246,12 @@ void add_lyph_as_super( lyph *sup, trie *t )
     }
   }
 
-  TRIE_RECURSE( add_lyph_as_super( sup, *child ) );
+  TRIE_RECURSE( add_lyphplate_as_super( sup, *child ) );
 }
 
-int is_superlyph( lyph *sup, lyph *sub )
+int is_superlyphplate( lyphplate *sup, lyphplate *sub )
 {
-  lyph **supers;
+  lyphplate **supers;
 
   if ( sup == sub )
     return 1;
@@ -264,94 +263,94 @@ int is_superlyph( lyph *sup, lyph *sub )
   return 0;
 }
 
-void get_sublyphs_recurse( lyph *L, trie *t, lyph ***bptr )
+void get_sublyphplates_recurse( lyphplate *L, trie *t, lyphplate ***bptr )
 {
   if ( t->data )
   {
-    lyph *sub = (lyph *)t->data;
+    lyphplate *sub = (lyphplate *)t->data;
 
-    if ( is_superlyph( L, sub ) )
+    if ( is_superlyphplate( L, sub ) )
     {
       **bptr = sub;
       (*bptr)++;
     }
   }
 
-  TRIE_RECURSE( get_sublyphs_recurse( L, *child, bptr ) );
+  TRIE_RECURSE( get_sublyphplates_recurse( L, *child, bptr ) );
 }
 
-void get_direct_sublyphs_worker( lyph *L, lyph *sub, lyph ***bptr )
+void get_direct_sublyphplates_worker( lyphplate *L, lyphplate *sub, lyphplate ***bptr )
 {
-  #define GDSR_IS_DSUBLYPH 1
-  #define GDSR_ISNT_DSUBLYPH 2
+  #define GDSR_IS_DSUBLYPHPLATE 1
+  #define GDSR_ISNT_DSUBLYPHPLATE 2
 
   if ( sub->flags )
     return;
 
-  lyph **super;
+  lyphplate **super;
   int fMatch = 0;
 
   for ( super = sub->supers; *super; super++ )
   {
     if ( *super == L )
       fMatch = 1;
-    else if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPH ) )
+    else if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPHPLATE ) )
       break;
-    else if (!IS_SET( (*super)->flags, GDSR_ISNT_DSUBLYPH ) )
+    else if (!IS_SET( (*super)->flags, GDSR_ISNT_DSUBLYPHPLATE ) )
     {
-      get_direct_sublyphs_worker( L, *super, bptr );
+      get_direct_sublyphplates_worker( L, *super, bptr );
 
-      if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPH ) )
+      if ( IS_SET( (*super)->flags, GDSR_IS_DSUBLYPHPLATE ) )
         break;
     }
   }
 
   if ( *super || !fMatch )
-    SET_BIT( sub->flags, GDSR_ISNT_DSUBLYPH );
+    SET_BIT( sub->flags, GDSR_ISNT_DSUBLYPHPLATE );
   else
   {
-    SET_BIT( sub->flags, GDSR_IS_DSUBLYPH );
+    SET_BIT( sub->flags, GDSR_IS_DSUBLYPHPLATE );
     **bptr = sub;
     (*bptr)++;
   }
 }
 
-void get_direct_sublyphs_recurse( lyph *L, trie *t, lyph ***bptr )
+void get_direct_sublyphplates_recurse( lyphplate *L, trie *t, lyphplate ***bptr )
 {
   if ( t->data )
-    get_direct_sublyphs_worker( L, (lyph *)t->data, bptr );
+    get_direct_sublyphplates_worker( L, (lyphplate *)t->data, bptr );
 
-  TRIE_RECURSE( get_direct_sublyphs_recurse( L, *child, bptr ) );
+  TRIE_RECURSE( get_direct_sublyphplates_recurse( L, *child, bptr ) );
 }
 
-lyph **get_sublyphs( lyph *L, int direct )
+lyphplate **get_sublyphplates( lyphplate *L, int direct )
 {
   /*
    * To do: optimize this
    */
-  lyph **buf, **bptr;
+  lyphplate **buf, **bptr;
 
-  CREATE( buf, lyph *, 1024 * 1024 );
+  CREATE( buf, lyphplate *, 1024 * 1024 );
   bptr = buf;
 
   if ( direct )
   {
-    SET_BIT( L->flags, GDSR_ISNT_DSUBLYPH );
-    get_direct_sublyphs_recurse( L, lyph_ids, &bptr );
-    lyphs_unset_bits( GDSR_ISNT_DSUBLYPH | GDSR_IS_DSUBLYPH, lyph_ids );
+    SET_BIT( L->flags, GDSR_ISNT_DSUBLYPHPLATE );
+    get_direct_sublyphplates_recurse( L, lyphplate_ids, &bptr );
+    lyphplates_unset_bits( GDSR_ISNT_DSUBLYPHPLATE | GDSR_IS_DSUBLYPHPLATE, lyphplate_ids );
   }
   else
-    get_sublyphs_recurse( L, lyph_ids, &bptr );
+    get_sublyphplates_recurse( L, lyphplate_ids, &bptr );
 
   *bptr = NULL;
   return buf;
 }
 
-void populate_superless( trie *t, lyph ***sptr )
+void populate_superless( trie *t, lyphplate ***sptr )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
     if ( !*L->supers )
     {
@@ -363,9 +362,9 @@ void populate_superless( trie *t, lyph ***sptr )
   TRIE_RECURSE( populate_superless( *child, sptr ) );
 }
 
-char *hierarchy_member_to_json( lyph *L )
+char *hierarchy_member_to_json( lyphplate *L )
 {
-  lyph **subs = get_sublyphs( L, 1 );
+  lyphplate **subs = get_sublyphplates( L, 1 );
   char *retval;
 
   if ( *subs )
@@ -386,22 +385,22 @@ char *hierarchy_member_to_json( lyph *L )
   return retval;
 }
 
-char *lyph_hierarchy_to_json( void )
+char *lyphplate_hierarchy_to_json( void )
 {
-  lyph **superless, **sptr;
+  lyphplate **superless, **sptr;
   char *retval;
 
   /*
    * To do: Improve this next line
    */
-  CREATE( superless, lyph *, 1024 * 1024 );
+  CREATE( superless, lyphplate *, 1024 * 1024 );
   sptr = superless;
 
-  populate_superless( lyph_ids, &sptr );
+  populate_superless( lyphplate_ids, &sptr );
 
   retval = JSON
   (
-    "name": "Lyph Hierarchy",
+    "name": "Lyph Template Hierarchy",
     "children": JS_ARRAY( hierarchy_member_to_json, superless )
   );
 
@@ -410,11 +409,11 @@ char *lyph_hierarchy_to_json( void )
   return retval;
 }
 
-void clear_lyph_hierarchy( trie *t )
+void clear_lyphplate_hierarchy( trie *t )
 {
   if ( t->data )
   {
-    lyph *L = (lyph *)t->data;
+    lyphplate *L = (lyphplate *)t->data;
 
     if ( L->supers )
     {
@@ -423,11 +422,11 @@ void clear_lyph_hierarchy( trie *t )
     }
   }
 
-  TRIE_RECURSE( clear_lyph_hierarchy( *child ) );
+  TRIE_RECURSE( clear_lyphplate_hierarchy( *child ) );
 }
 
-void recalculate_lyph_hierarchy( void )
+void recalculate_lyphplate_hierarchy( void )
 {
-  clear_lyph_hierarchy( lyph_ids );
-  compute_lyph_hierarchy( lyph_ids );
+  clear_lyphplate_hierarchy( lyphplate_ids );
+  compute_lyphplate_hierarchy( lyphplate_ids );
 }

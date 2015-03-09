@@ -4,13 +4,13 @@ trie *iri_to_labels;
 trie *label_to_iris;
 trie *label_to_iris_lowercase;
 
-trie *lyph_names;
-trie *lyph_ids;
+trie *lyphplate_names;
+trie *lyphplate_ids;
 trie *layer_ids;
 trie *lyphnode_ids;
-trie *lyphedge_ids;
-trie *lyphedge_names;
-trie *lyphedge_fmas;
+trie *lyph_ids;
+trie *lyph_names;
+trie *lyph_fmas;
 
 trie *superclasses;
 
