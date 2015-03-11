@@ -35,6 +35,7 @@ void init_command_table(void)
   add_handler( "lyphview", handle_lyphview_request );
   add_handler( "subtemplates", handle_subtemplates_request );
   add_handler( "editlyph", handle_editlyph_request );
+  add_handler( "editlyphnode", handle_editlyphnode_request );
   add_handler( "edit_template", handle_edit_template_request );
   add_handler( "editview", handle_editview_request );
   add_handler( "editlayer", handle_editlayer_request );

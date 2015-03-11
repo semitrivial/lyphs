@@ -211,6 +211,7 @@ HANDLER( handle_reset_db_request );
 HANDLER( handle_all_ont_terms_request );
 HANDLER( handle_subtemplates_request );
 HANDLER( handle_editlyph_request );
+HANDLER( handle_editlyphnode_request );
 HANDLER( handle_edit_template_request );
 HANDLER( handle_editview_request );
 HANDLER( handle_editlayer_request );

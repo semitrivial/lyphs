@@ -1021,11 +1021,44 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 HANDLER( handle_makelyphnode_request )
 {
   lyphnode *n;
+  lyph *loc;
+  char *locstr, *loctypestr;
+  int loctype;
+
+  locstr = get_url_param( params, "location" );
+
+  if ( locstr )
+  {
+    loc = lyph_by_id( locstr );
+
+    if ( !loc )
+      HND_ERR( "The indicated lyph was not found in the database." );
+
+    loctypestr = get_url_param( params, "loctype" );
+
+    if ( !loctypestr )
+      HND_ERR( "You did not specify a loctype ('interior' or 'border')" );
+
+    if ( !strcmp( loctypestr, "interior" ) )
+      loctype = LOCTYPE_INTERIOR;
+    else if ( !strcmp( loctypestr, "border" ) )
+      loctype = LOCTYPE_BORDER;
+    else
+      HND_ERR( "Valid loctypes are: 'interior', 'border'" );
+  }
+  else
+    loc = NULL;
 
   n = make_lyphnode();
 
   if ( !n )
     HND_ERR( "Could not create new lyphnode (out of memory?)" );
+
+  if ( loc )
+  {
+    n->location = loc;
+    n->loctype = loctype;
+  }
 
   lyphnode_to_json_flags = LTJ_EXITS;
 

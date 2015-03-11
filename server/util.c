@@ -408,3 +408,18 @@ void maybe_update_top_id( int *top, char *idstr )
   if ( id > *top )
     *top = id;
 }
+
+char *loctype_to_str( int loctype )
+{
+  switch( loctype )
+  {
+    case LOCTYPE_INTERIOR:
+      return "interior";
+    case LOCTYPE_BORDER:
+      return "border";
+    case -1:
+      return "none";
+    default:
+      return "unknown";
+  }
+}

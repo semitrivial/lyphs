@@ -129,12 +129,19 @@ struct LYPHNODE
   trie *id;
   int flags;
   exit_data **exits;
+  lyph *location;
+  int loctype;
 };
 
 typedef enum
 {
   LYPHNODE_SEEN = 1, LYPHNODE_SELECTED = 2
 } lyphnode_flags;
+
+typedef enum
+{
+  LOCTYPE_INTERIOR = 0, LOCTYPE_BORDER = 1
+} lyphnode_loctypes;
 
 typedef enum
 {
@@ -290,6 +297,7 @@ int copy_file( char *dest_ch, char *src_ch );
 int count_commas( char *str );
 void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err );
 void maybe_update_top_id( int *top, char *idstr );
+char *loctype_to_str( int loctype );
 
 /*
  * ucl.c

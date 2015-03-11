@@ -521,6 +521,8 @@ void load_lyphviews( void )
               node->flags = 0;
               CREATE( node->exits, exit_data *, 1 );
               node->exits[0] = NULL;
+              node->location = NULL;
+              node->loctype = -1;
               maybe_update_top_id( &top_lyphnode_id, left );
             }
             else
@@ -755,6 +757,8 @@ int load_lyphs_one_line( char *line, char **err )
     from->flags = 0;
     CREATE( from->exits, exit_data *, 1 );
     from->exits[0] = NULL;
+    from->location = NULL;
+    from->loctype = -1;
 
     maybe_update_top_id( &top_lyphnode_id, frombuf );
   }
@@ -772,6 +776,8 @@ int load_lyphs_one_line( char *line, char **err )
     to->flags = 0;
     CREATE( to->exits, exit_data *, 1 );
     to->exits[0] = NULL;
+    to->location = NULL;
+    to->loctype = -1;
 
     maybe_update_top_id( &top_lyphnode_id, tobuf );
   }
@@ -1646,6 +1652,8 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
     (
       "id": trie_to_json( n->id ),
       "exits": JS_ARRAY( exit_to_json, exits ),
+      "location": n->location ? trie_to_json( n->location->id ) : NULL,
+      "loctype": loctype_to_str( n->loctype ),
       "x": x,
       "y": y
     );
@@ -1661,7 +1669,9 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
   (
     "id": trie_to_json( n->id ),
     "x": x,
-    "y": y
+    "y": y,
+    "location": n->location ? trie_to_json( n->location->id ) : NULL,
+    "loctype": loctype_to_str( n->loctype )
   );
 }
 
@@ -1888,6 +1898,9 @@ lyphnode *make_lyphnode( void )
 
   CREATE( n->exits, exit_data *, 1 );
   n->exits[0] = NULL;
+
+  n->location = NULL;
+  n->loctype = -1;
 
   return n;
 }

@@ -1,6 +1,61 @@
 #include "lyph.h"
 #include "srv.h"
 
+HANDLER( handle_editlyphnode_request )
+{
+  lyphnode *n;
+  lyph *loc;
+  char *idstr, *locstr, *loctypestr;
+  int loctype;
+
+  idstr = get_url_param( params, "node" );
+
+  if ( !idstr )
+    HND_ERR( "You did not specify which lyphnode to edit" );
+
+  n = lyphnode_by_id( idstr );
+
+  if ( !n )
+    HND_ERR( "The indicated lyphnode was not found in the databse" );
+
+  locstr = get_url_param( params, "location" );
+
+  if ( locstr )
+  {
+    loc = lyph_by_id( locstr );
+
+    if ( !loc )
+      HND_ERR( "The indicated lyph was not found in the database." );
+  }
+  else
+    loc = NULL;
+
+  loctypestr = get_url_param( params, "loctype" );
+
+  if ( loctypestr )
+  {
+    if ( !loc && !n->location )
+      HND_ERR( "You cannot edit the loctype of this lyphnode because it does not have a location." );
+
+    if ( !strcmp( loctypestr, "interior" ) )
+      loctype = LOCTYPE_INTERIOR;
+    else if ( !strcmp( loctypestr, "border" ) )
+      loctype = LOCTYPE_BORDER;
+    else
+      HND_ERR( "Valid loctypes are: 'interior', 'border'" );
+  }
+  else if ( loc && !n->location )
+    HND_ERR( "Please specify a loctype ('interior' or 'border') for the node" );
+
+  if ( loc )
+    n->location = loc;
+
+  if ( loctypestr )
+    n->loctype = loctype;
+
+  send_200_response( req, lyphnode_to_json( n ) );
+}
+
 HANDLER( handle_editlyph_request )
 {
   char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr;
