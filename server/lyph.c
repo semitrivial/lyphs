@@ -1450,7 +1450,7 @@ trie *assign_new_lyphplate_id( lyphplate *L )
 
   top_lyphplate_id++;
 
-  sprintf( buf, "LYPH_%d", top_lyphplate_id );
+  sprintf( buf, "TEMPLATE_%d", top_lyphplate_id );
 
   t = trie_strdup( buf, lyphplate_ids );
 
