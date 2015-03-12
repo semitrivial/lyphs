@@ -366,6 +366,7 @@ int load_lyphs( void );
 int load_lyphs_one_line( char *line, char **err );
 void save_lyphs_recurse( trie *t, FILE *fp );
 void save_lyphs( void );
+void save_lyphnode_locs( trie *t, FILE *fp );
 int word_from_line( char **line, char *buf );
 char *lyph_type_str( int type );
 int parse_lyphplate_type_str( char *type );

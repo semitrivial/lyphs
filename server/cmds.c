@@ -53,6 +53,8 @@ HANDLER( handle_editlyphnode_request )
   if ( loctypestr )
     n->loctype = loctype;
 
+  save_lyphs();
+
   send_200_response( req, lyphnode_to_json( n ) );
 }
 

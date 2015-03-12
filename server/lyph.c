@@ -660,6 +660,7 @@ void save_lyphs( void )
   }
 
   save_lyphs_recurse( lyph_ids, fp );
+  save_lyphnode_locs( lyphnode_ids, fp );
 
   fclose( fp );
 }
@@ -687,6 +688,81 @@ void save_lyphs_recurse( trie *t, FILE *fp )
   TRIE_RECURSE( save_lyphs_recurse( *child, fp ) );
 }
 
+void save_lyphnode_locs( trie *t, FILE *fp )
+{
+  if ( t->data )
+  {
+    lyphnode *n = (lyphnode *)t->data;
+
+    if ( n->location )
+    {
+      fprintf( fp, "Loc\t%s\t", trie_to_static( n->id ) );
+      fprintf( fp, "%s\t%d\n", trie_to_static( n->location->id ), n->loctype );
+    }
+  }
+
+  TRIE_RECURSE( save_lyphnode_locs( *child, fp ) );
+}
+
+int load_lyphnode_location( char *line, char **err )
+{
+  lyph *loc;
+  lyphnode *n;
+  char nodeidbuf[MAX_LYPH_LINE_LEN+1];
+  char locbuf[MAX_LYPH_LINE_LEN+1];
+  char loctypebuf[MAX_LYPH_LINE_LEN+1];
+  int loctype;
+
+  #ifdef KEY
+  #undef KEY
+  #endif
+  #define KEY( dest, errmsg )\
+    do\
+    {\
+      if ( !word_from_line( &line, (dest) ) )\
+      {\
+        *err = (errmsg);\
+        return 0;\
+      }\
+    }\
+    while(0)
+
+  KEY( nodeidbuf, "Missing node ID on a location line" );
+  KEY( locbuf, "Missing location on a location line" );
+  KEY( loctypebuf, "Missing loctype on a location line" );
+
+  n = lyphnode_by_id( nodeidbuf );
+
+  if ( !n )
+  {
+    *err = "Invalid node id on a location line";
+    return 0;
+  }
+
+  loc = lyph_by_id( locbuf );
+
+  if ( !loc )
+  {
+    *err = "Invalid lyph id on a location line";
+    return 0;
+  }
+
+  if ( !strcmp( loctypebuf, "0" ) )
+    loctype = 0;
+  else if ( !strcmp( loctypebuf, "1" ) )
+    loctype = 1;
+  else
+  {
+    *err = "Invalid loctype on a location line";
+    return 0;
+  }
+
+  n->location = loc;
+  n->loctype = loctype;
+
+  return 1;
+}
+
 int load_lyphs_one_line( char *line, char **err )
 {
   char lyphidbuf[MAX_LYPH_LINE_LEN+1];
@@ -712,6 +788,9 @@ int load_lyphs_one_line( char *line, char **err )
       }\
     }\
     while(0)
+
+  if ( str_begins( line, "Loc\t" ) )
+    return load_lyphnode_location( line + strlen("Loc\t"), err );
 
   KEY( lyphidbuf, "Missing edge ID" );
   KEY( typebuf, "Missing edge type" );
