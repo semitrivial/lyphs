@@ -455,6 +455,22 @@ void delete_lyph( lyph *e )
   free( e );
 }
 
+void remove_deleted_lyph_locations( trie *t )
+{
+  if ( t->data )
+  {
+    lyphnode *n = (lyphnode *)t->data;
+
+    if ( n->location && n->location->type == LYPH_DELETED )
+    {
+      n->location = NULL;
+      n->loctype = -1;
+    }
+  }
+
+  TRIE_RECURSE( remove_deleted_lyph_locations( *child ) );
+}
+
 HANDLER( handle_delete_lyphs_request )
 {
   char *lyphstr, *err;
@@ -487,6 +503,8 @@ HANDLER( handle_delete_lyphs_request )
     else
       (*eptr)->type = LYPH_DELETED;
   }
+
+  remove_deleted_lyph_locations(lyphnode_ids);
 
   for ( eptr = e; *eptr; eptr++ )
     if ( *eptr != &dupe )
