@@ -471,6 +471,104 @@ void remove_deleted_lyph_locations( trie *t )
   TRIE_RECURSE( remove_deleted_lyph_locations( *child ) );
 }
 
+#define LYPHNODE_BEING_DELETED 1
+
+int remove_doomed_items_from_views( void )
+{
+  int i, fMatch = 0;
+  extern int top_view;
+  extern lyphview **views;
+  extern lyphview obsolete_lyphview;
+
+  for ( i = 0; i <= top_view; i++ )
+  {
+    lyphview *v;
+    lyphnode **nptr;
+    lv_rect **rptr;
+    char **cptr, **newc, **newcptr;
+    int size;
+
+    if ( views[i] == &obsolete_lyphview || !views[i] )
+      continue;
+
+    v = views[i];
+
+    for ( nptr = v->nodes; *nptr; nptr++ )
+      if ( (*nptr)->flags == LYPHNODE_BEING_DELETED )
+        break;
+
+    if ( *nptr )
+    {
+      lyphnode **buf, **bptr;
+
+      fMatch = 1;
+
+      for ( nptr = v->nodes, size = 0; *nptr; nptr++ )
+        if ( (*nptr)->flags != LYPHNODE_BEING_DELETED )
+          size++;
+
+      CREATE( buf, lyphnode *, size + 1 );
+      bptr = buf;
+      CREATE( newc, char *, size*2 + 1 );
+      newcptr = newc;
+
+      for ( nptr = v->nodes, cptr = v->coords; *nptr; nptr++ )
+      {
+        if ( (*nptr)->flags == LYPHNODE_BEING_DELETED )
+        {
+          free( *cptr++ );
+          free( *cptr++ );
+        }
+        else
+        {
+          *bptr++ = *nptr;
+          *newcptr++ = *cptr++;
+          *newcptr++ = *cptr++;
+        }
+      }
+
+      *bptr = NULL;
+      *newcptr = NULL;
+
+      MULTIFREE( v->nodes, v->coords );
+      v->nodes = buf;
+      v->coords = newc;
+    }
+
+    for ( rptr = v->rects; *rptr; rptr++ )
+      if ( (*rptr)->L->type == LYPH_DELETED )
+        break;
+
+    if ( *rptr )
+    {
+      lv_rect **buf, **bptr;
+
+      fMatch = 1;
+
+      for ( rptr = v->rects, size = 0; *rptr; rptr++ )
+        if ( (*rptr)->L->type != LYPH_DELETED )
+          size++;
+
+      CREATE( buf, lv_rect *, size + 1 );
+      bptr = buf;
+
+      for ( rptr = v->rects; *rptr; rptr++ )
+      {
+        if ( (*rptr)->L->type == LYPH_DELETED )
+          free( *rptr );
+        else
+          *bptr++ = *rptr;
+      }
+
+      *rptr = NULL;
+      free( v->rects );
+      v->rects = buf;
+    }
+  }
+
+  return fMatch;
+}
+
 HANDLER( handle_delete_lyphs_request )
 {
   char *lyphstr, *err;
@@ -504,6 +602,9 @@ HANDLER( handle_delete_lyphs_request )
       (*eptr)->type = LYPH_DELETED;
   }
 
+  if ( remove_doomed_items_from_views() )
+    save_lyphviews();
+
   remove_deleted_lyph_locations(lyphnode_ids);
 
   for ( eptr = e; *eptr; eptr++ )
@@ -517,8 +618,6 @@ HANDLER( handle_delete_lyphs_request )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-#define LYPHNODE_BEING_DELETED 1
-
 void remove_lyphs_with_doomed_nodes( trie *t )
 {
   if ( t->data )
@@ -531,69 +630,6 @@ void remove_lyphs_with_doomed_nodes( trie *t )
   }
 
   TRIE_RECURSE( remove_lyphs_with_doomed_nodes( *child ) );
-}
-
-int remove_doomed_nodes_from_views( void )
-{
-  int i, fMatch = 0;
-  extern int top_view;
-  extern lyphview **views;
-  extern lyphview obsolete_lyphview;
-
-  for ( i = 0; i <= top_view; i++ )
-  {
-    lyphview *v;
-    lyphnode **nptr, **buf, **bptr;
-    char **cptr, **newc, **newcptr;
-    int size;
-
-    if ( views[i] == &obsolete_lyphview || !views[i] )
-      continue;
-
-    v = views[i];
-
-    for ( nptr = v->nodes; *nptr; nptr++ )
-      if ( (*nptr)->flags == LYPHNODE_BEING_DELETED )
-        break;
-
-    if ( !*nptr )
-      continue;
-
-    fMatch = 1;
-
-    for ( nptr = v->nodes, size = 0; *nptr; nptr++ )
-      if ( (*nptr)->flags != LYPHNODE_BEING_DELETED )
-        size++;
-
-    CREATE( buf, lyphnode *, size + 1 );
-    bptr = buf;
-    CREATE( newc, char *, size*2 + 1 );
-    newcptr = newc;
-
-    for ( nptr = v->nodes, cptr = v->coords; *nptr; nptr++ )
-    {
-      if ( (*nptr)->flags == LYPHNODE_BEING_DELETED )
-      {
-        free( *cptr++ );
-        free( *cptr++ );
-      }
-      else
-      {
-        *bptr++ = *nptr;
-        *newcptr++ = *cptr++;
-        *newcptr++ = *cptr++;
-      }
-    }
-
-    *bptr = NULL;
-    *newcptr = NULL;
-
-    MULTIFREE( v->nodes, v->coords );
-    v->nodes = buf;
-    v->coords = newc;
-  }
-
-  return fMatch;
 }
 
 void delete_lyphnode( lyphnode *n )
@@ -638,7 +674,7 @@ HANDLER( handle_delete_nodes_request )
 
   remove_lyphs_with_doomed_nodes( lyph_ids );
 
-  if ( remove_doomed_nodes_from_views() )
+  if ( remove_doomed_items_from_views() )
     save_lyphviews();
 
   for ( nptr = n; *nptr; nptr++ )
