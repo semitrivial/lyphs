@@ -35,6 +35,7 @@ typedef struct LYPH lyph;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
+typedef struct LV_RECT lv_rect;
 typedef struct VIEWED_NODE viewed_node;
 typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
 typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
@@ -198,6 +199,16 @@ struct LYPHVIEW
   char *name;
   lyphnode **nodes;
   char **coords;
+  lv_rect **rects;
+};
+
+struct LV_RECT
+{
+  char *x;
+  char *y;
+  char *width;
+  char *height;
+  lyph *L;
 };
 
 struct VIEWED_NODE

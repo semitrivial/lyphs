@@ -31,15 +31,10 @@ int exit_to_json_flags;
 
 lyphview *create_new_view( lyphnode **nodes, char **coords, char *name )
 {
-  lyphnode **inptr, **out;
+  lyphnode **out;
   lyphview *v, **vbuf;
   char **cinptr, **coords_out, **coutptr;
-  int ncnt;
-
-  for ( inptr = nodes; *inptr; inptr++ )
-    ;
-
-  ncnt = inptr - nodes;
+  int ncnt = VOIDLEN( nodes );
 
   CREATE( out, lyphnode *, ncnt + 1 );
   memcpy( out, nodes, (ncnt + 1) * sizeof(lyphnode *) );
@@ -283,10 +278,7 @@ void save_lyphviews( void )
     return;
   }
 
-  for ( ptr = &views[1]; *ptr; ptr++ )
-    ;
-
-  fprintf( fp, "TopView %d\n", (int) (ptr - views) );
+  fprintf( fp, "TopView %zd\n", VOIDLEN( &views[1] ) );
 
   for ( ptr = &views[1]; *ptr; ptr++ )
   {
@@ -304,13 +296,10 @@ void save_one_lyphview( lyphview *v, FILE *fp )
 
   fprintf( fp, "View %d\n", v->id );
 
-  for ( n = v->nodes; *n; n++ )
-    ;
-
   if ( v->name )
     fprintf( fp, "Name %s\n", v->name );
 
-  fprintf( fp, "Nodes %d\n", (int) (n - v->nodes) );
+  fprintf( fp, "Nodes %zd\n", VOIDLEN( v->nodes ) );
 
   for ( n = v->nodes, c = v->coords; *n; n++ )
   {

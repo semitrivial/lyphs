@@ -1143,7 +1143,6 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 {
   lyphnode **nodes, **nptr;
   char **coords, **cptr, key[1024], *namestr;
-  url_param **p;
   int param_cnt, i, cnt;
   lyphview *v;
 
@@ -1160,10 +1159,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
       HND_ERR( "The indicated view was not found in the database." );
   }
 
-  for ( p = params; *p; p++ )
-    ;
-
-  param_cnt = p - params;
+  param_cnt = VOIDLEN( params );
 
   if ( !param_cnt )
     HND_ERR( "You did not specify the nodes and their coordinates" );
