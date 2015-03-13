@@ -159,6 +159,7 @@ struct LYPH
   trie *id;
   trie *name;
   int type;
+  int flags;
   lyphnode *from;
   lyphnode *to;
   lyphplate *lyphplate;
@@ -204,11 +205,11 @@ struct LYPHVIEW
 
 struct LV_RECT
 {
+  lyph *L;
   char *x;
   char *y;
   char *width;
   char *height;
-  lyph *L;
 };
 
 struct VIEWED_NODE
@@ -387,8 +388,7 @@ void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
-lyphview *search_duplicate_view( lyphnode **nodes, char **coords, char *name );
-lyphview *create_new_view( lyphnode **nodes, char **coords, char *name );
+lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs, char **lxs, char **lys, char **widths, char **heights, char *name );
 lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr );
 lyphnode *make_lyphnode( void );
 void compute_lyphplate_hierarchy( trie *t );

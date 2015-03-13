@@ -1127,26 +1127,31 @@ HANDLER( handle_makelyph_request )
 
 HANDLER( handle_makeview_request )
 {
-  makeview_worker( request, req, params, 1 );
+  makeview_worker( request, req, params, 0 );
 }
 
 HANDLER( handle_nodes_to_view_request )
 {
-  makeview_worker( request, req, params, 0 );
+  makeview_worker( request, req, params, 1 );
 }
 
 /*
- *  Makeview = 1:  makeview
- *  Makeview = 0:  nodes_to_view
+ *  Type = 0:  makeview
+ *  Type = 1:  nodes_to_view or rects_to_view
  */
-void makeview_worker( char *request, http_request *req, url_param **params, int makeview )
+void makeview_worker( char *request, http_request *req, url_param **params, int type )
 {
   lyphnode **nodes, **nptr;
-  char **coords, **cptr, key[1024], *namestr;
-  int param_cnt, i, cnt;
+  lyph **lyphs, **lptr;
+  lv_rect **rptr;
+  char *namestr, *err = NULL;
+  char **xs=NULL, **ys=NULL, **lxs=NULL, **lys=NULL, **widths=NULL, **heights=NULL;
+  char **xsptr, **ysptr, **lxsptr, **lysptr, **wptr, **hptr;
+  int nodect, lyphct, xct, yct, lxct, lyct, widthct, heightct;
+  int cnt, fChange;
   lyphview *v;
 
-  if ( !makeview )
+  if ( type != 0 )
   {
     char *viewstr = get_url_param( params, "view" );
 
@@ -1159,89 +1164,118 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
       HND_ERR( "The indicated view was not found in the database." );
   }
 
-  param_cnt = VOIDLEN( params );
+  nodes = (lyphnode**)GET_NUMBERED_ARGS( params, "node", lyphnode_by_id, &err, &nodect );
 
-  if ( !param_cnt )
-    HND_ERR( "You did not specify the nodes and their coordinates" );
-
-  CREATE( nodes, lyphnode *, param_cnt + 1 );
-  CREATE( coords, char *, param_cnt + 1 );
-  nptr = nodes;
-  cptr = coords;
-
-  for ( i = 1; i <= param_cnt; i++ )
+  if ( !nodes )
   {
-    char *nodeid, *x, *y;
-    lyphnode *node;
-
-    sprintf( key, "node%d", i );
-    nodeid = get_url_param( params, key );
-
-    if ( !nodeid )
-      break;
-
-    sprintf( key, "x%d", i );
-    x = get_url_param( params, key );
-
-    if ( !x )
-    {
-      handle_makeview_request_unspecd_coords:
-
-      free( nodes );
-      free( coords );
-      HND_ERR( "You did not specify x- and y-coordinates for all the indicated nodes" );
-    }
-
-    sprintf( key, "y%d", i );
-    y = get_url_param( params, key );
-
-    if ( !y )
-      goto handle_makeview_request_unspecd_coords;
-
-    node = lyphnode_by_id( nodeid );
-
-    if ( !node )
-    {
-      char *errbuf = malloc( strlen(nodeid) + 1024 );
-      sprintf( errbuf, "Node '%s' was not found in the database", nodeid );
-      free( nodes );
-      free( coords );
-      HND_ERR_FREE( errbuf );
-    }
-
-    *nptr++ = node;
-    cptr[0] = x;
-    cptr[1] = y;
-    cptr = &cptr[2];
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated nodes could not be found in the database" );
   }
 
-  *cptr = NULL;
-  *nptr = NULL;
-
-  namestr = get_url_param( params, "name" );
-
-  if ( makeview )
+  if ( nodect > 0 )
   {
-    v = search_duplicate_view( nodes, coords, namestr );
+    xs = (char**)GET_NUMBERED_ARGS( params, "x", NULL, &err, &xct );
 
-    if ( v )
+    if ( xct < nodect )
     {
       free( nodes );
-      free( coords );
-
-      send_200_response( req, lyphview_to_json( v ) );
-      return;
+      free( xs );
+      HND_ERR( "You did not specify x-coordinates for every node" );
     }
 
-    v = create_new_view( nodes, coords, namestr ? strdup(namestr) : NULL );
+    ys = (char**)GET_NUMBERED_ARGS( params, "y", NULL, NULL, &yct );
+
+    if ( yct < nodect )
+    {
+      free( nodes );
+      free( xs );
+      free( ys );
+      HND_ERR( "You did not specify y-coordinates for every node" );
+    }
+  }
+
+  lyphs = (lyph**) GET_NUMBERED_ARGS( params, "lyph", lyph_by_id, &err, &lyphct );
+
+  if ( !lyphs )
+  {
+    free( nodes );
+    free( xs );
+    free( ys );
+
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the specified lyphs was not found in the database." );
+  }
+
+  if ( lyphct > 0 )
+  {
+    lxs = (char**)GET_NUMBERED_ARGS( params, "lx", NULL, NULL, &lxct );
+
+    if ( lxct < lyphct )
+    {
+      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs );
+      HND_ERR( "You did not specify x-coordinates ('lx') for every lyph" );
+    }
+
+    lys = (char**)GET_NUMBERED_ARGS( params, "ly", NULL, NULL, &lyct );
+
+    if ( lyct < lyphct )
+    {
+      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys );
+      HND_ERR( "You did not specify y-coordinates ('ly') for every lyph" );
+    }
+
+    widths = (char**)GET_NUMBERED_ARGS( params, "width", NULL, NULL, &widthct );
+
+    if ( widthct < lyphct )
+    {
+      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys ); free( widths );
+      HND_ERR( "You did not specify widths for every lyph" );
+    }
+
+    heights = (char**)GET_NUMBERED_ARGS( params, "height", NULL, NULL, &heightct );
+
+    if ( heightct < lyphct )
+    {
+      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys ); free( widths ); free( heights );
+      HND_ERR( "You did not specify heights for every lyph" );
+    }
+  }
+
+  if ( lyphct == 0 && nodect == 0 )
+    HND_ERR( "You did not specify any nodes or any lyphs" );
+
+  if ( type == 0 )
+  {
+    namestr = get_url_param( params, "name" );
+
+    v = create_new_view( nodes, xs, ys, lyphs, lxs, lys, widths, heights, namestr ? strdup(namestr) : NULL );
 
     if ( !v )
-      HND_ERR( "Could not create the view (out of memory?)" );
+    {
+      free( nodes );
+      free( lyphs );
+      HND_ERR_NORETURN( "Could not create the view (out of memory?)" );
+    }
     else
       send_200_response( req, lyphview_to_json( v ) );
 
-    free( coords );
-    free( nodes );
+    if ( nodect )
+    {
+      free( xs );
+      free( ys );
+    }
+
+    if ( lyphct )
+    {
+      free( lxs );
+      free( lys );
+      free( widths );
+      free( heights );
+    }
 
     return;
   }
@@ -1251,11 +1285,18 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
    */
   #define LYPHNODE_ALREADY_IN_VIEW 1
   #define LYPHNODE_QUEUED_FOR_ADDING 2
+  #define LYPH_ALREADY_IN_VIEW 1
+  #define LYPH_QUEUED_FOR_ADDING 2
+
+  fChange = 0;
 
   for ( nptr = v->nodes; *nptr; nptr++ )
     SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
 
-  for ( nptr = nodes, cnt = 0; *nptr; nptr++ )
+  for ( rptr = v->rects; *rptr; rptr++ )
+    SET_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
+
+  for ( nptr = nodes, cnt=0; *nptr; nptr++ )
   {
     if ( IS_SET( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW )
     ||   IS_SET( (*nptr)->flags, LYPHNODE_QUEUED_FOR_ADDING ) )
@@ -1271,6 +1312,8 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     char **newc, **newcptr;
     int oldlen = VOIDLEN( v->nodes );
 
+    fChange = 1;
+
     CREATE( buf, lyphnode *, oldlen + cnt + 1 );
     memcpy( buf, v->nodes, oldlen * sizeof(lyphnode *) );
     bptr = &buf[oldlen];
@@ -1279,19 +1322,20 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     memcpy( newc, v->coords, oldlen * 2 * sizeof(char *) );
     newcptr = &newc[oldlen*2];
 
-    for ( nptr = nodes, cptr = coords; *nptr; nptr++ )
+    for ( nptr = nodes, xsptr = xs, ysptr = ys; *nptr; nptr++ )
     {
       if ( IS_SET( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW ) )
       {
-        cptr += 2;
+        xsptr++;
+        ysptr++;
         continue;
       }
 
       SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
 
       *bptr++ = *nptr;
-      *newcptr++ = strdup( *cptr++ );
-      *newcptr++ = strdup( *cptr++ );
+      *newcptr++ = strdup( *xsptr++ );
+      *newcptr++ = strdup( *ysptr++ );
     }
 
     *bptr = NULL;
@@ -1310,9 +1354,82 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   }
 
   free( nodes );
-  free( coords );
+  if ( nodect > 0 )
+  {
+    free( xs );
+    free( ys );
+  }
+
+  for ( lptr = lyphs, cnt=0; *lptr; lptr++ )
+  {
+    if ( IS_SET( (*lptr)->flags, LYPH_ALREADY_IN_VIEW )
+    ||   IS_SET( (*lptr)->flags, LYPH_QUEUED_FOR_ADDING ) )
+      continue;
+
+    SET_BIT( (*lptr)->flags, LYPH_QUEUED_FOR_ADDING );
+    cnt++;
+  }
 
   if ( cnt )
+  {
+    lv_rect **buf, **bptr;
+    int oldlen = VOIDLEN( v->rects );
+
+    fChange = 1;
+
+    CREATE( buf, lv_rect *, oldlen + cnt + 1 );
+    memcpy( buf, v->rects, oldlen * sizeof( lv_rect * ) );
+    bptr = &buf[oldlen];
+
+    for ( lptr = lyphs, lxsptr = lxs, lysptr = lys, wptr = widths, hptr = heights; *lptr; lptr++ )
+    {
+      lv_rect *rect;
+
+      if ( IS_SET( (*lptr)->flags, LYPH_ALREADY_IN_VIEW ) )
+      {
+        lxsptr++;
+        lysptr++;
+        wptr++;
+        hptr++;
+
+        continue;
+      }
+
+      SET_BIT( (*lptr)->flags, LYPH_ALREADY_IN_VIEW );
+
+      CREATE( rect, lv_rect, 1 );
+      rect->L = *lptr;
+      rect->x = strdup( *lxsptr++ );
+      rect->y = strdup( *lysptr++ );
+      rect->width = strdup( *wptr++ );
+      rect->height = strdup( *hptr++ );
+
+      *bptr++ = rect;
+    }
+
+    *bptr = NULL;
+
+    free( v->rects );
+    v->rects = buf;
+  }
+
+  for ( rptr = v->rects; *rptr; rptr++ )
+  {
+    REMOVE_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
+    REMOVE_BIT( (*rptr)->L->flags, LYPH_QUEUED_FOR_ADDING );
+  }
+
+  free( lyphs );
+
+  if ( lyphct > 0 )
+  {
+    free( lxs );
+    free( lys );
+    free( widths );
+    free( heights );
+  }
+
+  if ( fChange )
     save_lyphviews();
 
   send_200_response( req, lyphview_to_json( v ) );

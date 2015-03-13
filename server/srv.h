@@ -74,6 +74,9 @@ while(0)
 
 #define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
 
+#define GET_NUMBERED_ARGS( params, base, fnc, err, size )\
+        get_numbered_args( (params), (base), (char * (*) (void*))(fnc), (err), (size) )
+
 /*
  * Structures
  */
@@ -180,6 +183,11 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 void init_command_table( void );
 void add_handler( char *cmd, handle_function *fnc );
 handle_function *lookup_command( char *cmd );
+
+/*
+ * cmds.c
+ */
+void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size );
 
 /*
  * Handlers (functions for handling HTTP requests)

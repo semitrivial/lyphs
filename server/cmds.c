@@ -1071,3 +1071,68 @@ HANDLER( handle_nodes_from_view_request )
 
   #undef LYPHNODE_TO_BE_REMOVED
 }
+
+void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size )
+{
+  static void **buf, **vals;
+  void **bptr, **retval;
+  url_param **p;
+  int baselen = strlen( base );
+  int i, cnt;
+
+  if ( !buf )
+  {
+    CREATE( buf, void *, MAX_URL_PARAMS + 1 );
+    CREATE( vals, void *, MAX_URL_PARAMS + 1 );
+  }
+  else
+    memset( vals, 0, (MAX_URL_PARAMS+1) * sizeof(void*) );
+
+  for ( p = params; *p; p++ )
+  {
+    if ( str_begins( (*p)->key, base ) )
+    {
+      int n = strtoul( (*p)->key + baselen, NULL, 10 );
+
+      if ( n < 1 || n >= MAX_URL_PARAMS )
+        continue;
+
+      vals[n] = (*p)->val;
+    }
+  }
+
+  bptr = buf;
+
+  if ( fnc )
+  {
+    for ( i = 1; vals[i]; i++ )
+    {
+      void *x = (*fnc)(vals[i]);
+
+      if ( !x )
+      {
+        if ( err )
+          *err = strdupf( "There was no %s with id '%s' in the database", base, vals[i] );
+
+        return NULL;
+      }
+
+      *bptr++ = x;
+    }
+  }
+  else
+    for ( i = 1; vals[i]; i++ )
+      *bptr++ = vals[i];
+
+  *bptr = NULL;
+
+  cnt = bptr - buf;
+
+  CREATE( retval, void *, cnt + 1 );
+  memcpy( retval, buf, (cnt + 1) * sizeof(void *) );
+
+  if ( size )
+    *size = cnt;
+
+  return retval;
+}

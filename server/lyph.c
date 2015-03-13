@@ -29,28 +29,48 @@ int top_view;
 int lyphnode_to_json_flags;
 int exit_to_json_flags;
 
-lyphview *create_new_view( lyphnode **nodes, char **coords, char *name )
+lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs, char **lxs, char **lys, char **widths, char **heights, char *name )
 {
-  lyphnode **out;
   lyphview *v, **vbuf;
-  char **cinptr, **coords_out, **coutptr;
-  int ncnt = VOIDLEN( nodes );
-
-  CREATE( out, lyphnode *, ncnt + 1 );
-  memcpy( out, nodes, (ncnt + 1) * sizeof(lyphnode *) );
-
-  CREATE( coords_out, char *, (ncnt * 2) + 1 );
-
-  for ( cinptr = coords, coutptr = coords_out; *cinptr; cinptr++ )
-    *coutptr++ = strdup( *cinptr );
-
-  *coutptr = NULL;
+  lv_rect **rects, **rptr, *rect;
+  char **coords, **cptr;
+  int ncnt = VOIDLEN( nodes ), rcnt = VOIDLEN( lyphs );
 
   CREATE( v, lyphview, 1 );
-  v->nodes = out;
-  v->coords = coords_out;
+  v->nodes = nodes;
   v->id = new_lyphview_id();
   v->name = name;
+
+  CREATE( coords, char *, (ncnt * 2) + 1 );
+
+  for ( cptr = coords; *nodes; nodes++ )
+  {
+    *cptr++ = strdup( *xs++ );
+    *cptr++ = strdup( *ys++ );
+  }
+
+  *cptr = NULL;
+
+  v->coords = coords;
+
+  CREATE( rects, lv_rect *, rcnt + 1 );
+
+  for ( rptr = rects; *lyphs; lyphs++ )
+  {
+    CREATE( rect, lv_rect, 1 );
+
+    rect->L = *lyphs;
+    rect->x = strdup( *lxs++ );
+    rect->y = strdup( *lys++ );
+    rect->width = strdup( *widths++ );
+    rect->height = strdup( *heights++ );
+
+    *rptr++ = rect;
+  }
+
+  *rptr = NULL;
+
+  v->rects = rects;
 
   CREATE( vbuf, lyphview *, top_view + 3 );
   memcpy( vbuf, views, (top_view + 1) * sizeof(lyphview *) );
@@ -68,48 +88,6 @@ lyphview *create_new_view( lyphnode **nodes, char **coords, char *name )
 int new_lyphview_id(void)
 {
   return top_view+1;
-}
-
-lyphview *search_duplicate_view( lyphnode **nodes, char **coords, char *name )
-{
-  lyphview **v;
-
-  for ( v = views; *v; v++ )
-  {
-    if ( *v == &obsolete_lyphview )
-      continue;
-
-    if ( name && ( !(*v)->name || strcmp( (*v)->name, name ) ) )
-      continue;
-
-    if ( is_duplicate_view( *v, nodes, coords ) )
-      return *v;
-  }
-
-  return NULL;
-}
-
-int is_duplicate_view( lyphview *v, lyphnode **nodes, char **coords )
-{
-  lyphnode **vnodespt = v->nodes, **nodespt = nodes;
-  char **vcoordspt = v->coords, **coordspt = coords;
-
-  for ( ; *vnodespt; vnodespt++ )
-  {
-    if ( *nodespt++ != *vnodespt )
-      return 0;
-
-    if ( strcmp( *coordspt++, *vcoordspt++ ) )
-      return 0;
-
-    if ( strcmp( *coordspt++, *vcoordspt++ ) )
-      return 0;
-  }
-
-  if ( *nodespt )
-    return 0;
-
-  return 1;
 }
 
 void strip_lyphplates_from_graph( trie *t )
@@ -211,6 +189,18 @@ lyphview *lyphview_by_id( char *idstr )
   return views[id];
 }
 
+char *lv_rect_to_json( lv_rect *rect )
+{
+  return JSON
+  (
+    "id": trie_to_json( rect->L->id ),
+    "x": rect->x,
+    "y": rect->y,
+    "width": rect->width,
+    "height": rect->height
+  );
+}
+
 char *viewed_node_to_json( viewed_node *vn )
 {
   return lyphnode_to_json_wrappee( vn->node, vn->x, vn->y );
@@ -246,7 +236,8 @@ char *lyphview_to_json( lyphview *v )
   (
     "id": int_to_json( v->id ),
     "name": v->name,
-    "nodes": JS_ARRAY( viewed_node_to_json, vn )
+    "nodes": JS_ARRAY( viewed_node_to_json, vn ),
+    "lyphs": JS_ARRAY( lv_rect_to_json, v->rects )
   );
 
   for ( vnptr = vn; *vnptr; vnptr++ )
@@ -410,11 +401,21 @@ void load_lyphviews( void )
 
       if ( prev_view_index != -1 )
       {
-        if ( !views[prev_view_index]->nodes )
+        if ( (!views[prev_view_index]->nodes && !views[prev_view_index]->rects) )
         {
           log_string( "lyphviews.dat: previous view did not finish loading -- aborting" );
           log_linenum( line );
           EXIT();
+        }
+        else if ( !views[prev_view_index]->nodes )
+        {
+          CREATE( views[prev_view_index]->nodes, lyphnode *, 1 );
+          views[prev_view_index]->nodes[0] = NULL;
+        }
+        else if ( !views[prev_view_index]->rects )
+        {
+          CREATE( views[prev_view_index]->rects, lv_rect *, 1 );
+          views[prev_view_index]->rects[0] = NULL;
         }
 
         *nodes = NULL;
@@ -426,6 +427,7 @@ void load_lyphviews( void )
       CREATE( v, lyphview, 1 );
       v->id = id;
       v->nodes = NULL;
+      v->rects = NULL;
       v->coords = NULL;
       v->name = NULL;
 
@@ -794,6 +796,7 @@ int load_lyphs_one_line( char *line, char **err )
   {
     CREATE( e, lyph, 1 );
     e->id = etr;
+    e->flags = 0;
     etr->data = (trie **)e;
 
     maybe_update_top_id( &top_lyph_id, lyphidbuf );
@@ -2010,6 +2013,7 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   e->to = to;
   e->lyphplate = L;
   e->fma = fma;
+  e->flags = 0;
 
   CREATE( e->constraints, lyphplate *, 1 );
   e->constraints[0] = NULL;
