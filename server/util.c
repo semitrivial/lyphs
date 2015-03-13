@@ -423,3 +423,18 @@ char *loctype_to_str( int loctype )
       return "unknown";
   }
 }
+
+void multifree( void *first, ... )
+{
+  va_list args;
+  void *ptr;
+
+  va_start( args, first );
+
+  for ( ptr = va_arg( args, void * ); ptr; ptr = va_arg( args, void * ) )
+    free( ptr );
+
+  va_end( args );
+
+  free( first );
+}

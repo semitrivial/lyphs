@@ -367,8 +367,7 @@ void http_kill_socket( http_conn *c )
 {
   UNLINK2( c, first_http_conn, last_http_conn, next, prev );
 
-  free( c->buf );
-  free( c->outbuf );
+  MULTIFREE( c->buf, c->outbuf );
   free_http_request( c->req );
 
   close( c->sock );
@@ -1180,8 +1179,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( xct < nodect )
     {
-      free( nodes );
-      free( xs );
+      MULTIFREE( nodes, xs );
       HND_ERR( "You did not specify x-coordinates for every node" );
     }
 
@@ -1189,9 +1187,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( yct < nodect )
     {
-      free( nodes );
-      free( xs );
-      free( ys );
+      MULTIFREE( nodes, xs, ys );
       HND_ERR( "You did not specify y-coordinates for every node" );
     }
   }
@@ -1200,9 +1196,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   if ( !lyphs )
   {
-    free( nodes );
-    free( xs );
-    free( ys );
+    MULTIFREE( nodes, xs, ys );
 
     if ( err )
       HND_ERR_FREE( err );
@@ -1216,7 +1210,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( lxct < lyphct )
     {
-      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs );
+      MULTIFREE( nodes, xs, ys, lyphs, lxs );
       HND_ERR( "You did not specify x-coordinates ('lx') for every lyph" );
     }
 
@@ -1224,7 +1218,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( lyct < lyphct )
     {
-      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys );
+      MULTIFREE( nodes, xs, ys, lyphs, lxs, lys );
       HND_ERR( "You did not specify y-coordinates ('ly') for every lyph" );
     }
 
@@ -1232,7 +1226,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( widthct < lyphct )
     {
-      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys ); free( widths );
+      MULTIFREE( nodes, xs, ys, lyphs, lxs, lys, widths );
       HND_ERR( "You did not specify widths for every lyph" );
     }
 
@@ -1240,7 +1234,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( heightct < lyphct )
     {
-      free( nodes ); free( xs ); free( ys ); free( lyphs ); free( lxs ); free( lys ); free( widths ); free( heights );
+      MULTIFREE( nodes, xs, ys, lyphs, lxs, lys, widths, heights );
       HND_ERR( "You did not specify heights for every lyph" );
     }
   }
@@ -1256,26 +1250,17 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     if ( !v )
     {
-      free( nodes );
-      free( lyphs );
+      MULTIFREE( nodes, lyphs );
       HND_ERR_NORETURN( "Could not create the view (out of memory?)" );
     }
     else
       send_200_response( req, lyphview_to_json( v ) );
 
     if ( nodect )
-    {
-      free( xs );
-      free( ys );
-    }
+      MULTIFREE( xs, ys );
 
     if ( lyphct )
-    {
-      free( lxs );
-      free( lys );
-      free( widths );
-      free( heights );
-    }
+      MULTIFREE( lxs, lys, widths, heights );
 
     return;
   }
@@ -1341,9 +1326,8 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     *bptr = NULL;
     *newcptr = NULL;
 
-    free( v->nodes );
+    MULTIFREE( v->nodes, v->coords );
     v->nodes = buf;
-    free( v->coords );
     v->coords = newc;
   }
 
@@ -1355,10 +1339,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   free( nodes );
   if ( nodect > 0 )
-  {
-    free( xs );
-    free( ys );
-  }
+    MULTIFREE( xs, ys );
 
   for ( lptr = lyphs, cnt=0; *lptr; lptr++ )
   {
@@ -1422,12 +1403,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   free( lyphs );
 
   if ( lyphct > 0 )
-  {
-    free( lxs );
-    free( lys );
-    free( widths );
-    free( heights );
-  }
+    MULTIFREE( lxs, lys, widths, heights );
 
   if ( fChange )
     save_lyphviews();

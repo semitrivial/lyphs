@@ -588,9 +588,8 @@ int remove_doomed_nodes_from_views( void )
     *bptr = NULL;
     *newcptr = NULL;
 
-    free( v->nodes );
+    MULTIFREE( v->nodes, v->coords );
     v->nodes = buf;
-    free( v->coords );
     v->coords = newc;
   }
 
@@ -839,8 +838,7 @@ void delete_lyphview( lyphview *v )
   for ( coords = v->coords; *coords; coords++ )
     free( *coords );
 
-  free( v->coords );
-  free( v->nodes );
+  MULTIFREE( v->coords, v->nodes );
 
   if ( v->name )
     free( v->name );
@@ -1055,9 +1053,8 @@ HANDLER( handle_nodes_from_view_request )
   *newcptr = NULL;
   *newnptr = NULL;
 
-  free( v->nodes );
+  MULTIFREE( v->nodes, v->coords );
   v->nodes = newn;
-  free( v->coords );
   v->coords = newc;
 
   send_200_response( req, lyphview_to_json( v ) );

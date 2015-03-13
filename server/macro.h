@@ -2,7 +2,7 @@
 #define LYPH_MACRO_DOT_H_INCLUDE_GUARD
 
 /*
- * Memory allocation macro
+ * Memory allocation macros
  */
 #define CREATE(result, type, number)\
 do\
@@ -13,6 +13,13 @@ do\
         abort();\
     }\
 } while(0)
+
+#define MULTIFREE(...)\
+do\
+{\
+  multifree(__VA_ARGS__, NULL);\
+}\
+while(0)
 
 /*
  * Bit-twiddling macros

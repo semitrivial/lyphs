@@ -310,6 +310,7 @@ int count_commas( char *str );
 void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err );
 void maybe_update_top_id( int *top, char *idstr );
 char *loctype_to_str( int loctype );
+void multifree( void *first, ... );
 
 /*
  * ucl.c
