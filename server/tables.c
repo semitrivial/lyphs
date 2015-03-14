@@ -22,6 +22,7 @@ void init_command_table(void)
   add_handler( "makelyphnode", handle_makelyphnode_request );
   add_handler( "makeview", handle_makeview_request );
   add_handler( "nodes_to_view", handle_nodes_to_view_request );
+  add_handler( "lyphs_from_view", handle_lyphs_from_view_request );
   add_handler( "nodes_from_view", handle_nodes_from_view_request );
   add_handler( "lyphpath", handle_lyphpath_request );
   add_handler( "reset_db", handle_reset_db_request );

@@ -1004,6 +1004,78 @@ HANDLER( handle_delete_layers_request )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
+HANDLER( handle_lyphs_from_view_request )
+{
+  lyphview *v;
+  lyph **lyphs, **lptr;
+  lv_rect **buf, **bptr, **rptr;
+  char *viewstr, *lyphstr, *err;
+  int size;
+
+  viewstr = get_url_param( params, "view" );
+
+  if ( !viewstr )
+    HND_ERR( "You did not specify which view to remove the lyphs from" );
+
+  v = lyphview_by_id( viewstr );
+
+  if ( !v )
+    HND_ERR( "The indicated lyphview was not found in the database" );
+
+  lyphstr = get_url_param( params, "lyphs" );
+
+  if ( !lyphstr )
+  {
+    lyphstr = get_url_param( params, "lyph" );
+
+    if ( !lyphstr )
+      HND_ERR( "You did not specify which lyphs to remove from the view" );
+  }
+
+  lyphs = (lyph **) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
+
+  if ( !lyphs )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs could not be found in the database" );
+  }
+
+  #define LYPH_TO_BE_REMOVED 1
+
+  for ( lptr = lyphs; *lptr; lptr++ )
+    SET_BIT( (*lptr)->flags, LYPH_TO_BE_REMOVED );
+
+  for ( rptr = v->rects, size = 0; *rptr; rptr++ )
+    if ( !IS_SET( (*lptr)->flags, LYPH_TO_BE_REMOVED ) )
+      size++;
+
+  CREATE( buf, lv_rect *, size + 1 );
+  bptr = buf;
+
+  for ( rptr = v->rects, size = 0; *rptr; rptr++ )
+  {
+    if ( IS_SET( (*rptr)->L->flags, LYPH_TO_BE_REMOVED ) )
+      free( *rptr );
+    else
+      *bptr++ = *rptr;
+  }
+
+  *bptr = NULL;
+  free( v->rects );
+  v->rects = buf;
+
+  for ( lptr = lyphs; *lptr; lptr++ )
+    REMOVE_BIT( (*lptr)->flags, LYPH_TO_BE_REMOVED );
+
+  save_lyphviews();
+
+  #undef LYPH_TO_BE_REMOVED
+
+  send_200_response( req, lyphview_to_json( v ) );
+}
+
 HANDLER( handle_nodes_from_view_request )
 {
   char *viewstr, *nodestr, *err = NULL, **newc, **newcptr, **cptr;

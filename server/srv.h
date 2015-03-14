@@ -198,6 +198,7 @@ HANDLER( handle_maketemplate_request );
 HANDLER( handle_makeview_request );
 HANDLER( handle_nodes_to_view_request );
 HANDLER( handle_nodes_from_view_request );
+HANDLER( handle_lyphs_from_view_request );
 HANDLER( handle_makelyphnode_request );
 HANDLER( handle_makelyph_request );
 HANDLER( handle_template_request );
