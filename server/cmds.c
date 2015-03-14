@@ -866,6 +866,7 @@ HANDLER( handle_delete_templates_request )
 
 void delete_lyphview( lyphview *v )
 {
+  lv_rect **rptr;
   char **coords;
   int id = v->id;
   extern lyphview **views;
@@ -874,7 +875,10 @@ void delete_lyphview( lyphview *v )
   for ( coords = v->coords; *coords; coords++ )
     free( *coords );
 
-  MULTIFREE( v->coords, v->nodes );
+  for ( rptr = v->rects; *rptr; rptr++ )
+    free( *rptr );
+
+  MULTIFREE( v->coords, v->nodes, v->rects );
 
   if ( v->name )
     free( v->name );
