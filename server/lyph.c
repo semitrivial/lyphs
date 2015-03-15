@@ -2084,6 +2084,17 @@ lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *
   return NULL;
 }
 
+void lyphs_unset_bits( int bits, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+    REMOVE_BIT( e->flags, bits );
+  }
+
+  TRIE_RECURSE( lyphplates_unset_bits( bits, *child ) );
+}
+
 void lyphplates_unset_bits( int bits, trie *t )
 {
   if ( t->data )

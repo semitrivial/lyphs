@@ -403,6 +403,7 @@ void compute_lyphplate_hierarchy( trie *t );
 lyphplate *lyphplate_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyphplate_hierarchy_to_json( void );
+void lyphs_unset_bits( int bits, trie *t );
 void lyphplates_unset_bit( int bit, trie *t );
 void lyphplates_unset_bits( int bits, trie *t );
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err );

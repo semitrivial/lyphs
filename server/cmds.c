@@ -1080,6 +1080,115 @@ HANDLER( handle_lyphs_from_view_request )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
+int template_involves( lyphplate *L, lyphplate *part )
+{
+  #define LYPHPLATE_DOES_INVOLVE 1
+  #define LYPHPLATE_DOES_NOT_INVOLVE 2
+
+  if ( IS_SET( L->flags, LYPHPLATE_DOES_INVOLVE ) )
+    return 1;
+  else
+  if ( IS_SET( L->flags, LYPHPLATE_DOES_NOT_INVOLVE ) )
+    return 0;
+  else
+  {
+    int answer;
+
+    switch( L->type )
+    {
+      case LYPHPLATE_BASIC:
+        answer = ( L == part );
+        break;
+      case LYPHPLATE_SHELL:
+      case LYPHPLATE_MIX:
+      {
+        layer **lyr;
+
+        for ( lyr = L->layers; *lyr; lyr++ )
+          if ( template_involves( (*lyr)->material, part ) )
+            break;
+
+        if ( *lyr )
+          answer = 1;
+        else
+          answer = 0;
+        break;
+      }
+    }
+
+    if ( answer )
+      SET_BIT( L->flags, LYPHPLATE_DOES_INVOLVE );
+    else
+      SET_BIT( L->flags, LYPHPLATE_DOES_NOT_INVOLVE );
+
+    return answer;
+  }
+}
+
+void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+
+    if ( e->lyphplate && template_involves( e->lyphplate, L ) )
+    {
+      lyph_wrapper *w;
+
+      CREATE( w, lyph_wrapper, 1 );
+      w->e = e;
+      LINK( w, *head, *tail, next );
+      (*cnt)++;
+    }
+  }
+
+  TRIE_RECURSE( calc_involves_template( L, head, tail, cnt, *child ) );
+}
+
+HANDLER( handle_involves_template_request )
+{
+  lyphplate *L;
+  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyph **buf, **bptr;
+  char *tmpidstr;
+  int cnt;
+
+  tmpidstr = get_url_param( params, "template" );
+
+  if ( !tmpidstr )
+    HND_ERR( "Missing argument: 'template': Specify a template, X, in order to find all lyphs L such that L has a template Y that involves X in any way" );
+
+  L = lyphplate_by_id( tmpidstr );
+
+  if ( !L )
+    HND_ERR( "The indicated lyphplate was not found in the database" );
+
+  cnt = 0;
+
+  calc_involves_template( L, &head, &tail, &cnt, lyph_ids );
+
+  lyphs_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyph_ids );
+
+  CREATE( buf, lyph *, cnt + 1 );
+  bptr = buf;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+
+    *bptr++ = w->e;
+    free( w );
+  }
+  *bptr = NULL;
+
+  send_200_response( req, JSON1
+  (
+    "lyphs": JS_ARRAY( lyph_to_json, buf )
+  ) );
+
+  free( buf );
+}
+
 void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
 {
   if ( t->data )
