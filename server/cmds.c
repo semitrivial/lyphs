@@ -1094,10 +1094,16 @@ int template_involves( lyphplate *L, lyphplate *part )
   {
     int answer;
 
+    if ( L == part )
+    {
+      SET_BIT( L->flags, LYPHPLATE_DOES_INVOLVE );
+      return 1;
+    }
+
     switch( L->type )
     {
       case LYPHPLATE_BASIC:
-        answer = ( L == part );
+        answer = 0;
         break;
       case LYPHPLATE_SHELL:
       case LYPHPLATE_MIX:
