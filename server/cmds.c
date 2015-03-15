@@ -1080,6 +1080,69 @@ HANDLER( handle_lyphs_from_view_request )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
+void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+
+    if ( e->lyphplate && is_superlyphplate( L, e->lyphplate ) )
+    {
+      lyph_wrapper *w;
+
+      CREATE( w, lyph_wrapper, 1 );
+      w->e = e;
+
+      LINK( w, *head, *tail, next );
+      (*cnt)++;
+    }
+  }
+
+  TRIE_RECURSE( find_instances_of( L, head, tail, cnt, *child ) );
+}
+
+HANDLER( handle_instances_of_request )
+{
+  lyphplate *L;
+  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyph **buf, **bptr;
+  char *tmpidstr;
+  int cnt;
+
+  tmpidstr = get_url_param( params, "template" );
+
+  if ( !tmpidstr )
+    HND_ERR( "Missing argument: 'template': specify a template, X, and instances_of will search for all lyphs that have template Y such that Y is a subtemplate of X." );
+
+  L = lyphplate_by_id( tmpidstr );
+
+  if ( !L )
+    HND_ERR( "There indicated template was not found in the database" );
+
+  cnt = 0;
+
+  find_instances_of( L, &head, &tail, &cnt, lyph_ids );
+
+  CREATE( buf, lyph *, cnt + 1 );
+  bptr = buf;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+
+    *bptr++ = w->e;
+    free( w );
+  }
+  *bptr = NULL;
+
+  send_200_response( req, JSON1
+  (
+    "instances": JS_ARRAY( lyph_to_json, buf )
+  ) );
+
+  free( buf );
+}
+
 HANDLER( handle_nodes_from_view_request )
 {
   char *viewstr, *nodestr, *err = NULL, **newc, **newcptr, **cptr;

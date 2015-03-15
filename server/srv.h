@@ -219,6 +219,7 @@ HANDLER( handle_constrain_along_path_request );
 HANDLER( handle_reset_db_request );
 HANDLER( handle_all_ont_terms_request );
 HANDLER( handle_subtemplates_request );
+HANDLER( handle_instances_of_request );
 HANDLER( handle_editlyph_request );
 HANDLER( handle_editlyphnode_request );
 HANDLER( handle_edit_template_request );

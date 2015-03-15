@@ -32,6 +32,7 @@ typedef struct LAYER_LOADING layer_loading;
 typedef struct LOAD_LAYERS_DATA load_layers_data;
 typedef struct LYPHNODE lyphnode;
 typedef struct LYPH lyph;
+typedef struct LYPH_WRAPPER lyph_wrapper;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
@@ -171,6 +172,12 @@ typedef enum
 {
   LYPH_ARTERIAL, LYPH_MICROCIRC, LYPH_VENOUS, LYPH_CARDIAC, LYPH_DELETED
 } lyph_types;
+
+struct LYPH_WRAPPER
+{
+  lyph *e;
+  lyph_wrapper *next;
+};
 
 struct EXIT_DATA
 {
