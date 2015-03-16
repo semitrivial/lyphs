@@ -303,9 +303,10 @@ void init_default_lyphviews( void )
 {
   top_view = 0;
 
-  CREATE( views, lyphview *, 1 );
+  CREATE( views, lyphview *, 2 );
 
   views[0] = NULL;
+  views[1] = NULL;
 }
 
 void load_lyphviews( void )
