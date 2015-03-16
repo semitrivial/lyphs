@@ -1759,7 +1759,7 @@ HANDLER( handle_all_lyphviews_request )
   extern lyphview obsolete_lyphview;
   extern lyphview **views;
 
-  CREATE( v, lyphview *, VOIDLEN( &views[1] ) );
+  CREATE( v, lyphview *, VOIDLEN( &views[1] ) + 1 );
   vptr = v;
 
   for ( viewsptr = &views[1]; *viewsptr; viewsptr++ )
