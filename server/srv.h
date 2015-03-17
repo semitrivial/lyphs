@@ -72,6 +72,26 @@ do\
 }\
 while(0)
 
+#define TRY_PARAM( variable, param, errmsg )\
+do\
+{\
+  variable = get_param( params, param );\
+  \
+  if ( !variable )\
+    HND_ERR( errmsg );\
+}\
+while(0)
+
+#define TRY_TWO_PARAMS( variable, param1, param2, errmsg )\
+do\
+{\
+  variable = get_param( params, param1 );\
+  \
+  if ( !variable )\
+    TRY_PARAM( variable, param2, errmsg );\
+}\
+while(0)
+
 #define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
 
 #define GET_NUMBERED_ARGS( params, base, fnc, err, size )\
@@ -168,12 +188,10 @@ char *nocache_headers(void);
 char *current_date(void);
 void send_gui( http_request *req );
 void send_js( http_request *req );
-void send_lyphgui( http_request *req );
-void send_lyphjs( http_request *req );
 char *load_file( char *filename );
-const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_request *req, url_param **params );
+const char *parse_params( char *buf, http_request *req, url_param **params );
 void free_url_params( url_param **buf );
-char *get_url_param( url_param **params, char *key );
+char *get_param( url_param **params, char *key );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
 void makeview_worker( char *request, http_request *req, url_param **params, int makeview );
 

@@ -8,17 +8,14 @@ HANDLER( handle_editlyphnode_request )
   char *idstr, *locstr, *loctypestr;
   int loctype;
 
-  idstr = get_url_param( params, "node" );
-
-  if ( !idstr )
-    HND_ERR( "You did not specify which lyphnode to edit" );
+  TRY_PARAM( idstr, "node", "You did not specify which lyphnode to edit" );
 
   n = lyphnode_by_id( idstr );
 
   if ( !n )
     HND_ERR( "The indicated lyphnode was not found in the databse" );
 
-  locstr = get_url_param( params, "location" );
+  locstr = get_param( params, "location" );
 
   if ( locstr )
   {
@@ -30,7 +27,7 @@ HANDLER( handle_editlyphnode_request )
   else
     loc = NULL;
 
-  loctypestr = get_url_param( params, "loctype" );
+  loctypestr = get_param( params, "loctype" );
 
   if ( loctypestr )
   {
@@ -68,17 +65,14 @@ HANDLER( handle_editlyph_request )
   trie *fma;
   int type;
 
-  lyphid = get_url_param( params, "lyph" );
-
-  if ( !lyphid )
-    HND_ERR( "You did not specify which lyph to edit." );
+  TRY_PARAM( lyphid, "lyph", "You did not specify which lyph to edit." );
 
   e = lyph_by_id( lyphid );
 
   if ( !e )
     HND_ERR( "The specified lyph was not found in the database." );
 
-  tmpltid = get_url_param( params, "template" );
+  tmpltid = get_param( params, "template" );
 
   if ( tmpltid )
   {
@@ -93,7 +87,7 @@ HANDLER( handle_editlyph_request )
   else
     L = NULL;
 
-  typestr = get_url_param( params, "type" );
+  typestr = get_param( params, "type" );
 
   if ( typestr )
   {
@@ -102,16 +96,15 @@ HANDLER( handle_editlyph_request )
       HND_ERR( "Valid edge types are 1, 2, 3, and 4." );
   }
 
-  namestr = get_url_param( params, "name" );
-
-  fmastr = get_url_param( params, "fma" );
+  namestr = get_param( params, "name" );
+  fmastr = get_param( params, "fma" );
 
   if ( fmastr )
     fma = trie_strdup( fmastr, lyph_fmas );
   else
     fma = NULL;
 
-  constraintstr = get_url_param( params, "constraint" );
+  constraintstr = get_param( params, "constraint" );
 
   if ( constraintstr )
   {
@@ -123,7 +116,7 @@ HANDLER( handle_editlyph_request )
   else
     constraint = NULL;
 
-  fromstr = get_url_param( params, "from" );
+  fromstr = get_param( params, "from" );
 
   if ( fromstr )
   {
@@ -135,7 +128,7 @@ HANDLER( handle_editlyph_request )
   else
     from = NULL;
 
-  tostr = get_url_param( params, "to" );
+  tostr = get_param( params, "to" );
 
   if ( tostr )
   {
@@ -246,19 +239,15 @@ HANDLER( handle_edit_template_request )
   char *tmpltstr, *namestr, *typestr, *ontstr;
   int type, fQualitativeChange = 0;
 
-  tmpltstr = get_url_param( params, "template" );
-
-  if ( !tmpltstr )
-    HND_ERR( "You did not specify which template to edit" );
+  TRY_PARAM( tmpltstr, "template", "You did not specify which template to edit" );
 
   L = lyphplate_by_id( tmpltstr );
 
   if ( !L )
     HND_ERR( "The specified template was not found in the database" );
 
-  namestr = get_url_param( params, "name" );
-
-  typestr = get_url_param( params, "type" );
+  namestr = get_param( params, "name" );
+  typestr = get_param( params, "type" );
 
   if ( typestr )
   {
@@ -289,7 +278,7 @@ HANDLER( handle_edit_template_request )
   else
     type = -1;
 
-  ontstr = get_url_param( params, "ont" );
+  ontstr = get_param( params, "ont" );
 
   if ( ontstr )
   {
@@ -340,17 +329,14 @@ HANDLER( handle_editview_request )
   char *viewstr, *namestr;
   lyphview *v;
 
-  viewstr = get_url_param( params, "view" );
-
-  if ( !viewstr )
-    HND_ERR( "You did not specify which lyphview to edit" );
+  TRY_PARAM( viewstr, "view", "You did not specify which lyphview to edit" );
 
   v = lyphview_by_id( viewstr );
 
   if ( !v )
     HND_ERR( "The indicated view was not found in the database" );
 
-  namestr = get_url_param( params, "name" );
+  namestr = get_param( params, "name" );
 
   if ( namestr )
   {
@@ -372,17 +358,14 @@ HANDLER( handle_editlayer_request )
   char *lyrstr, *matstr, *thkstr;
   int thk, fQualitativeChange = 0;
 
-  lyrstr = get_url_param( params, "layer" );
-
-  if ( !lyrstr )
-    HND_ERR( "You did not indicate which layer to edit" );
+  TRY_PARAM( lyrstr, "layer", "You did not indicate which layer to edit" );
 
   lyr = layer_by_id( lyrstr );
 
   if ( !lyr )
     HND_ERR( "The indicated layer was not found in the database" );
 
-  matstr = get_url_param( params, "material" );
+  matstr = get_param( params, "material" );
 
   if ( matstr )
   {
@@ -394,7 +377,7 @@ HANDLER( handle_editlayer_request )
   else
     mat = NULL;
 
-  thkstr = get_url_param( params, "thickness" );
+  thkstr = get_param( params, "thickness" );
 
   if ( thkstr )
   {
@@ -574,15 +557,7 @@ HANDLER( handle_delete_lyphs_request )
   char *lyphstr, *err;
   lyph **e, **eptr, dupe;
 
-  lyphstr = get_url_param( params, "lyphs" );
-
-  if ( !lyphstr )
-  {
-    lyphstr = get_url_param( params, "lyph" );
-
-    if ( !lyphstr )
-      HND_ERR( "You did not specify which lyphs to delete." );
-  }
+  TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to delete." );
 
   e = (lyph **) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
 
@@ -644,15 +619,7 @@ HANDLER( handle_delete_nodes_request )
   lyphnode **n, **nptr, dupe;
   char *nodestr, *err;
 
-  nodestr = get_url_param( params, "nodes" );
-
-  if ( !nodestr )
-  {
-    nodestr = get_url_param( params, "node" );
-
-    if ( !nodestr )
-      HND_ERR( "You did not specify which nodes to delete" );
-  }
+  TRY_TWO_PARAMS( nodestr, "nodes", "node", "You did not specify which nodes to delete" );
 
   n = (lyphnode **) PARSE_LIST( nodestr, lyphnode_by_id, "node", &err );
 
@@ -815,15 +782,7 @@ HANDLER( handle_delete_templates_request )
   char *tmpltstr, *err;
   lyphplate **L, **Lptr, dupe;
 
-  tmpltstr = get_url_param( params, "templates" );
-
-  if ( !tmpltstr )
-  {
-    tmpltstr = get_url_param( params, "template" );
-
-    if ( !tmpltstr )
-      HND_ERR( "You did not indicate which templates to delete." );
-  }
+  TRY_TWO_PARAMS( tmpltstr, "templates", "template", "You did not indicate which templates to delete." );
 
   L = (lyphplate **) PARSE_LIST( tmpltstr, lyphplate_by_id, "template", &err );
 
@@ -896,15 +855,7 @@ HANDLER( handle_delete_views_request )
   extern lyphview **views;
   extern lyphview obsolete_lyphview;
 
-  viewstr = get_url_param( params, "views" );
-
-  if ( !viewstr )
-  {
-    viewstr = get_url_param( params, "view" );
-
-    if ( !viewstr )
-      HND_ERR( "You did not indicate which views to delete." );
-  }
+  TRY_TWO_PARAMS( viewstr, "views", "view", "You did not indicate which views to delete." );
 
   v = (lyphview **) PARSE_LIST( viewstr, lyphview_by_id, "view", &err );
 
@@ -965,15 +916,7 @@ HANDLER( handle_delete_layers_request )
   char *layerstr, *err;
   layer **lyr, **lyrptr;
 
-  layerstr = get_url_param( params, "layers" );
-
-  if ( !layerstr )
-  {
-    layerstr = get_url_param( params, "layer" );
-
-    if ( !layerstr )
-      HND_ERR( "You did not specify which layers to delete." );
-  }
+  TRY_TWO_PARAMS( layerstr, "layers", "layer", "You did not specify which layers to delete." );
 
   lyr = (layer **) PARSE_LIST( layerstr, layer_by_id, "layer", &err );
 
@@ -1016,25 +959,14 @@ HANDLER( handle_lyphs_from_view_request )
   char *viewstr, *lyphstr, *err;
   int size;
 
-  viewstr = get_url_param( params, "view" );
-
-  if ( !viewstr )
-    HND_ERR( "You did not specify which view to remove the lyphs from" );
+  TRY_PARAM( viewstr, "view", "You did not specify which view to remove the lyphs from" );
 
   v = lyphview_by_id( viewstr );
 
   if ( !v )
     HND_ERR( "The indicated lyphview was not found in the database" );
 
-  lyphstr = get_url_param( params, "lyphs" );
-
-  if ( !lyphstr )
-  {
-    lyphstr = get_url_param( params, "lyph" );
-
-    if ( !lyphstr )
-      HND_ERR( "You did not specify which lyphs to remove from the view" );
-  }
+  TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to remove from the view" );
 
   lyphs = (lyph **) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
 
@@ -1159,10 +1091,7 @@ HANDLER( handle_involves_template_request )
   char *tmpidstr;
   int cnt;
 
-  tmpidstr = get_url_param( params, "template" );
-
-  if ( !tmpidstr )
-    HND_ERR( "Missing argument: 'template': Specify a template, X, in order to find all lyphs L such that L has a template Y that involves X in any way" );
+  TRY_PARAM( tmpidstr, "template", "Missing argument: 'template': Specify a template, X, in order to find all lyphs L such that L has a template Y that involves X in any way" );
 
   L = lyphplate_by_id( tmpidstr );
 
@@ -1224,10 +1153,7 @@ HANDLER( handle_instances_of_request )
   char *tmpidstr;
   int cnt;
 
-  tmpidstr = get_url_param( params, "template" );
-
-  if ( !tmpidstr )
-    HND_ERR( "Missing argument: 'template': specify a template, X, and instances_of will search for all lyphs that have template Y such that Y is a subtemplate of X." );
+  TRY_PARAM( tmpidstr, "template", "Missing argument: 'template': specify a template, X, and instances_of will search for all lyphs that have template Y such that Y is a subtemplate of X." );
 
   L = lyphplate_by_id( tmpidstr );
 
@@ -1265,25 +1191,14 @@ HANDLER( handle_nodes_from_view_request )
   lyphnode **n, **nptr, **newn, **newnptr;
   int size, fMatch;
 
-  viewstr = get_url_param( params, "view" );
-
-  if ( !viewstr )
-    HND_ERR( "You did not specify which view to remove nodes from" );
+  TRY_PARAM( viewstr, "view", "You did not specify which view to remove nodes from" );
 
   v = lyphview_by_id( viewstr );
 
   if ( !v )
     HND_ERR( "The indicated lyphview was not found in the database" );
 
-  nodestr = get_url_param( params, "nodes" );
-
-  if ( !nodestr )
-  {
-    nodestr = get_url_param( params, "node" );
-
-    if ( !nodestr )
-      HND_ERR( "You did not specify which nodes to remove from the view" );
-  }
+  TRY_TWO_PARAMS( nodestr, "nodes", "node", "You did not specify which nodes to remove from the view" );
 
   n = (lyphnode **) PARSE_LIST( nodestr, lyphnode_by_id, "node", &err );
 

@@ -3,8 +3,6 @@
 
 char *html;
 char *js;
-char *lyphgui_html;
-char *lyphgui_js;
 
 extern int lyphnode_to_json_flags;
 
@@ -63,11 +61,8 @@ void init_lyph_http_server( int port )
   struct addrinfo hints, *servinfo;
   char portstr[128];
 
-  html = load_file( "gui.html" );
-  js = load_file( "gui.js" );
-
-  lyphgui_html = load_file( "lyphgui.html" );
-  lyphgui_js = load_file( "lyphgui.js" );
+  html = load_file( "lyphgui.html" );
+  js = load_file( "lyphgui.js" );
 
   memset( &hints, 0, sizeof(hints) );
   hints.ai_family = AF_UNSPEC;
@@ -123,46 +118,26 @@ void main_loop( void )
 
     if ( req )
     {
-      char *reqptr, *reqtype, *request, repl[MAX_STRING_LEN], *rptr;
+      char *reqptr, *reqtype, *request;
       const char *parse_params_err;
       handle_function *fnc;
-      trie **data;
-      int len=0, fFirst=0, fShortIRI=0, fCaseInsens=0;
       url_param *params[MAX_URL_PARAMS+1];
 
       count++;
 
       to_logfile( "Got request:\n%s", req->query );
 
-      if ( !strcmp( req->query, "gui" )
-      ||   !strcmp( req->query, "/gui" )
-      ||   !strcmp( req->query, "gui/" )
-      ||   !strcmp( req->query, "/gui/" ) )
+      if ( req_cmp( req->query, "gui" )
+      ||   req_cmp( req->query, "lyphgui" ) )
       {
         send_gui( req );
         continue;
       }
 
-      if ( !strcmp( req->query, "lyphgui" )
-      ||   !strcmp( req->query, "/lyphgui" )
-      ||   !strcmp( req->query, "lyphgui/" )
-      ||   !strcmp( req->query, "/lyphgui/" ) )
-      {
-        send_lyphgui( req );
-        continue;
-      }
-
-      if ( !strcmp( req->query, "js/" )
-      ||   !strcmp( req->query, "/js/" ) )
+      if ( req_cmp( req->query, "js" )
+      ||   req_cmp( req->query, "lyphjs" ) )
       {
         send_js( req );
-        continue;
-      }
-
-      if ( !strcmp( req->query, "lyphjs/" )
-      ||   !strcmp( req->query, "/lyphjs/" ) )
-      {
-        send_lyphjs( req );
         continue;
       }
 
@@ -179,15 +154,12 @@ void main_loop( void )
       *reqptr = '\0';
       reqtype = (*req->query == '/') ? req->query + 1 : req->query;
 
-      parse_params_err = parse_params( &reqptr[1], &fShortIRI, &fCaseInsens, req, params );
+      parse_params_err = parse_params( &reqptr[1], req, params );
 
       if ( parse_params_err )
       {
-        char errmsg[1024];
+        HND_ERR_NORETURN( parse_params_err );
 
-        sprintf( errmsg, "{\"Error\": \"%s\"}", parse_params_err );
-
-        send_200_response( req, errmsg );
         free_url_params( params );
         continue;
       }
@@ -206,82 +178,10 @@ void main_loop( void )
 
       free_url_params( params );
 
-      if ( !strcmp( reqtype, "iri" ) )
-        data = get_labels_by_iri( request );
-      else if ( !strcmp( reqtype, "label" ) && !fCaseInsens )
-        data = get_iris_by_label( request );
-      else if ( !strcmp( reqtype, "label" )
-           ||   !strcmp( reqtype, "label-case-insensitive" ) )
-        data = get_iris_by_label_case_insensitive( request );
-      else if ( !strcmp( reqtype, "label-shortiri" ) )
-      {
-        data = get_iris_by_label( request );
-        fShortIRI = 1;
-      }
-      else if ( !strcmp( reqtype, "label-shortiri-case-insensitive" ) || !strcmp( reqtype, "label-case-insensitive-shortiri" ) )
-      {
-        data = get_iris_by_label_case_insensitive( request );
-        fShortIRI = 1;
-      }
-      else if ( !strcmp( reqtype, "autocomp" ) || !strcmp( reqtype, "autocomplete" ) )
-        data = get_autocomplete_labels( request, 0 );
-      else if ( !strcmp( reqtype, "autocomp-case-insensitive" ) || !strcmp( reqtype, "autocomplete-case-insensitive" ) )
-        data = get_autocomplete_labels( request, 1 );
-      else
-      {
-        *reqptr = '/';
-        free( request );
-        send_400_response( req );
-        continue;
-      }
-
-      if ( !data )
-      {
-        *reqptr = '/';
-        free( request );
-        send_200_response( req, "{\"Results\": []}" );
-        continue;
-      }
-
-      sprintf( repl, "{\"Results\": [" );
-      rptr = &repl[strlen( "{\"Results\": [")];
-
-      for ( ; *data; data++ )
-      {
-        char *datum, *encoded;
-        int datumlen;
-
-        if ( fShortIRI )
-        {
-          char *longform = trie_to_static( *data );
-          datum = get_url_shortform( longform );
-          if ( !datum )
-            datum = longform;
-        }
-        else
-          datum = trie_to_static( *data );
-
-        encoded = html_encode( datum );
-
-        datumlen = strlen( encoded ) + strlen("\"\"") + (fFirst ? strlen(",") : 0);
-
-        if ( len + datumlen >= MAX_STRING_LEN - 10 )
-        {
-          sprintf( rptr, ",\"...\"" );
-          free( encoded );
-          break;
-        }
-        len += datumlen;
-        sprintf( rptr, "%s\"%s\"", fFirst ? "," : "", encoded );
-        rptr = &rptr[datumlen];
-        free( encoded );
-        fFirst = 1;
-      }
-      sprintf( rptr, "]}" );
-
-      send_200_response( req, repl );
       *reqptr = '/';
       free( request );
+      send_400_response( req );
+      continue;
     }
     else
       break;
@@ -717,16 +617,6 @@ void send_js( http_request *req )
   send_200_with_type( req, js, "application/javascript" );
 }
 
-void send_lyphgui( http_request *req )
-{
-  send_200_with_type( req, lyphgui_html, "text/html" );
-}
-
-void send_lyphjs( http_request *req )
-{
-  send_200_with_type( req, lyphgui_js, "application/javascript" );
-}
-
 char *load_file( char *filename )
 {
   FILE *fp;
@@ -762,7 +652,7 @@ char *load_file( char *filename )
   }
 }
 
-const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_request *req, url_param **params )
+const char *parse_params( char *buf, http_request *req, url_param **params )
 {
   char *bptr;
   char *param;
@@ -787,6 +677,8 @@ const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_requ
   {
     if ( *bptr == '&' || *bptr == '\0' )
     {
+      char *equals;
+
       if ( *bptr == '\0' )
         fEnd = 1;
       else
@@ -798,47 +690,33 @@ const char *parse_params( char *buf, int *fShortIRI, int *fCaseInsens, http_requ
         return "Too many URL parameters";
       }
 
-      if ( !strcmp( param, "case-insensitive" )
-      ||   !strcmp( param, "case-ins" )
-      ||   !strcmp( param, "insensitive" )
-      ||   !strcmp( param, "ins" ) )
-        *fCaseInsens = 1;
-      else
-      if ( !strcmp( param, "short-iri" )
-      ||   !strcmp( param, "short" ) )
-        *fShortIRI = 1;
-      else
+      for ( equals = param; *equals; equals++ )
+        if ( *equals == '=' )
+          break;
+
+      if ( *equals )
       {
-        char *equals;
+        *equals = '\0';
 
-        for ( equals = param; *equals; equals++ )
-          if ( *equals == '=' )
-            break;
-
-        if ( *equals )
+        if ( strlen( param ) >= MAX_URL_PARAM_LEN )
         {
-          *equals = '\0';
-
-          if ( strlen( param ) >= MAX_URL_PARAM_LEN )
-          {
-            *pptr = NULL;
-            return "Url parameter too long";
-          }
-
-          CREATE( *pptr, url_param, 1 );
-          (*pptr)->key = url_decode( param );
-          (*pptr)->val = url_decode( &equals[1] );
-
-          if ( !strcmp( (*pptr)->key, "callback" ) )
-          {
-            if ( req->callback )
-              free( req->callback );
-
-            req->callback = strdup( (*pptr)->val );
-          }
-
-          pptr++;
+          *pptr = NULL;
+          return "Url parameter too long";
         }
+
+        CREATE( *pptr, url_param, 1 );
+        (*pptr)->key = url_decode( param );
+        (*pptr)->val = url_decode( &equals[1] );
+
+        if ( !strcmp( (*pptr)->key, "callback" ) )
+        {
+          if ( req->callback )
+            free( req->callback );
+
+          req->callback = strdup( (*pptr)->val );
+        }
+
+        pptr++;
       }
 
       if ( fEnd )
@@ -877,16 +755,11 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   lyph_filter *f;
   char *xid, *yid, *Lid, *fid;
 
-  xid = get_url_param( params, "from" );
-  yid = get_url_param( params, "to" );
-  Lid = get_url_param( params, "template" );
-  fid = get_url_param( params, "filter" );
+  TRY_PARAM( xid, "from", "You did not specify the 'from' node" );
+  TRY_PARAM( yid, "to", "You did not specify the 'to' node" );
 
-  if ( !xid )
-    HND_ERR( "You did not specify the 'from' node" );
-
-  if ( !yid )
-    HND_ERR( "You did not specify the 'to' node" );
+  Lid = get_param( params, "template" );
+  fid = get_param( params, "filter" );
 
   if ( !Lid && along_path_type != ALONG_PATH_COMPUTE )
     HND_ERR( "You did not specify the template to assign along the path" );
@@ -921,7 +794,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 
     f->sup = filt;
 
-    na_param = get_url_param( params, "include_templateless" );
+    na_param = get_param( params, "include_templateless" );
 
     if ( na_param && !strcmp( na_param, "yes" ) )
       f->accept_na_edges = 1;
@@ -1024,7 +897,7 @@ HANDLER( handle_makelyphnode_request )
   char *locstr, *loctypestr;
   int loctype;
 
-  locstr = get_url_param( params, "location" );
+  locstr = get_param( params, "location" );
 
   if ( locstr )
   {
@@ -1033,10 +906,7 @@ HANDLER( handle_makelyphnode_request )
     if ( !loc )
       HND_ERR( "The indicated lyph was not found in the database." );
 
-    loctypestr = get_url_param( params, "loctype" );
-
-    if ( !loctypestr )
-      HND_ERR( "You did not specify a loctype ('interior' or 'border')" );
+    TRY_PARAM( loctypestr, "loctype", "You did not specify a loctype ('interior' or 'border')" );
 
     if ( !strcmp( loctypestr, "interior" ) )
       loctype = LOCTYPE_INTERIOR;
@@ -1074,20 +944,17 @@ HANDLER( handle_makelyph_request )
   char *fmastr, *fromstr, *tostr, *namestr, *tmpltstr, *typestr;
   int type;
 
-  typestr = get_url_param( params, "type" );
-
-  if ( !typestr )
-    HND_ERR( "You did not specify a type" );
+  TRY_PARAM( typestr, "type", "You did not specify a type" );
 
   type = strtol( typestr, NULL, 10 );
 
   if ( type < 1 || type > 4 )
     HND_ERR( "Type must be 1, 2, 3, or 4" );
 
-  fmastr = get_url_param( params, "fma" );
+  fmastr = get_param( params, "fma" );
 
-  fromstr = get_url_param( params, "from" );
-  tostr = get_url_param( params, "to" );
+  fromstr = get_param( params, "from" );
+  tostr = get_param( params, "to" );
 
   if ( !fromstr || !tostr )
     HND_ERR( "An edge requires a 'from' and a 'to' field" );
@@ -1102,9 +969,9 @@ HANDLER( handle_makelyph_request )
   if ( !to )
     HND_ERR( "The indicated 'to' node was not found" );
 
-  namestr = get_url_param( params, "name" );
+  namestr = get_param( params, "name" );
 
-  tmpltstr = get_url_param( params, "template" );
+  tmpltstr = get_param( params, "template" );
 
   if ( tmpltstr )
   {
@@ -1152,10 +1019,9 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   if ( type != 0 )
   {
-    char *viewstr = get_url_param( params, "view" );
+    char *viewstr;
 
-    if ( !viewstr )
-      HND_ERR( "You did not specify which view to add nodes to." );
+    TRY_PARAM( viewstr, "view", "You did not specify which view to add nodes to." );
 
     v = lyphview_by_id( viewstr );
 
@@ -1244,7 +1110,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   if ( type == 0 )
   {
-    namestr = get_url_param( params, "name" );
+    namestr = get_param( params, "name" );
 
     v = create_new_view( nodes, xs, ys, lyphs, lxs, lys, widths, heights, namestr ? strdup(namestr) : NULL );
 
@@ -1417,12 +1283,9 @@ HANDLER( handle_makelayer_request )
   int thickness;
   layer *lyr;
 
-  mtid = get_url_param( params, "material" );
+  TRY_PARAM( mtid, "material", "No material specified for layer" );
 
-  if ( !mtid )
-    HND_ERR( "No material specified for layer" );
-
-  thickstr = get_url_param( params, "thickness" );
+  thickstr = get_param( params, "thickness" );
 
   if ( thickstr )
     thickness = strtol( thickstr, NULL, 10 );
@@ -1444,14 +1307,8 @@ HANDLER( handle_lyphconstrain_request )
   char *lyphid, *tmpltid;
   int cnt;
 
-  lyphid = get_url_param( params, "lyph" );
-  tmpltid = get_url_param( params, "template" );
-
-  if ( !lyphid )
-    HND_ERR( "You did not specify a lyph." );
-
-  if ( !tmpltid )
-    HND_ERR( "You did not specify a template." );
+  TRY_PARAM( lyphid, "lyph", "You did not specify a lyph." );
+  TRY_PARAM( tmpltid, "template", "You did not specify a template." );
 
   e = lyph_by_id( lyphid );
 
@@ -1492,20 +1349,14 @@ HANDLER( handle_assign_template_request )
   lyphplate *L;
   char *lyphid, *tmpltid, *err;
 
-  tmpltid = get_url_param( params, "template" );
-
-  if ( !tmpltid )
-    HND_ERR( "You did not specify a template." );
+  TRY_PARAM( tmpltid, "template", "You did not specify a template." );
 
   L = lyphplate_by_id( tmpltid );
 
   if ( !L )
     HND_ERR( "The database has no template with that ID." );
 
-  lyphid = get_url_param( params, "lyph" );
-
-  if ( !lyphid )
-    HND_ERR( "You did not specify a lyph." );
+  TRY_PARAM( lyphid, "lyph", "You did not specify a lyph." );
 
   lyphs = (lyph **) PARSE_LIST( lyphid, lyph_by_id, "lyph", &err );
 
@@ -1553,15 +1404,8 @@ HANDLER( handle_maketemplate_request )
   if ( !lyrs )
     CREATE( lyrs, layer *, MAX_URL_PARAMS + 2 );
 
-  name = get_url_param( params, "name" );
-
-  if ( !name )
-    HND_ERR( "No name specified for template" );
-
-  typestr = get_url_param( params, "type" );
-
-  if ( !typestr )
-    HND_ERR( "No type specified for template" );
+  TRY_PARAM( name, "name", "No name specified for template" );
+  TRY_PARAM( typestr, "type", "No type specified for template" );
 
   type = parse_lyphplate_type( typestr );
 
@@ -1582,7 +1426,7 @@ HANDLER( handle_maketemplate_request )
 
     sprintf( pmname, "layer%d", lcnt );
 
-    lyrid = get_url_param( params, pmname );
+    lyrid = get_param( params, pmname );
 
     if ( !lyrid )
       break;
@@ -1714,7 +1558,7 @@ void free_url_params( url_param **buf )
   }
 }
 
-char *get_url_param( url_param **params, char *key )
+char *get_param( url_param **params, char *key )
 {
   url_param **ptr;
 
@@ -1779,17 +1623,14 @@ HANDLER( handle_subtemplates_request )
   char *tmpltstr, *directstr;
   int direct;
 
-  tmpltstr = get_url_param( params, "template" );
-
-  if ( !tmpltstr )
-    HND_ERR( "You did not specify a template" );
+  TRY_PARAM( tmpltstr, "template", "You did not specify a template" );
 
   L = lyphplate_by_id( tmpltstr );
 
   if ( !L )
     HND_ERR( "The indicated template was not found in the database" );
 
-  directstr = get_url_param( params, "direct" );
+  directstr = get_param( params, "direct" );
 
   if ( directstr )
   {
@@ -1832,19 +1673,19 @@ HANDLER( handle_reset_db_request )
   HND_ERR( "The reset_db command is only available when the server is running in debug mode." );
   #endif
 
-  if ( get_url_param( params, "views" ) )
+  if ( get_param( params, "views" ) )
   {
     fMatch = 1;
     free_all_views();
   }
 
-  if ( get_url_param( params, "templates" ) )
+  if ( get_param( params, "templates" ) )
   {
     fMatch = 1;
     free_all_lyphplates();
   }
 
-  if ( get_url_param( params, "graph" ) )
+  if ( get_param( params, "graph" ) )
   {
     fMatch = 1;
     free_all_lyphs();

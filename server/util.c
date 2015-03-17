@@ -438,3 +438,29 @@ void multifree( void *first, ... )
 
   free( first );
 }
+
+int req_cmp( char *req, char *match )
+{
+  if ( *req == '/' )
+    req++;
+
+  if ( !strcmp( req, match ) )
+    return 1;
+  else
+  {
+    int len = strlen( req );
+
+    if ( len && req[len-1] == '/' )
+    {
+      req[len-1] = '\0';
+
+      if ( !strcmp( req, match ) )
+      {
+        req[len-1] = '/';
+        return 1;
+      }
+    }
+  }
+
+  return 0;
+}
