@@ -804,6 +804,9 @@ int load_lyphs_one_line( char *line, char **err )
 
     CREATE( e->constraints, lyphplate *, 1 );
     *e->constraints = NULL;
+
+    CREATE( e->annots, annot *, 1 );
+    *e->annots = NULL;
   }
   else
     e = (lyph *)etr->data;
@@ -1036,6 +1039,40 @@ int word_from_line( char **line, char *buf )
   }
 }
 
+void got_annotation_triple( char *subj, char *pred, char *obj )
+{
+  if ( str_begins( subj, "<http://open-physiology.org/lyphs/LYPH_" ) )
+  {
+    lyph *e;
+    char *id = &subj[strlen("<http://open-physiology.org/lyphs/LYPH_")];
+
+    id[strlen(id)-1] = '\0';
+    e = lyph_by_id( id );
+
+    if ( e && *obj == '\"' && str_begins( pred, "<http://open-physiology.org/annots/#" ) )
+    {
+      trie *prednode, *objnode;
+      char *predstr = &pred[strlen("<http://open-physiology.org/annots/#")];
+
+      predstr[strlen(predstr)-1] = '\0';
+      prednode = trie_strdup( predstr, metadata );
+
+      obj[strlen(obj)-1] = '\0';
+      objnode = trie_strdup( &obj[strlen("\"")], metadata );
+
+      /*
+       * To do: if annotation data ever becomes nontrivial, re-engineer to
+       * avoid cubic time here
+       */
+      annotate_lyph( e, prednode, objnode );
+    }
+  }
+
+  free( subj );
+  free( pred );
+  free( obj );
+}
+
 void got_lyphplate_triple( char *subj, char *pred, char *obj )
 {
   char *s = subj, *p = pred, *o = obj;
@@ -1242,6 +1279,28 @@ void load_layer_thickness( char *subj_full, char *obj )
   lyr->thickness = strtol( obj, NULL, 10 );
 }
 
+void load_annotations(void)
+{
+  FILE *fp;
+  char *err = NULL;
+
+  fp = fopen( ANNOTS_FILE, "r" );
+
+  if ( !fp )
+  {
+    log_string( "Could not open " ANNOTS_FILE " for reading, so no annotations have been loaded" );
+    return;
+  }
+
+  if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_annotation_triple ) )
+  {
+    error_message( "Failed to parse " ANNOTS_FILE ", aborting" );
+    EXIT();
+  }
+
+  fclose( fp );
+}
+
 void load_lyphplates(void)
 {
   FILE *fp;
@@ -1271,6 +1330,8 @@ void load_lyphplates(void)
     error_message( strdupf( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) ) );
     EXIT();
   }
+
+  fclose( fp );
 }
 
 lyphplate *missing_layers( trie *t )
@@ -1367,7 +1428,7 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     lyphplate *L = (lyphplate *)t->data;
     char *ch, *id;
 
-    id = id_as_iri( t );
+    id = id_as_iri( t, NULL );
     ch = html_encode( trie_to_static( L->name ) );
 
     fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
@@ -1398,7 +1459,7 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
 
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes )
 {
-  char *lid = id_as_iri( lyr->id );
+  char *lid = id_as_iri( lyr->id, NULL );
   trie *dupe_search;
   char *mat_iri;
 
@@ -1414,7 +1475,7 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
 
   trie_strdup( lid, avoid_dupes );
 
-  mat_iri = id_as_iri( lyr->material->id );
+  mat_iri = id_as_iri( lyr->material->id, NULL );
   fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> %s .\n", lid, mat_iri );
   free( mat_iri );
 
@@ -1424,9 +1485,12 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
   free( lid );
 }
 
-char *id_as_iri( trie *id )
+char *id_as_iri( trie *id, char *prefix )
 {
-  return strdupf( "<http://open-physiology.org/lyphs/#%s>", trie_to_static(id) );
+  if ( prefix )
+    return strdupf( "<http://open-physiology.org/lyphs/#%s%s>", prefix, trie_to_static(id) );
+  else
+    return strdupf( "<http://open-physiology.org/lyphs/#%s>", trie_to_static(id) );
 }
 
 lyphplate *lyphplate_by_layers( int type, layer **layers, char *name )
@@ -1759,11 +1823,30 @@ char *exit_to_json( exit_data *x )
   );
 }
 
+char *annot_to_json( annot *a )
+{
+  return JSON
+  (
+    "pred": trie_to_json( a->pred ),
+    "obj": trie_to_json( a->obj )
+  );
+}
+
 char *lyph_to_json( lyph *e )
 {
-  char *retval;
+  return lyph_to_json_r( e, NULL );
+}
+
+char *lyph_to_json_r( lyph *e, int *show_annots )
+{
+  char *retval, *annots;
   int old_LTJ_flags = lyphnode_to_json_flags;
   lyphnode_to_json_flags = 0;
+
+  if ( show_annots && *show_annots )
+    annots = JS_ARRAY( annot_to_json, e->annots );
+  else
+    annots = json_suppressed;
 
   retval = JSON
   (
@@ -1774,6 +1857,7 @@ char *lyph_to_json( lyph *e )
     "from": lyphnode_to_json( e->from ),
     "to": lyphnode_to_json( e->to ),
     "template": e->lyphplate ? lyphplate_to_json( e->lyphplate ) : NULL,
+    "annots": annots,
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints )
   );
 
@@ -2018,6 +2102,9 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
 
   CREATE( e->constraints, lyphplate *, 1 );
   e->constraints[0] = NULL;
+
+  CREATE( e->annots, annot *, 1 );
+  e->annots[0] = NULL;
 
   add_exit( e, from );
 

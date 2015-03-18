@@ -1468,11 +1468,12 @@ HANDLER( handle_template_request )
 HANDLER( handle_lyph_request )
 {
   lyph *e = lyph_by_id( request );
+  int show_annots = has_param( params, "annots" );
 
   if ( !e )
     HND_ERR( "No lyph by that id" );
 
-  send_200_response( req, lyph_to_json( e ) );
+  send_200_response( req, lyph_to_json_r( e, &show_annots ) );
 }
 
 HANDLER( handle_lyphnode_request )
@@ -1567,6 +1568,15 @@ char *get_param( url_param **params, char *key )
       return (*ptr)->val;
 
   return NULL;
+}
+
+int has_param( url_param **params, char *key )
+{
+  for ( ; *params; params++ )
+    if ( !strcmp( (*params)->key, key ) )
+      return 1;
+
+  return 0;
 }
 
 HANDLER( handle_all_lyphs_request )

@@ -17,6 +17,7 @@
 #define MAX_INT_LEN (strlen("-2147483647"))
 
 #define LOG_FILE "log.txt"
+#define ANNOTS_FILE "annots.dat"
 
 /*
  * Typedefs
@@ -41,6 +42,7 @@ typedef struct VIEWED_NODE viewed_node;
 typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
 typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
 typedef struct LYPH_FILTER lyph_filter;
+typedef struct ANNOT annot;
 
 /*
  * Structures
@@ -165,6 +167,7 @@ struct LYPH
   lyphnode *to;
   lyphplate *lyphplate;
   lyphplate **constraints;
+  annot **annots;
   trie *fma;
 };
 
@@ -177,6 +180,12 @@ struct LYPH_WRAPPER
 {
   lyph *e;
   lyph_wrapper *next;
+};
+
+struct ANNOT
+{
+  trie *pred;
+  trie *obj;
 };
 
 struct EXIT_DATA
@@ -258,6 +267,8 @@ extern trie *lyph_names;
 
 extern trie *superclasses;
 
+extern trie *metadata;
+
 /*
  * Function prototypes
  */
@@ -279,6 +290,11 @@ char *all_ont_terms_as_json( void );
  * srv.c
  */
 void main_loop(void);
+
+/*
+ * cmds.c
+ */
+int annotate_lyph( lyph *e, trie *pred, trie *obj );
 
 /*
  * trie.c
@@ -305,6 +321,7 @@ void init_html_codes( void );
 char *lowercaserize( char *x );
 char *get_url_shortform( char *iri );
 char *url_decode(char *str);
+char *url_encode(char *str);
 int is_number( const char *arg );
 void error_message( char *err );
 char *strdupf( const char *fmt, ... );
@@ -354,6 +371,7 @@ lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
 char *lyph_to_json( lyph *e );
+char *lyph_to_json_r( lyph *e, int *show_annots );
 char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
@@ -371,7 +389,7 @@ void sort_layers( layer **layers );
 trie *assign_new_lyphplate_id( lyphplate *L );
 void free_lyphplate_dupe_trie( trie *t );
 void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes );
-char *id_as_iri( trie *id );
+char *id_as_iri( trie *id, char *prefix );
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes );
 void load_lyphplates( void );
 int parse_lyphplate_type( char *str );

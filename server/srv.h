@@ -192,6 +192,7 @@ char *load_file( char *filename );
 const char *parse_params( char *buf, http_request *req, url_param **params );
 void free_url_params( url_param **buf );
 char *get_param( url_param **params, char *key );
+int has_param( url_param **params, char *key );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
 void makeview_worker( char *request, http_request *req, url_param **params, int makeview );
 
@@ -206,6 +207,7 @@ handle_function *lookup_command( char *cmd );
  * cmds.c
  */
 void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size );
+void save_annotations( void );
 
 /*
  * Handlers (functions for handling HTTP requests)
@@ -249,3 +251,4 @@ HANDLER( handle_delete_nodes_request );
 HANDLER( handle_delete_templates_request );
 HANDLER( handle_delete_views_request );
 HANDLER( handle_delete_layers_request );
+HANDLER( handle_annotate_request );

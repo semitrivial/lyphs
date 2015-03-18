@@ -17,6 +17,7 @@ void init_labels(FILE *fp)
   lyph_ids = blank_trie();
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
+  metadata = blank_trie();
 
   init_html_codes();
 

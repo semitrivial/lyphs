@@ -15,6 +15,20 @@
 #include "jsonfmt_internal.h"
 
 /*
+ * char *json_suppressed is a special value which causes the corresponding
+ * key-value pair to be suppressed.  Thus, the result of
+ * JSON
+ * (
+ *   "hello": "world",
+ *   "I am invisible": json_suppressed
+ * )
+ * is:
+ * "{\"hello\": \"world\"}"
+ */
+char json_suppressed_target = '\0';
+char *json_suppressed = &json_suppressed_target;
+
+/*
  * Main function: given a string of json, prettify it with
  * beautiful whitespace.  "indents" is how many spaces to
  * add for each level of braces.  On error, returns NULL and
@@ -556,6 +570,9 @@ char *json_c_adapter( int paircnt, ... )
       continue;
     }
 
+    if ( ch == json_suppressed )
+      args[i] = ch;
+    else
     if ( is_json( ch ) )
     {
       args[i] = ch;
@@ -586,6 +603,9 @@ char *json_c_adapter( int paircnt, ... )
 
   for ( argspt = args; *argspt; argspt += 2 )
   {
+    if ( argspt[1] == json_suppressed )
+      continue;
+
     ++bptr;
     strcpy( bptr, *argspt );
     bptr = &bptr[strlen(bptr)];
@@ -596,6 +616,9 @@ char *json_c_adapter( int paircnt, ... )
     bptr = &bptr[strlen(bptr)];
     *bptr = ',';
   }
+
+  if ( bptr == buf )
+    bptr++;
 
   *bptr = '}';
   bptr[1] = '\0';
@@ -615,6 +638,16 @@ char *json_enquote( const char *str )
 }
 
 char *json_array_worker( char * (*fnc) (void *), void **array )
+{
+  return json_array_worker_( fnc, NULL, array, NULL );
+}
+
+char *json_array_worker_r( char * (*fnc) (void *, void *), void **array, void *data )
+{
+  return json_array_worker_( NULL, fnc, array, data );
+}
+
+char *json_array_worker_( char * (*non_reentrant) (void *), char * (*reentrant) (void *, void *), void **array, void *data )
 {
   char **results, **rptr, *buf, *bptr;
   void **ptr;
@@ -636,16 +669,33 @@ char *json_array_worker( char * (*fnc) (void *), void **array )
 
   rptr = results;
 
-  for ( ptr = array, len = 0; *ptr; ptr++ )
+  if ( non_reentrant )
   {
-    if ( (*rptr = (*fnc) (*ptr) ) == NULL )
+    for ( ptr = array, len = 0; *ptr; ptr++ )
     {
-      free( results );
-      return NULL;
-    }
+      if ( (*rptr = (*non_reentrant) (*ptr) ) == NULL )
+      {
+        free( results );
+        return NULL;
+      }
 
-    len += strlen( *rptr );
-    rptr++;
+      len += strlen( *rptr );
+      rptr++;
+    }
+  }
+  else
+  {
+    for ( ptr = array, len = 0; *ptr; ptr++ )
+    {
+      if ( (*rptr = (*reentrant) (*ptr,data) ) == NULL )
+      {
+        free( results );
+        return NULL;
+      }
+
+      len += strlen( *rptr );
+      rptr++;
+    }
   }
 
   *rptr = NULL;

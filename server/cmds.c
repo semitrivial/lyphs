@@ -427,15 +427,25 @@ void remove_exit_data( lyphnode *n, lyph *e )
  n->exits = xnew;
 }
 
-void delete_lyph( lyph *e )
+int delete_lyph( lyph *e )
 {
+  int fAnnot;
+
+  if ( *e->annots )
+    fAnnot = 1;
+  else
+    fAnnot = 0;
+
   e->id->data = NULL;
 
   free( e->constraints );
+  free( e->annots );
 
   remove_exit_data( e->from, e );
 
   free( e );
+
+  return fAnnot;
 }
 
 void remove_deleted_lyph_locations( trie *t )
@@ -556,6 +566,7 @@ HANDLER( handle_delete_lyphs_request )
 {
   char *lyphstr, *err;
   lyph **e, **eptr, dupe;
+  int fAnnot;
 
   TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to delete." );
 
@@ -582,29 +593,36 @@ HANDLER( handle_delete_lyphs_request )
 
   remove_deleted_lyph_locations(lyphnode_ids);
 
-  for ( eptr = e; *eptr; eptr++ )
+  for ( eptr = e, fAnnot = 0; *eptr; eptr++ )
     if ( *eptr != &dupe )
-      delete_lyph( *eptr );
+      fAnnot |= delete_lyph( *eptr );
 
   free( e );
 
   save_lyphs();
 
+  if ( fAnnot )
+    save_annotations();
+
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-void remove_lyphs_with_doomed_nodes( trie *t )
+int remove_lyphs_with_doomed_nodes( trie *t )
 {
+  int fAnnot = 0;
+
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
 
     if ( e->from->flags == LYPHNODE_BEING_DELETED
     ||   e->to->flags   == LYPHNODE_BEING_DELETED )
-      delete_lyph( e );
+      fAnnot = delete_lyph( e );
   }
 
-  TRIE_RECURSE( remove_lyphs_with_doomed_nodes( *child ) );
+  TRIE_RECURSE( fAnnot |= remove_lyphs_with_doomed_nodes( *child ) );
+
+  return fAnnot;
 }
 
 void delete_lyphnode( lyphnode *n )
@@ -1182,6 +1200,126 @@ HANDLER( handle_instances_of_request )
   ) );
 
   free( buf );
+}
+
+int annotate_lyph( lyph *e, trie *pred, trie *obj )
+{
+  annot **aptr, *a, **buf;
+  int size;
+
+  for ( aptr = e->annots; *aptr; aptr++ )
+    if ( (*aptr)->pred == pred && (*aptr)->obj == obj )
+      return 0;
+
+  CREATE( a, annot, 1 );
+  a->pred = pred;
+  a->obj = obj;
+
+  size = VOIDLEN( e->annots );
+
+  CREATE( buf, annot *, size + 2 );
+
+  memcpy( buf, e->annots, (size + 1) * sizeof(annot *) );
+
+  buf[size] = a;
+  buf[size+1] = NULL;
+
+  free( e->annots );
+  e->annots = buf;
+
+  return 1;
+}
+
+void save_annotations_recurse( FILE *fp, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *) t->data;
+
+    if ( *e->annots )
+    {
+      annot **a;
+      char *subj = id_as_iri( t, "LYPH_" );
+
+      for ( a = e->annots; *a; a++ )
+      {
+        char *obj = url_encode( trie_to_static( (*a)->obj ) );
+
+        if ( (*a)->pred )
+        {
+          char *pred = url_encode( trie_to_static( (*a)->pred ) );
+          fprintf( fp, "%s <http://open-physiology.org/annots/#%s> \"%s\" .\n", subj, pred, obj );
+          free( pred );
+        }
+        else
+          fprintf( fp, "%s <http://open-physiology.org/annots/generic_annotation> \"%s\" .\n", subj, obj );
+
+        free( obj );
+      }
+
+      free( subj );
+    }
+  }
+
+  TRIE_RECURSE( save_annotations_recurse( fp, *child ) );
+}
+
+void save_annotations( void )
+{
+  FILE *fp;
+
+  fp = fopen( ANNOTS_FILE, "w" );
+
+  if ( !fp )
+  {
+    error_message( "Could not open " ANNOTS_FILE " for writing" );
+    return;
+  }
+
+  save_annotations_recurse( fp, lyph_ids );
+
+  fclose(fp);
+
+  return;
+}
+
+HANDLER( handle_annotate_request )
+{
+  lyph **lyphs, **lptr;
+  trie *pred, *obj;
+  char *lyphstr, *annotstr, *predstr, *err;
+  int fMatch = 0;
+
+  TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to annotate" );
+
+  TRY_PARAM( annotstr, "annot", "You did not specify (using the 'annot' parameter) what to annotate the lyph(s) by" );
+
+  predstr = get_param( params, "pred" );
+
+  lyphs = (lyph**) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
+
+  if ( !lyphs )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs could not be found in the database" );
+  }
+
+  obj = trie_strdup( annotstr, metadata );
+
+  if ( predstr )
+    pred = trie_strdup( predstr, metadata );
+  else
+    pred = NULL;
+
+  for ( lptr = lyphs; *lptr; lptr++ )
+    fMatch |= annotate_lyph( *lptr, pred, obj );
+
+  if ( fMatch )
+    save_annotations();
+
+  send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
 HANDLER( handle_nodes_from_view_request )

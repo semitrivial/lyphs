@@ -14,6 +14,8 @@ trie *lyph_fmas;
 
 trie *superclasses;
 
+trie *metadata;
+
 void populate_void_buffer( void ***ptr, trie *t );
 
 trie *blank_trie( void )

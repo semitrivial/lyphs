@@ -12,6 +12,8 @@
 #ifndef JSONFMT_INCLUDE_GUARD
 #define JSONFMT_INCLUDE_GUARD
 
+extern char *json_suppressed;
+
 char *json_format( const char *json, int indents, char **errptr );
 char *json_escape( const char *txt );
 
@@ -21,10 +23,12 @@ char *json_escape( const char *txt );
 char *json_c_adapter( int paircnt, ... );
 void json_gc( void );
 char *json_array_worker( char * (*fnc) (void *), void **array );
+char *json_array_worker_r( char * (*fnc) (void *, void *), void **array, void *data );
 char *str_to_json( char *x );
 char *int_to_json( int x );
 
 #define JS_ARRAY( fnc, array ) json_array_worker( (char * (*) (void*))fnc, (void**)array )
+#define JS_ARRAY_R( fnc, array, data ) json_array_worker_r((char * (*) (void*,void*))fnc, (void**)array, (void *)data )
 
 /*
 * FOR_EACH macro thanks to Gregory Pakosz.
@@ -34,7 +38,7 @@ char *int_to_json( int x );
 * due to limitations in the preprocessor. For our purposes
 * here, eight arguments will suffice.
 */
-#define FOR_EACH_MAX_ARGS 8
+#define FOR_EACH_MAX_ARGS 12
 #define FOR_EACH_1(what, x, ...) what(x)
 #define FOR_EACH_2(what, x, ...)\
 what(x)\
@@ -57,10 +61,23 @@ FOR_EACH_6(what, __VA_ARGS__)
 #define FOR_EACH_8(what, x, ...)\
 what(x)\
 FOR_EACH_7(what, __VA_ARGS__)
+#define FOR_EACH_9(what, x, ...)\
+what(x)\
+FOR_EACH_8(what, __VA_ARGS__)
+#define FOR_EACH_10(what, x, ...)\
+what(x)\
+FOR_EACH_9(what, __VA_ARGS__)
+#define FOR_EACH_11(what, x, ...)\
+what(x)\
+FOR_EACH_10(what, __VA_ARGS__)
+#define FOR_EACH_12(what, x, ...)\
+what(x)\
+FOR_EACH_11(what, __VA_ARGS__)
+
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
-#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
-#define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, N, ...) N
+#define FOR_EACH_RSEQ_N() 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 #define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
 #define CONCATENATE1(arg1, arg2) CONCATENATE2(arg1, arg2)
 #define CONCATENATE2(arg1, arg2) arg1##arg2
