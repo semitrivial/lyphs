@@ -481,6 +481,7 @@ int req_cmp( char *req, char *match )
         req[len-1] = '/';
         return 1;
       }
+      req[len-1] = '/';
     }
   }
 

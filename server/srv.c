@@ -177,7 +177,6 @@ void main_loop( void )
       }
 
       free_url_params( params );
-
       *reqptr = '/';
       free( request );
       send_400_response( req );
