@@ -1589,7 +1589,7 @@ HANDLER( handle_all_lyphs_request )
 
 HANDLER( handle_all_templates_request )
 {
-  lyphplate **tmps = (lyphplate **)datas_to_array( lyphplate_ids );
+  lyphplate **tmps = get_all_lyphplates();
 
   send_200_response( req, JS_ARRAY( lyphplate_to_json, tmps ) );
 

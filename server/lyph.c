@@ -2180,7 +2180,7 @@ void lyphs_unset_bits( int bits, trie *t )
     REMOVE_BIT( e->flags, bits );
   }
 
-  TRIE_RECURSE( lyphplates_unset_bits( bits, *child ) );
+  TRIE_RECURSE( lyphs_unset_bits( bits, *child ) );
 }
 
 void lyphplates_unset_bits( int bits, trie *t )
@@ -2310,4 +2310,53 @@ int lyph_passes_filter( lyph *e, lyph_filter *f )
 
     return 1;
   }
+}
+
+#define LYPHPLATE_ACCOUNTED_FOR 1
+void populate_all_lyphplates_L( lyphplate ***bptr, lyphplate *L )
+{
+  if ( IS_SET( L->flags, LYPHPLATE_ACCOUNTED_FOR ) )
+    return;
+
+  if ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL )
+  {
+    layer **lyr;
+
+    for ( lyr = L->layers; *lyr; lyr++ )
+      populate_all_lyphplates_L( bptr, (*lyr)->material );
+  }
+
+  **bptr = L;
+  (*bptr)++;
+
+  SET_BIT( L->flags, LYPHPLATE_ACCOUNTED_FOR );
+}
+
+void populate_all_lyphplates( lyphplate ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate *)t->data;
+
+    populate_all_lyphplates_L( bptr, L );
+  }
+
+  TRIE_RECURSE( populate_all_lyphplates( bptr, *child ) );
+}
+
+lyphplate **get_all_lyphplates( void )
+{
+  lyphplate **buf, **bptr;
+  int cnt = count_nontrivial_members( lyphplate_ids );
+
+  CREATE( buf, lyphplate *, cnt + 1 );
+  bptr = buf;
+
+  populate_all_lyphplates( &bptr, lyphplate_ids );
+
+  *bptr = NULL;
+
+  lyphplates_unset_bits( LYPHPLATE_ACCOUNTED_FOR, lyphplate_ids );
+
+  return buf;
 }

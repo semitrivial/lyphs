@@ -430,3 +430,4 @@ void free_all_views( void );
 void free_all_lyphs( void );
 void free_all_lyphplates( void );
 void save_lyphplates(void);
+lyphplate **get_all_lyphplates( void );
