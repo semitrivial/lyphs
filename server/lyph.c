@@ -1834,7 +1834,9 @@ char *annot_to_json( annot *a )
 
 char *lyph_to_json( lyph *e )
 {
-  return lyph_to_json_r( e, NULL );
+  int yes = 1;
+
+  return lyph_to_json_r( e, &yes );
 }
 
 char *lyph_to_json_r( lyph *e, int *show_annots )
@@ -2192,6 +2194,17 @@ void lyphplates_unset_bits( int bits, trie *t )
   }
 
   TRIE_RECURSE( lyphplates_unset_bits( bits, *child ) );
+}
+
+void lyphnodes_unset_bits( int bits, trie *t )
+{
+  if ( t->data )
+  {
+    lyphnode *n = (lyphnode *)t->data;
+    REMOVE_BIT( n->flags, bits );
+  }
+
+  TRIE_RECURSE( lyphnodes_unset_bits( bits, *child ) );
 }
 
 /*

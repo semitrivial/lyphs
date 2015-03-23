@@ -430,3 +430,79 @@ void recalculate_lyphplate_hierarchy( void )
   clear_lyphplate_hierarchy( lyphplate_ids );
   compute_lyphplate_hierarchy( lyphplate_ids );
 }
+
+#define LYPHNODE_DEFINITELY_IN_LYPH 1
+#define LYPHNODE_DEFINITELY_OUT_LYPH 2
+#define LYPHNODE_CURRENTLY_CALCULATING 4
+#define LYPH_DEFINITELY_IN_LYPH 1
+#define LYPH_DEFINITELY_OUT_LYPH 2
+#define LYPH_CURRENTLY_CALCULATING 4
+
+void maybe_node_is_in( lyphnode *n, lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail )
+{
+  lyphnode_wrapper *w;
+
+  if ( n->location == L )
+  {
+    maybe_node_is_in_add:
+
+    REMOVE_BIT( n->flags, LYPHNODE_CURRENTLY_CALCULATING );
+    SET_BIT( n->flags, LYPHNODE_DEFINITELY_IN_LYPH );
+
+    CREATE( w, lyphnode_wrapper, 1 );
+    w->n = n;
+    LINK( w, *head, *tail, next );
+    return;
+  }
+
+  if ( IS_SET( n->location->flags, LYPH_DEFINITELY_IN_LYPH ) )
+    goto maybe_node_is_in_add;
+
+  if ( IS_SET( n->location->flags, LYPH_DEFINITELY_OUT_LYPH )
+  ||   IS_SET( n->location->flags, LYPH_CURRENTLY_CALCULATING ) )
+    return;
+
+  SET_BIT( n->flags, LYPHNODE_CURRENTLY_CALCULATING );
+
+  maybe_node_is_in( n->location->from, L, head, tail );
+
+  if ( !IS_SET( n->location->from->flags, LYPHNODE_DEFINITELY_IN_LYPH ) )
+  {
+    maybe_node_is_in_dontadd:
+
+    REMOVE_BIT( n->flags, LYPHNODE_CURRENTLY_CALCULATING );
+    SET_BIT( n->flags, LYPHNODE_DEFINITELY_OUT_LYPH );
+    return;
+  }
+
+  maybe_node_is_in( n->location->to, L, head, tail );
+
+  if ( !IS_SET( n->location->to->flags, LYPHNODE_DEFINITELY_IN_LYPH ) )
+    goto maybe_node_is_in_dontadd;
+
+  goto maybe_node_is_in_add;
+}
+
+void calc_nodes_in_lyph_recurse( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail, trie *t )
+{
+  if ( t->data )
+  {
+    lyphnode *n = (lyphnode *)t->data;
+
+    if ( n->location
+    &&  !IS_SET( n->flags, LYPHNODE_DEFINITELY_IN_LYPH )
+    &&  !IS_SET( n->flags, LYPHNODE_DEFINITELY_OUT_LYPH )
+    &&  !IS_SET( n->flags, LYPHNODE_CURRENTLY_CALCULATING ) )
+      maybe_node_is_in( n, L, head, tail );
+  }
+
+  TRIE_RECURSE( calc_nodes_in_lyph_recurse( L, head, tail, *child ) );
+}
+
+void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail )
+{
+  calc_nodes_in_lyph_recurse( L, head, tail, lyphnode_ids );
+
+  lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH, lyph_ids );
+  lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH, lyphnode_ids );
+}

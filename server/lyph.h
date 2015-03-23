@@ -32,6 +32,7 @@ typedef struct LAYER layer;
 typedef struct LAYER_LOADING layer_loading;
 typedef struct LOAD_LAYERS_DATA load_layers_data;
 typedef struct LYPHNODE lyphnode;
+typedef struct LYPHNODE_WRAPPER lyphnode_wrapper;
 typedef struct LYPH lyph;
 typedef struct LYPH_WRAPPER lyph_wrapper;
 typedef struct EXIT_DATA exit_data;
@@ -156,6 +157,12 @@ typedef enum
 {
   ETJ_FULL_EXIT_DATA = 1
 } exit_to_json_flag_types;
+
+struct LYPHNODE_WRAPPER
+{
+  lyphnode_wrapper *next;
+  lyphnode *n;
+};
 
 struct LYPH
 {
@@ -423,8 +430,8 @@ lyphplate *lyphplate_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyphplate_hierarchy_to_json( void );
 void lyphs_unset_bits( int bits, trie *t );
-void lyphplates_unset_bit( int bit, trie *t );
 void lyphplates_unset_bits( int bits, trie *t );
+void lyphnodes_unset_bits( int bits, trie *t );
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err );
 void free_all_views( void );
 void free_all_lyphs( void );
