@@ -1957,29 +1957,53 @@ int parse_lyphplate_type( char *str )
   return -1;
 }
 
-lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter )
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths )
 {
   lyphstep *head = NULL, *tail = NULL, *step, *curr;
+  lyphnode_wrapper *w;
+  lyph ***paths, ***pathsptr, **path;
+  int pathcnt = 0;
 
-  if ( from == to )
+  CREATE( paths, lyph **, numpaths + 1 );
+  pathsptr = paths;
+
+  if ( from_head == to_head )
   {
-    lyph **path;
+    compute_lyphpath_trivial_path:
 
     CREATE( path, lyph *, 1 );
     path[0] = NULL;
+    pathsptr[0] = path;
+    pathsptr[1] = NULL;
 
-    return path;
+    return paths;
   }
 
-  CREATE( step, lyphstep, 1 );
-  step->depth = 0;
-  step->backtrace = NULL;
-  step->location = from;
-  step->lyph = NULL;
+  for ( w = to_head; w; w = w->next )
+    SET_BIT( w->n->flags, LYPHNODE_GOAL );
 
-  LINK2( step, head, tail, next, prev );
-  curr = step;
-  SET_BIT( from->flags, LYPHNODE_SEEN );
+  for ( w = from_head; w; w = w->next )
+  {
+    if ( IS_SET( w->n->flags, LYPHNODE_GOAL ) )
+    {
+      for ( w = to_head; w; w = w->next )
+        REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );
+      free_lyphsteps( head );
+
+      goto compute_lyphpath_trivial_path;
+    }
+
+    CREATE( step, lyphstep, 1 );
+    step->depth = 0;
+    step->backtrace = NULL;
+    step->location = w->n;
+    step->lyph = NULL;
+    SET_BIT( w->n->flags, LYPHNODE_SEEN );
+
+    LINK2( step, head, tail, next, prev );
+  }
+
+  curr = head;
 
   for ( ; ; curr = curr->next )
   {
@@ -1987,27 +2011,45 @@ lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter )
 
     if ( !curr )
     {
+      for ( w = to_head; w; w = w->next )
+        REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );
+
       free_lyphsteps( head );
-      return NULL;
+      *pathsptr = NULL;
+      return paths;
     }
 
-    if ( curr->location == to )
+    if ( IS_SET( curr->location->flags, LYPHNODE_GOAL ) )
     {
-      lyph **path, **pptr;
+      lyph **pptr;
+      lyphstep *back;
 
       CREATE( path, lyph *, curr->depth + 1 );
       pptr = &path[curr->depth-1];
       path[curr->depth] = NULL;
 
+      back = curr;
       do
       {
-        *pptr-- = curr->lyph;
-        curr = curr->backtrace;
+        *pptr-- = back->lyph;
+        back = back->backtrace;
       }
-      while( curr->backtrace );
+      while( back->backtrace );
 
-      free_lyphsteps( head );
-      return path;
+      *pathsptr++ = path;
+
+      if ( ++pathcnt == numpaths )
+      {
+        for ( w = to_head; w; w = w->next )
+          REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );
+
+        free_lyphsteps( head );
+        *pathsptr = NULL;
+
+        return paths;
+      }
+
+      continue;
     }
 
     for ( x = curr->location->exits; *x; x++ )
@@ -2028,8 +2070,13 @@ lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter )
     }
   }
 
+  for ( w = to_head; w; w = w->next )
+    REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );
+
   free_lyphsteps( head );
-  return NULL;
+  *pathsptr = NULL;
+
+  return paths;
 }
 
 void free_lyphsteps( lyphstep *head )
@@ -2372,4 +2419,15 @@ lyphplate **get_all_lyphplates( void )
   lyphplates_unset_bits( LYPHPLATE_ACCOUNTED_FOR, lyphplate_ids );
 
   return buf;
+}
+
+void free_lyphnode_wrappers( lyphnode_wrapper *head )
+{
+  lyphnode_wrapper *next;
+
+  for ( ; head; head = next )
+  {
+    next = head->next;
+    free(head);
+  }
 }

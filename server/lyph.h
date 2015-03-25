@@ -15,6 +15,7 @@
 #define MAX_URL_PARAM_LEN 512
 #define MAX_LYPH_LINE_LEN (MAX_IRI_LEN * 3)
 #define MAX_INT_LEN (strlen("-2147483647"))
+#define MAX_NUMPATHS 16
 
 #define LOG_FILE "log.txt"
 #define ANNOTS_FILE "annots.dat"
@@ -140,7 +141,7 @@ struct LYPHNODE
 
 typedef enum
 {
-  LYPHNODE_SEEN = 1, LYPHNODE_SELECTED = 2
+  LYPHNODE_SEEN = 1, LYPHNODE_SELECTED = 2, LYPHNODE_GOAL = 4
 } lyphnode_flags;
 
 typedef enum
@@ -365,6 +366,7 @@ int is_superlyphplate( lyphplate *sup, lyphplate *sub );
 lyphplate **get_sublyphplates( lyphplate *L, int direct );
 void remove_lyphplate_as_super( lyphplate *L, trie *t );
 void recalculate_lyphplate_hierarchy( void );
+void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
 
 /*
  * lyph.c
@@ -417,7 +419,7 @@ int word_from_line( char **line, char *buf );
 char *lyph_type_str( int type );
 int parse_lyphplate_type_str( char *type );
 void add_exit( lyph *e, lyphnode *n );
-lyph **compute_lyphpath( lyphnode *from, lyphnode *to, lyph_filter *filter );
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths );
 void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
@@ -438,3 +440,4 @@ void free_all_lyphs( void );
 void free_all_lyphplates( void );
 void save_lyphplates(void);
 lyphplate **get_all_lyphplates( void );
+void free_lyphnode_wrappers( lyphnode_wrapper *head );

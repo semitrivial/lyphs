@@ -750,12 +750,22 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 {
   lyphnode *x, *y;
   lyphplate *L;
-  lyph **p, **pptr;
+  lyph ***paths, ***pathsptr, **p, **pptr, *xlyph, *ylyph;
   lyph_filter *f;
-  char *xid, *yid, *Lid, *fid;
+  lyphnode_wrapper *w, *from_head = NULL, *from_tail = NULL, *to_head = NULL, *to_tail = NULL;
+  char *xid, *yid, *Lid, *fid, *xlyphid, *ylyphid, *numpathsstr;
+  int numpaths;
 
-  TRY_PARAM( xid, "from", "You did not specify the 'from' node" );
-  TRY_PARAM( yid, "to", "You did not specify the 'to' node" );
+  xid = get_param( params, "from" );
+  yid = get_param( params, "to" );
+  xlyphid = get_param( params, "fromlyph" );
+  ylyphid = get_param( params, "tolyph" );
+
+  if ( !xid && !xlyphid )
+    HND_ERR( "You did not specify the 'from' node (or the 'fromlyph' lyph)" );
+
+  if ( !yid && !ylyphid )
+    HND_ERR( "You did not specify the 'to' node (or the 'tolyph' lyph)" );
 
   Lid = get_param( params, "template" );
   fid = get_param( params, "filter" );
@@ -763,15 +773,48 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   if ( !Lid && along_path_type != ALONG_PATH_COMPUTE )
     HND_ERR( "You did not specify the template to assign along the path" );
 
-  x = lyphnode_by_id( xid );
+  if ( xid )
+  {
+    x = lyphnode_by_id( xid );
 
-  if ( !x )
-    HND_ERR( "The indicated 'from' node was not found in the database" );
+    if ( !x )
+      HND_ERR( "The indicated 'from' node was not found in the database" );
+  }
+  else
+  {
+    xlyph = lyph_by_id( xlyphid );
 
-  y = lyphnode_by_id( yid );
+    if ( !xlyph )
+      HND_ERR( "The indicated 'fromlyph' lyph was not found in the database" );
+  }
 
-  if ( !y )
-    HND_ERR( "The indicated 'to' node was not found in the database" );
+  if ( yid )
+  {
+    y = lyphnode_by_id( yid );
+
+    if ( !y )
+      HND_ERR( "The indicated 'to' node was not found in the database" );
+  }
+  else
+  {
+    ylyph = lyph_by_id( ylyphid );
+
+    if ( !ylyph )
+      HND_ERR( "The indicated 'tolyph' lyph was not found in the database" );
+  }
+
+  numpathsstr = get_param( params, "numpaths" );
+  if ( numpathsstr )
+  {
+    numpaths = strtoul( numpathsstr, NULL, 10 );
+    if ( numpaths < 1 )
+      HND_ERR( "'numpaths' must be a positive integer" );
+
+    if ( numpaths > MAX_NUMPATHS )
+      HND_ERRF( "'numpaths' too large, maximum is %d", MAX_NUMPATHS );
+  }
+  else
+    numpaths = 1;
 
   if ( along_path_type != ALONG_PATH_COMPUTE )
   {
@@ -807,74 +850,119 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   else
     f = NULL;
 
-  p = compute_lyphpath( x, y, f );
+  if ( xid )
+  {
+    CREATE( w, lyphnode_wrapper, 1 );
+    w->n = x;
+    LINK( w, from_head, from_tail, next );
+  }
+  else
+    calc_nodes_in_lyph( xlyph, &from_head, &from_tail );
 
-  if ( !p )
+  if ( yid )
+  {
+    CREATE( w, lyphnode_wrapper, 1 );
+    w->n = y;
+    LINK( w, to_head, to_tail, next );
+  }
+  else
+    calc_nodes_in_lyph( ylyph, &to_head, &to_tail );
+
+  paths = compute_lyphpaths( from_head, to_head, f, numpaths );
+
+  free_lyphnode_wrappers( from_head );
+  free_lyphnode_wrappers( to_head );
+
+  if ( !*paths )
   {
     if ( f )
       free( f );
+
+    free( paths );
 
     HND_ERR( "No path found" );
   }
 
   if ( along_path_type == ALONG_PATH_TEMPLATE )
   {
-    for ( pptr = p; *pptr; pptr++ )
+    for ( pathsptr = paths; *pathsptr; pathsptr++ )
     {
-      char *err;
+      p = *pathsptr;
 
-      if ( !can_assign_lyphplate_to_lyph( L, *pptr, &err ) )
+      for ( pptr = p; *pptr; pptr++ )
       {
-        if ( f )
-          free( f );
+        char *err;
 
-        free( p );
+        if ( !can_assign_lyphplate_to_lyph( L, *pptr, &err ) )
+        {
+          if ( f )
+            free( f );
 
-        HND_ERR( err ? err : "One of the lyphs on the path could not be assigned the template, due to a constraint on it" );
+          free( p );
+
+          HND_ERR( err ? err : "One of the lyphs on the path could not be assigned the template, due to a constraint on it" );
+        }
       }
     }
 
-    for ( pptr = p; *pptr; pptr++ )
-      (*pptr)->lyphplate = L;
+    for ( pathsptr = paths; *pathsptr; pathsptr++ )
+    {
+       p = *pathsptr;
+
+      for ( pptr = p; *pptr; pptr++ )
+        (*pptr)->lyphplate = L;
+    }
 
     save_lyphs();
   }
   else if ( along_path_type == ALONG_PATH_CONSTRAIN )
   {
-    for ( pptr = p; *pptr; pptr++ )
+    for ( pathsptr = paths; *pathsptr; pathsptr++ )
     {
-      if ( (*pptr)->lyphplate && !is_superlyphplate( L, (*pptr)->lyphplate ) )
+      p = *pathsptr;
+
+      for ( pptr = p; *pptr; pptr++ )
       {
-        if ( f )
-          free( f );
+        if ( (*pptr)->lyphplate && !is_superlyphplate( L, (*pptr)->lyphplate ) )
+        {
+          if ( f )
+            free( f );
 
-        free( p );
+          for ( pathsptr = paths; *pathsptr; pathsptr++ )
+            free( *pathsptr );
+          free( paths );
 
-        HND_ERR( "One of the lyphs on the path already has a template inconsistent with that constraint" );
+          HND_ERR( "One of the lyphs on the path already has a template inconsistent with that constraint" );
+        }
       }
     }
 
-    for ( pptr = p; *pptr; pptr++ )
+    for ( pathsptr = paths; *pathsptr; pathsptr++ )
     {
-      lyph *e = *pptr;
-      lyphplate **dupe, **c;
-      int len;
+      p = *pathsptr;
 
-      for ( dupe = e->constraints; *dupe; dupe++ )
-        if ( *dupe == L )
-          break;
+      for ( pptr = p; *pptr; pptr++ )
+      {
+        lyph *e = *pptr;
+        lyphplate **dupe, **c;
+        int len;
 
-      if ( *dupe )
-        continue;
+        for ( dupe = e->constraints; *dupe; dupe++ )
+          if ( *dupe == L )
+            break;
 
-      len = dupe - e->constraints;
+        if ( *dupe )
+          continue;
 
-      CREATE( c, lyphplate *, len + 2 );
-      memcpy( c, e->constraints, len * sizeof(lyphplate *) );
-      c[len] = L;
-      c[len+1] = NULL;
-      free( e->constraints );
-      e->constraints = c;
+        len = dupe - e->constraints;
+
+        CREATE( c, lyphplate *, len + 2 );
+        memcpy( c, e->constraints, len * sizeof(lyphplate *) );
+        c[len] = L;
+        c[len+1] = NULL;
+        free( e->constraints );
+        e->constraints = c;
+      }
     }
   }
 
@@ -882,11 +970,18 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
     free( f );
 
   if ( along_path_type == ALONG_PATH_COMPUTE )
-    send_200_response( req, lyphpath_to_json( p ) );
+  {
+    if ( !numpathsstr )
+      send_200_response( req, lyphpath_to_json( *paths ) );
+    else
+      send_200_response( req, JS_ARRAY( lyphpath_to_json, paths ) );
+  }
   else
     send_200_response( req, JSON1( "Response": "OK" ) );
 
-  free( p );
+  for ( pathsptr = paths; *pathsptr; pathsptr++ )
+    free( *pathsptr );
+  free( paths );
 }
 
 HANDLER( handle_makelyphnode_request )

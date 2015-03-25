@@ -63,6 +63,16 @@ do\
 }\
 while(0)
 
+#define HND_ERRF( ... )\
+do\
+{\
+  char *__hnd_errf_errmsg = strdupf( __VA_ARGS__ );\
+  HND_ERR_NORETURN( __hnd_errf_errmsg );\
+  free( __hnd_errf_errmsg );\
+  return;\
+}\
+while(0)
+
 #define HND_ERR_FREE( x )\
 do\
 {\
