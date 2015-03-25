@@ -1973,8 +1973,8 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
 
     CREATE( path, lyph *, 1 );
     path[0] = NULL;
-    pathsptr[0] = path;
-    pathsptr[1] = NULL;
+    paths[0] = path;
+    paths[1] = NULL;
 
     return paths;
   }
