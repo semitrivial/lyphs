@@ -442,6 +442,12 @@ void maybe_node_is_in( lyphnode *n, lyph *L, lyphnode_wrapper **head, lyphnode_w
 {
   lyphnode_wrapper *w;
 
+  if ( !n->location )
+  {
+    SET_BIT( n->flags, LYPHNODE_DEFINITELY_OUT_LYPH );
+    return;
+  }
+
   if ( n->location == L )
   {
     maybe_node_is_in_add:
@@ -489,8 +495,7 @@ void calc_nodes_in_lyph_recurse( lyph *L, lyphnode_wrapper **head, lyphnode_wrap
   {
     lyphnode *n = (lyphnode *)t->data;
 
-    if ( n->location
-    &&  !IS_SET( n->flags, LYPHNODE_DEFINITELY_IN_LYPH )
+    if (!IS_SET( n->flags, LYPHNODE_DEFINITELY_IN_LYPH )
     &&  !IS_SET( n->flags, LYPHNODE_DEFINITELY_OUT_LYPH )
     &&  !IS_SET( n->flags, LYPHNODE_CURRENTLY_CALCULATING ) )
       maybe_node_is_in( n, L, head, tail );
