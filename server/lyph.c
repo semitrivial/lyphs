@@ -892,6 +892,7 @@ int parse_name_preamble( char **name, char *needle, char **dest )
   *ptr = '\0';
   *dest = *name;
   *name = &ptr[1];
+
   return 1;
 }
 
@@ -905,7 +906,7 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
 
     if ( !L )
     {
-      log_stringf( "lyphs.dat referred to a nonexistent lyphplate: %s", namebuf );
+      log_stringf( "lyphs.dat referred to a nonexistent lyphplate: %s", preamble );
       return NULL;
     }
 
@@ -1148,11 +1149,11 @@ void load_lyphplate_label( char *subj_full, char *label )
   char *subj = get_url_shortform( subj_full );
   trie *iri;
 
-  if ( str_begins( subj, "LYPHPLATE_" ) )
+  if ( str_begins( subj, "TEMPLATE_" ) )
   {
     lyphplate *L;
 
-    maybe_update_top_id( &top_lyphplate_id, subj + strlen("LYPHPLATE_") );
+    maybe_update_top_id( &top_lyphplate_id, subj + strlen("TEMPLATE_") );
 
     iri = trie_strdup( subj, lyphplate_ids );
 
