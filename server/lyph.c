@@ -283,6 +283,7 @@ void save_lyphviews( void )
 void save_one_lyphview( lyphview *v, FILE *fp )
 {
   lyphnode **n;
+  lv_rect **r;
   char **c;
 
   fprintf( fp, "View %d\n", v->id );
@@ -297,6 +298,11 @@ void save_one_lyphview( lyphview *v, FILE *fp )
     fprintf( fp, "N %s %s %s\n", trie_to_static( (*n)->id ), c[0], c[1] );
     c = &c[2];
   }
+
+  fprintf( fp, "Lyphs %zd\n", VOIDLEN( v->rects ) );
+
+  for ( r = v->rects; *r; r++ )
+    fprintf( fp, "L %s %s %s %s %s\n", trie_to_static( (*r)->L->id ), (*r)->x, (*r)->y, (*r)->width, (*r)->height );
 }
 
 void init_default_lyphviews( void )
@@ -315,6 +321,7 @@ void load_lyphviews( void )
   lyphview *v;
   lyphnode **nodes;
   char **coords;
+  lv_rect **rects;
   char buf[MAX_STRING_LEN], *bptr, c;
   int cnt, line = 1, prev_view_index = -1, id = -1;
 
@@ -402,18 +409,22 @@ void load_lyphviews( void )
 
       if ( prev_view_index != -1 )
       {
+       /*
+        *
         if ( (!views[prev_view_index]->nodes && !views[prev_view_index]->rects) )
         {
           log_string( "lyphviews.dat: previous view did not finish loading -- aborting" );
           log_linenum( line );
           EXIT();
         }
-        else if ( !views[prev_view_index]->nodes )
+        else
+        */
+        if ( !views[prev_view_index]->nodes )
         {
           CREATE( views[prev_view_index]->nodes, lyphnode *, 1 );
           views[prev_view_index]->nodes[0] = NULL;
         }
-        else if ( !views[prev_view_index]->rects )
+        if ( !views[prev_view_index]->rects )
         {
           CREATE( views[prev_view_index]->rects, lv_rect *, 1 );
           views[prev_view_index]->rects[0] = NULL;
@@ -421,6 +432,7 @@ void load_lyphviews( void )
 
         *nodes = NULL;
         *coords = NULL;
+        *rects = NULL;
       }
 
       prev_view_index = id;
@@ -442,6 +454,32 @@ void load_lyphviews( void )
         free( v->name );
 
       v->name = strdup( &buf[strlen("Name ")] );
+      continue;
+    }
+
+    if ( str_begins( buf, "Lyphs " ) )
+    {
+      int rcnt;
+
+      if ( prev_view_index == -1 )
+      {
+        log_string( "lyphviews.dat: Mismatched Lyphs line -- aborting" );
+        log_linenum( line );
+        EXIT();
+      }
+
+      rcnt = strtol( &buf[strlen("Lyphs ")], NULL, 10 );
+
+      if ( rcnt < 0 )
+      {
+        log_string( "lyphviews.dat: Number of lyphs is not a nonnegative integer -- aborting" );
+        log_linenum( line );
+        EXIT();
+      }
+
+      CREATE( views[id]->rects, lv_rect *, rcnt + 1 );
+      rects = views[id]->rects;
+
       continue;
     }
 
@@ -469,6 +507,95 @@ void load_lyphviews( void )
       CREATE( views[id]->coords, char *, (ncnt * 2) + 1 );
       nodes = views[id]->nodes;
       coords = views[id]->coords;
+
+      continue;
+    }
+
+    if ( str_begins( buf, "L " ) )
+    {
+      char *left, *ptr;
+      int fLyphID = 0, fXCoord = 0, fYCoord = 0, fWidth = 0, fHeight = 0, fEnd = 0;
+
+      if ( prev_view_index == -1 || !views[id]->rects )
+      {
+        log_string( "lyphviews.dat: Mismatched L line -- aborting" );
+        log_linenum( line );
+        EXIT();
+      }
+
+      left = &buf[strlen("L ")];
+
+      for ( ptr = left; !fEnd; ptr++ )
+      {
+        if ( !*ptr || *ptr == ' ' )
+        {
+          if ( *ptr )
+            *ptr = '\0';
+          else
+            fEnd = 1;
+
+          if ( !fLyphID )
+          {
+            trie *lyphtr;
+            lyph *e;
+
+            fLyphID = 1;
+
+            lyphtr = trie_strdup( left, lyph_ids );
+
+            if ( !lyphtr->data )
+            {
+              CREATE( e, lyph, 1 );
+              e->id = lyphtr;
+              lyphtr->data = (trie **)e;
+              e->flags = 0;
+
+              CREATE( e->constraints, lyphplate *, 1 );
+              e->constraints[0] = NULL;
+
+              CREATE( e->annots, annot *, 1 );
+              e->annots[0] = NULL;
+
+              maybe_update_top_id( &top_lyph_id, left );
+            }
+            else
+              e = (lyph *)lyphtr->data;
+
+            CREATE( rects[0], lv_rect, 1 );
+            rects[0]->L = e;
+            rects++;
+          }
+
+          else if ( !fXCoord )
+          {
+            rects[-1]->x = strdup( left );
+            fXCoord = 1;
+          }
+          else if ( !fYCoord )
+          {
+            rects[-1]->y = strdup( left );
+            fYCoord = 1;
+          }
+          else if ( !fWidth )
+          {
+            rects[-1]->width = strdup( left );
+            fWidth = 1;
+          }
+          else if ( !fHeight )
+          {
+            rects[-1]->height = strdup( left );
+            fHeight = 1;
+          }
+          else
+          {
+            log_string( "lyphviews.dat: too many entries on line -- aborting" );
+            log_linenum( line );
+            EXIT();
+          }
+
+          left = &ptr[1];
+        }
+      }
 
       continue;
     }
