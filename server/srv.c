@@ -31,6 +31,8 @@ int main( int argc, const char* argv[] )
 
   fp = fopen( argv[i], "r" );
 
+  to_logfile( "Lyph started up at %s\n", current_date() );
+
   if ( !fp )
   {
     fprintf( stderr, "Could not open file %s for reading\n\n", argv[i] );
