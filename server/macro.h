@@ -10,6 +10,7 @@ do\
     if (!((result) = (type *) calloc ((number), sizeof(type))))\
     {\
         fprintf(stderr, "Malloc failure at %s:%d\n", __FILE__, __LINE__ );\
+        to_logfile( "Malloc failure at %s:%d\n", __FILE__, __LINE__ );\
         abort();\
     }\
 } while(0)
@@ -187,6 +188,11 @@ while(0)
  * Char-twiddling macros
  */
 #define LOWER(x) ( ( (x) >= 'A' && (x) <= 'Z' )? x - 'A' + 'a' : x )
+
+/*
+ * Testing macro, see: https://github.com/semitrivial/Apitest/
+ */
+#define Apitest(...) do {} while(0)
 
 /*
  * Misc. macros
