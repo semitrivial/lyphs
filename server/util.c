@@ -50,6 +50,11 @@ void to_logfile( char *fmt, ... )
     time(&curr_time);
 
     fprintf( fp, "%s%s\n", ctime(&curr_time), buf );
+
+    #ifndef NDEBUG
+    fflush( fp );
+    #endif
+
     fclose( fp );
   }
 

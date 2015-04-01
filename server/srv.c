@@ -31,7 +31,7 @@ int main( int argc, const char* argv[] )
 
   fp = fopen( argv[i], "r" );
 
-  to_logfile( "Lyph started up at %s\n", current_date() );
+  to_logfile( "Lyph started up at %s", current_date() );
 
   if ( !fp )
   {
