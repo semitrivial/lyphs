@@ -66,6 +66,20 @@ void log_linenum( int linenum )
     printf( "(Line %d)\n", linenum );
 }
 
+void error_messagef( char *fmt, ... )
+{
+  char *buf;
+  va_list args;
+
+  va_start( args, fmt );
+  buf = vstrdupf( fmt, args );
+  va_end( args );
+
+  error_message( buf );
+
+  free( buf );
+}
+
 void error_message( char *err )
 {
     log_string( err );

@@ -1167,40 +1167,6 @@ int word_from_line( char **line, char *buf )
   }
 }
 
-void got_annotation_triple( char *subj, char *pred, char *obj )
-{
-  if ( str_begins( subj, "<http://open-physiology.org/lyphs/LYPH_" ) )
-  {
-    lyph *e;
-    char *id = &subj[strlen("<http://open-physiology.org/lyphs/LYPH_")];
-
-    id[strlen(id)-1] = '\0';
-    e = lyph_by_id( id );
-
-    if ( e && *obj == '\"' && str_begins( pred, "<http://open-physiology.org/annots/#" ) )
-    {
-      trie *prednode, *objnode;
-      char *predstr = &pred[strlen("<http://open-physiology.org/annots/#")];
-
-      predstr[strlen(predstr)-1] = '\0';
-      prednode = trie_strdup( predstr, metadata );
-
-      obj[strlen(obj)-1] = '\0';
-      objnode = trie_strdup( &obj[strlen("\"")], metadata );
-
-      /*
-       * To do: if annotation data ever becomes nontrivial, re-engineer to
-       * avoid cubic time here
-       */
-      annotate_lyph( e, prednode, objnode );
-    }
-  }
-
-  free( subj );
-  free( pred );
-  free( obj );
-}
-
 void got_lyphplate_triple( char *subj, char *pred, char *obj )
 {
   char *s = subj, *p = pred, *o = obj;
@@ -1405,28 +1371,6 @@ void load_layer_thickness( char *subj_full, char *obj )
   lyr = (layer *)t->data;
 
   lyr->thickness = strtol( obj, NULL, 10 );
-}
-
-void load_annotations(void)
-{
-  FILE *fp;
-  char *err = NULL;
-
-  fp = fopen( ANNOTS_FILE, "r" );
-
-  if ( !fp )
-  {
-    log_string( "Could not open " ANNOTS_FILE " for reading, so no annotations have been loaded" );
-    return;
-  }
-
-  if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_annotation_triple ) )
-  {
-    error_message( "Failed to parse " ANNOTS_FILE ", aborting" );
-    EXIT();
-  }
-
-  fclose( fp );
 }
 
 void load_lyphplates(void)
@@ -1956,7 +1900,8 @@ char *annot_to_json( annot *a )
   return JSON
   (
     "pred": trie_to_json( a->pred ),
-    "obj": trie_to_json( a->obj )
+    "obj": trie_to_json( a->obj ),
+    "pubmed": pubmed_to_json_brief( a->pubmed )
   );
 }
 

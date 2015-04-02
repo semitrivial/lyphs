@@ -11,6 +11,10 @@ void init_command_table(void)
   add_handler( "all_lyphs", handle_all_lyphs_request );
   add_handler( "all_lyphviews", handle_all_lyphviews_request );
   add_handler( "all_ont_terms", handle_all_ont_terms_request );
+  add_handler( "all_pubmeds", handle_all_pubmeds_request );
+  add_handler( "all_clinical_indices", handle_all_clinical_indices_request );
+  add_handler( "clinical_index", handle_clinical_index_request );
+  add_handler( "pubmed", handle_pubmed_request );
   add_handler( "template_hierarchy", handle_template_hierarchy_request );
   add_handler( "assign_template", handle_assign_template_request );
   add_handler( "lyphconstrain", handle_lyphconstrain_request );
@@ -21,6 +25,8 @@ void init_command_table(void)
   add_handler( "makelyph", handle_makelyph_request );
   add_handler( "makelyphnode", handle_makelyphnode_request );
   add_handler( "makeview", handle_makeview_request );
+  add_handler( "make_clinical_index", handle_make_clinical_index_request );
+  add_handler( "make_pubmed", handle_make_pubmed_request );
   add_handler( "nodes_to_view", handle_nodes_to_view_request );
   add_handler( "lyphs_to_view", handle_nodes_to_view_request ); // Not a type -- lyphs_from_view and nodes_to_view are actually handled by the same handler function
   add_handler( "lyphs_from_view", handle_lyphs_from_view_request );
@@ -44,6 +50,8 @@ void init_command_table(void)
   add_handler( "edit_template", handle_edit_template_request );
   add_handler( "editview", handle_editview_request );
   add_handler( "editlayer", handle_editlayer_request );
+  add_handler( "edit_clinical_index", handle_edit_clinical_index_request );
+  add_handler( "edit_pubmed", handle_edit_pubmed_request );
   add_handler( "delete_lyphs", handle_delete_lyphs_request );
   add_handler( "delete_nodes", handle_delete_nodes_request );
   add_handler( "delete_templates", handle_delete_templates_request );

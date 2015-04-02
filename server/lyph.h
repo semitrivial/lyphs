@@ -19,6 +19,8 @@
 
 #define LOG_FILE "log.txt"
 #define ANNOTS_FILE "annots.dat"
+#define PUBMED_FILE "pubmed.dat"
+#define CLINICAL_INDEX_FILE "clinical_indices.dat"
 
 /*
  * Typedefs
@@ -45,6 +47,8 @@ typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
 typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
 typedef struct LYPH_FILTER lyph_filter;
 typedef struct ANNOT annot;
+typedef struct CLINICAL_INDEX clinical_index;
+typedef struct PUBMED pubmed;
 
 /*
  * Structures
@@ -194,6 +198,21 @@ struct ANNOT
 {
   trie *pred;
   trie *obj;
+  pubmed *pubmed;
+};
+
+struct CLINICAL_INDEX
+{
+  clinical_index *next;
+  trie *index;
+  trie *label;
+};
+
+struct PUBMED
+{
+  pubmed *next;
+  char *id;
+  char *title;
 };
 
 struct EXIT_DATA
@@ -276,6 +295,8 @@ extern trie *lyph_names;
 extern trie *superclasses;
 
 extern trie *metadata;
+clinical_index *first_clinical_index;
+pubmed *first_pubmed;
 
 /*
  * Function prototypes
@@ -298,11 +319,6 @@ char *all_ont_terms_as_json( void );
  * srv.c
  */
 void main_loop(void);
-
-/*
- * cmds.c
- */
-int annotate_lyph( lyph *e, trie *pred, trie *obj );
 
 /*
  * trie.c
@@ -332,6 +348,7 @@ char *url_decode(char *str);
 char *url_encode(char *str);
 int is_number( const char *arg );
 void error_message( char *err );
+void error_messagef( char *fmt, ... );
 char *strdupf( const char *fmt, ... );
 char *jsonf( int paircnt, ... );;
 void json_gc( void );
@@ -441,3 +458,20 @@ void free_all_lyphplates( void );
 void save_lyphplates(void);
 lyphplate **get_all_lyphplates( void );
 void free_lyphnode_wrappers( lyphnode_wrapper *head );
+
+/*
+ * meta.c
+ */
+void load_annotations(void);
+int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
+void save_annotations( void );
+pubmed *pubmed_by_id( char *id );
+clinical_index *clinical_index_by_index( char *ind );
+void save_pubmeds( void );
+void load_pubmeds( void );
+void save_clinical_indices( void );
+void load_clinical_indices( void );
+char *pubmed_to_json_brief( pubmed *p );
+char *pubmed_to_json_full( pubmed *p );
+char *clinical_index_to_json_brief( clinical_index *ci );
+char *clinical_index_to_json_full( clinical_index *ci );

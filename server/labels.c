@@ -25,6 +25,9 @@ void init_labels(FILE *fp)
   load_lyphs();
   load_lyphviews();
 
+  load_pubmeds();
+  load_annotations();
+
   compute_lyphplate_hierarchy( lyphplate_ids );
 
   return;

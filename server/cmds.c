@@ -13,7 +13,7 @@ HANDLER( handle_editlyphnode_request )
   n = lyphnode_by_id( idstr );
 
   if ( !n )
-    HND_ERR( "The indicated lyphnode was not found in the databse" );
+    HND_ERR( "The indicated lyphnode was not found in the database" );
 
   locstr = get_param( params, "location" );
 
@@ -1200,126 +1200,6 @@ HANDLER( handle_instances_of_request )
   ) );
 
   free( buf );
-}
-
-int annotate_lyph( lyph *e, trie *pred, trie *obj )
-{
-  annot **aptr, *a, **buf;
-  int size;
-
-  for ( aptr = e->annots; *aptr; aptr++ )
-    if ( (*aptr)->pred == pred && (*aptr)->obj == obj )
-      return 0;
-
-  CREATE( a, annot, 1 );
-  a->pred = pred;
-  a->obj = obj;
-
-  size = VOIDLEN( e->annots );
-
-  CREATE( buf, annot *, size + 2 );
-
-  memcpy( buf, e->annots, (size + 1) * sizeof(annot *) );
-
-  buf[size] = a;
-  buf[size+1] = NULL;
-
-  free( e->annots );
-  e->annots = buf;
-
-  return 1;
-}
-
-void save_annotations_recurse( FILE *fp, trie *t )
-{
-  if ( t->data )
-  {
-    lyph *e = (lyph *) t->data;
-
-    if ( *e->annots )
-    {
-      annot **a;
-      char *subj = id_as_iri( t, "LYPH_" );
-
-      for ( a = e->annots; *a; a++ )
-      {
-        char *obj = url_encode( trie_to_static( (*a)->obj ) );
-
-        if ( (*a)->pred )
-        {
-          char *pred = url_encode( trie_to_static( (*a)->pred ) );
-          fprintf( fp, "%s <http://open-physiology.org/annots/#%s> \"%s\" .\n", subj, pred, obj );
-          free( pred );
-        }
-        else
-          fprintf( fp, "%s <http://open-physiology.org/annots/generic_annotation> \"%s\" .\n", subj, obj );
-
-        free( obj );
-      }
-
-      free( subj );
-    }
-  }
-
-  TRIE_RECURSE( save_annotations_recurse( fp, *child ) );
-}
-
-void save_annotations( void )
-{
-  FILE *fp;
-
-  fp = fopen( ANNOTS_FILE, "w" );
-
-  if ( !fp )
-  {
-    error_message( "Could not open " ANNOTS_FILE " for writing" );
-    return;
-  }
-
-  save_annotations_recurse( fp, lyph_ids );
-
-  fclose(fp);
-
-  return;
-}
-
-HANDLER( handle_annotate_request )
-{
-  lyph **lyphs, **lptr;
-  trie *pred, *obj;
-  char *lyphstr, *annotstr, *predstr, *err;
-  int fMatch = 0;
-
-  TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to annotate" );
-
-  TRY_PARAM( annotstr, "annot", "You did not specify (using the 'annot' parameter) what to annotate the lyph(s) by" );
-
-  predstr = get_param( params, "pred" );
-
-  lyphs = (lyph**) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
-
-  if ( !lyphs )
-  {
-    if ( err )
-      HND_ERR_FREE( err );
-    else
-      HND_ERR( "One of the indicated lyphs could not be found in the database" );
-  }
-
-  obj = trie_strdup( annotstr, metadata );
-
-  if ( predstr )
-    pred = trie_strdup( predstr, metadata );
-  else
-    pred = NULL;
-
-  for ( lptr = lyphs; *lptr; lptr++ )
-    fMatch |= annotate_lyph( *lptr, pred, obj );
-
-  if ( fMatch )
-    save_annotations();
-
-  send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
 HANDLER( handle_nodes_from_view_request )
