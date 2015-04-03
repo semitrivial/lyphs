@@ -189,6 +189,91 @@ lyphview *lyphview_by_id( char *idstr )
   return views[id];
 }
 
+int marked_as_house( lyph *e )
+{
+  return IS_SET( e->flags, 1 );
+}
+
+void mark_houses( lyph *e )
+{
+  lyph *to = e->to->location, *from = e->from->location;
+
+  if ( to && !marked_as_house( to ) )
+  {
+    SET_BIT( to->flags, 1 );
+    mark_houses( to );
+  }
+
+  if ( from && !marked_as_house( from ) )
+  {
+    SET_BIT( from->flags, 1 );
+    mark_houses( from );
+  }
+}
+
+void unmark_houses( lyph *e )
+{
+  lyph *from = e->from->location, *to = e->to->location;
+
+  if ( to && marked_as_house( to ) )
+  {
+    REMOVE_BIT( to->flags, 1 );
+    unmark_houses( to );
+  }
+
+  if ( from && marked_as_house( from ) )
+  {
+    REMOVE_BIT( from->flags, 1 );
+    unmark_houses( from );
+  }
+}
+
+lyph *get_lyph_location( lyph *e )
+{
+  lyph *to = e->to->location, *from = e->from->location;
+
+  for ( ; ; )
+  {
+    if ( !to || !from )
+      return NULL;
+
+    if ( to == from )
+      return to;
+
+    mark_houses( to );
+
+    if ( marked_as_house( from ) )
+    {
+      unmark_houses( to );
+      return from;
+    }
+
+    unmark_houses( to );
+    mark_houses( from );
+
+    if ( marked_as_house( to ) )
+    {
+      unmark_houses( from );
+      return to;
+    }
+
+    unmark_houses( from );
+
+    to = get_lyph_location( to );
+    from = get_lyph_location( from );
+  }
+}
+
+char *lyph_location_to_json( lyph *e )
+{
+  lyph *loc = get_lyph_location( e );
+
+  if ( loc )
+    return trie_to_json( loc->id );
+  else
+    return NULL;
+}
+
 char *lv_rect_to_json( lv_rect *rect )
 {
   return JSON
@@ -197,7 +282,8 @@ char *lv_rect_to_json( lv_rect *rect )
     "x": rect->x,
     "y": rect->y,
     "width": rect->width,
-    "height": rect->height
+    "height": rect->height,
+    "location": lyph_location_to_json( rect->L )
   );
 }
 
