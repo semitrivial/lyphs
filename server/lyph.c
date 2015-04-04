@@ -194,38 +194,35 @@ int marked_as_house( lyph *e )
   return IS_SET( e->flags, 1 );
 }
 
-void mark_houses( lyph *e )
+void mark_houses( lyph *e, lyph_wrapper **head, lyph_wrapper **tail )
 {
-  lyph *to = e->to->location, *from = e->from->location;
+  lyph *house = get_lyph_location( e );
 
-  if ( to && !marked_as_house( to ) )
+  if ( house && !marked_as_house( house ) )
   {
-    SET_BIT( to->flags, 1 );
-    mark_houses( to );
-  }
+    lyph_wrapper *w;
 
-  if ( from && !marked_as_house( from ) )
-  {
-    SET_BIT( from->flags, 1 );
-    mark_houses( from );
+    SET_BIT( house->flags, 1 );
+    CREATE( w, lyph_wrapper, 1 );
+    w->e = house;
+    LINK( w, *head, *tail, next );
+    mark_houses( house, head, tail );
   }
 }
 
-void unmark_houses( lyph *e )
+void unmark_houses( lyph_wrapper **head, lyph_wrapper **tail )
 {
-  lyph *from = e->from->location, *to = e->to->location;
+  lyph_wrapper *w, *w_next;
 
-  if ( to && marked_as_house( to ) )
+  for ( w = *head; w; w = w_next )
   {
-    REMOVE_BIT( to->flags, 1 );
-    unmark_houses( to );
+    w_next = w->next;
+    w->e->flags = 0;
+    free( w );
   }
 
-  if ( from && marked_as_house( from ) )
-  {
-    REMOVE_BIT( from->flags, 1 );
-    unmark_houses( from );
-  }
+  *head = NULL;
+  *tail = NULL;
 }
 
 lyph *get_lyph_location( lyph *e )
@@ -234,30 +231,35 @@ lyph *get_lyph_location( lyph *e )
 
   for ( ; ; )
   {
+    lyph_wrapper *head = NULL, *tail = NULL;
+
     if ( !to || !from )
       return NULL;
 
     if ( to == from )
       return to;
 
-    mark_houses( to );
+    if ( to == e || from == e )
+      return NULL;
+
+    mark_houses( to, &head, &tail );
 
     if ( marked_as_house( from ) )
     {
-      unmark_houses( to );
+      unmark_houses( &head, &tail );
       return from;
     }
 
-    unmark_houses( to );
-    mark_houses( from );
+    unmark_houses( &head, &tail );
+    mark_houses( from, &head, &tail );
 
     if ( marked_as_house( to ) )
     {
-      unmark_houses( from );
+      unmark_houses( &head, &tail );
       return to;
     }
 
-    unmark_houses( from );
+    unmark_houses( &head, &tail );
 
     to = get_lyph_location( to );
     from = get_lyph_location( from );
