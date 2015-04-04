@@ -217,7 +217,7 @@ void unmark_houses( lyph_wrapper **head, lyph_wrapper **tail )
   for ( w = *head; w; w = w_next )
   {
     w_next = w->next;
-    w->e->flags = 0;
+    REMOVE_BIT( w->e->flags, 1 );
     free( w );
   }
 
@@ -266,6 +266,34 @@ lyph *get_lyph_location( lyph *e )
   }
 }
 
+lyph *get_relative_lyph_loc( lyph *e, lyphview *v )
+{
+  lv_rect **rects;
+  lyph *house;
+
+  for ( rects = v->rects; *rects; rects++ )
+    SET_BIT( (*rects)->L->flags, 2 );
+
+  for ( house = get_lyph_location( e ); house; house = get_lyph_location(house) )
+    if ( IS_SET( house->flags, 2 ) )
+      break;
+
+  for ( rects = v->rects; *rects; rects++ )
+    REMOVE_BIT( (*rects)->L->flags, 2 );
+
+  return house;
+}
+
+char *lyph_relative_loc_to_json( lyph *e, lyphview *v )
+{
+  lyph *loc = get_relative_lyph_loc( e, v );
+
+  if ( loc )
+    return trie_to_json( loc->id );
+  else
+    return NULL;
+}
+
 char *lyph_location_to_json( lyph *e )
 {
   lyph *loc = get_lyph_location( e );
@@ -276,7 +304,7 @@ char *lyph_location_to_json( lyph *e )
     return NULL;
 }
 
-char *lv_rect_to_json( lv_rect *rect )
+char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
 {
   return JSON
   (
@@ -285,7 +313,7 @@ char *lv_rect_to_json( lv_rect *rect )
     "y": rect->y,
     "width": rect->width,
     "height": rect->height,
-    "location": lyph_location_to_json( rect->L )
+    "location": lyph_relative_loc_to_json( rect->L, v )
   );
 }
 
@@ -325,7 +353,7 @@ char *lyphview_to_json( lyphview *v )
     "id": int_to_json( v->id ),
     "name": v->name,
     "nodes": JS_ARRAY( viewed_node_to_json, vn ),
-    "lyphs": JS_ARRAY( lv_rect_to_json, v->rects )
+    "lyphs": JS_ARRAY_R( lv_rect_to_json_r, v->rects, v )
   );
 
   for ( vnptr = vn; *vnptr; vnptr++ )
