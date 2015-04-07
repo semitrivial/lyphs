@@ -1167,9 +1167,6 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
 
 void add_exit( lyph *e )
 {
-//printf("Debug: add_exit: e=[%s],", trie_to_static(e->id) );
-//printf(" from=[%s],", trie_to_static(e->from->id) );
-//printf(" to=[%s]\n", trie_to_static(e->to->id) );
   add_to_exits( e, e->to, &e->from->exits );
   add_to_exits( e, e->from, &e->to->incoming );
 }
