@@ -158,10 +158,10 @@ void init_html_codes( void )
   }
 }
 
-char *lowercaserize( char *x )
+char *lowercaserize( const char *x )
 {
   static char buf[MAX_STRING_LEN * 2];
-  char *xptr = x;
+  const char *xptr = x;
   char *bptr = buf;
 
   for ( ; *xptr; xptr++ )

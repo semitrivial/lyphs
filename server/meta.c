@@ -219,6 +219,9 @@ void save_annotations( void )
 {
   FILE *fp;
 
+  if ( configs.readonly )
+    return;
+
   fp = fopen( ANNOTS_FILE, "w" );
 
   if ( !fp )
@@ -260,6 +263,9 @@ void save_pubmeds( void )
 {
   pubmed *p;
   FILE *fp;
+
+  if ( configs.readonly )
+    return;
 
   fp = fopen( PUBMED_FILE, "w" );
 
@@ -341,6 +347,9 @@ void save_clinical_indices( void )
 {
   FILE *fp;
   clinical_index *c;
+
+  if ( configs.readonly )
+    return;
 
   fp = fopen( CLINICAL_INDEX_FILE, "w" );
 

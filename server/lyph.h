@@ -49,6 +49,7 @@ typedef struct LYPH_FILTER lyph_filter;
 typedef struct ANNOT annot;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
+typedef struct SYSTEM_CONFIGS system_configs;
 
 /*
  * Structures
@@ -278,9 +279,16 @@ struct LAYER_LOADING
   layer *lyr;
 };
 
+struct SYSTEM_CONFIGS
+{
+  int readonly;
+};
+
 /*
  * Global variables
  */
+extern system_configs configs;
+
 extern trie *iri_to_labels;
 extern trie *label_to_iris;
 extern trie *label_to_iris_lowercase;
@@ -343,7 +351,7 @@ void log_linenum( int linenum );
 void to_logfile( char *fmt, ... );
 char *html_encode( char *str );
 void init_html_codes( void );
-char *lowercaserize( char *x );
+char *lowercaserize( const char *x );
 char *get_url_shortform( char *iri );
 char *url_decode(char *str);
 char *url_encode(char *str);

@@ -156,7 +156,13 @@ struct COMMAND_ENTRY
   command_entry *next;
   handle_function *f;
   char *cmd;
+  int read_write_state;
 };
+
+typedef enum
+{
+  CMD_READONLY, CMD_READWRITE
+} read_write_states;
 
 /*
  * Global variables
@@ -179,6 +185,7 @@ int srvsock;
 /*
  * srv.c
  */
+int parse_commandline_args( int argc, const char *argv[], const char **filename, int *port );
 void init_lyph_http_server( int port );
 void http_update_connections( void );
 void http_kill_socket( http_conn *c );
@@ -205,13 +212,14 @@ char *get_param( url_param **params, char *key );
 int has_param( url_param **params, char *key );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
 void makeview_worker( char *request, http_request *req, url_param **params, int makeview );
+void default_config_values( void );
 
 /*
  * tables.c
  */
 void init_command_table( void );
-void add_handler( char *cmd, handle_function *fnc );
-handle_function *lookup_command( char *cmd );
+void add_handler( char *cmd, handle_function *fnc, int read_write_state );
+command_entry *lookup_command( char *cmd );
 
 /*
  * cmds.c

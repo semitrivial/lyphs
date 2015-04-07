@@ -374,6 +374,9 @@ void save_lyphviews( void )
   FILE *fp;
   lyphview **ptr;
 
+  if ( configs.readonly )
+    return;
+
   if ( !views )
     return;
 
@@ -886,7 +889,12 @@ int load_lyphs( void )
 
 void save_lyphs( void )
 {
-  FILE *fp = fopen( "lyphs.dat", "w" );
+  FILE *fp;
+
+  if ( configs.readonly )
+    return;
+
+  fp = fopen( "lyphs.dat", "w" );
 
   if ( !fp )
   {
@@ -1532,6 +1540,9 @@ void save_lyphplates(void)
 {
   FILE *fp;
   trie *avoid_dupe_layers;
+
+  if ( configs.readonly )
+    return;
 
   fp = fopen( "lyphplates.dat", "w" );
 
