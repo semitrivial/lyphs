@@ -2151,6 +2151,7 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
   for ( ; ; curr = curr->next )
   {
     exit_data **x;
+    int reversed;
 
     if ( !curr )
     {
@@ -2195,7 +2196,12 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
       continue;
     }
 
-    for ( x = curr->location->exits; *x; x++ )
+    /*
+     * First traverse curr->location->exits, then traverse curr->location->incoming
+     */
+    reversed = 0;
+
+    for ( x = curr->location->exits; *x || (!reversed++ && (x=curr->location->incoming)); x++ )
     {
       if ( IS_SET( (*x)->to->flags, LYPHNODE_SEEN ) )
         continue;
