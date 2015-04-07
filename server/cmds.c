@@ -187,43 +187,22 @@ HANDLER( handle_editlyph_request )
   if ( fma )
     e->fma = fma;
 
+  if ( from && to )
+    HND_ERR( "Can't edit the edge's 'from' and 'to' with the same command" );
+
   if ( from )
   {
-    exit_data **xits, **xptr_new, **xptr_old;
-
-    CREATE( xits, exit_data *, VOIDLEN( e->from->exits ) + 1 );
-
-    for ( xptr_new = xits, xptr_old = e->from->exits; *xptr_old; xptr_old++ )
-    {
-      if ( (*xptr_old)->via == e )
-        free( *xptr_old );
-      else
-        *xptr_new++ = *xptr_old;
-    }
-
-    CREATE( *xptr_new, exit_data, 1 );
-    (*xptr_new)->to = to ? to : e->to;
-    (*xptr_new)->via = e;
-
-    xptr_new[1] = NULL;
-
-    free( e->from->exits );
-    e->from->exits = xits;
-
+    remove_from_exits( e, &e->from->exits );
+    add_to_exits( e, e->to, &from->exits );
+    change_source_of_exit( e, from, e->to->incoming );
     e->from = from;
   }
 
   if ( to )
   {
-    if ( !from )
-    {
-      exit_data **xit;
-
-      for ( xit = e->from->exits; *xit; xit++ )
-        if ( (*xit)->via == e )
-          (*xit)->to = to;
-    }
-
+    remove_from_exits( e, &e->to->incoming );
+    add_to_exits( e, e->from, &to->incoming );
+    change_dest_of_exit( e, to, e->from->exits );
     e->to = to;
   }
 

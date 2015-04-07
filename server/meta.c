@@ -304,7 +304,10 @@ void load_pubmeds( void )
     QUICK_GETLINE( buf, bptr, c, fp );
 
     if ( !bptr )
+    {
+      fclose(fp);
       return;
+    }
 
     line++;
     sscanf_results = sscanf( buf, "%s %s", id_enc, title_enc );
@@ -321,10 +324,6 @@ void load_pubmeds( void )
 
     LINK( p, first_pubmed, last_pubmed, next );
   }
-
-  fclose( fp );
-
-  return;
 }
 
 void save_one_clinical_index( FILE *fp, clinical_index *c )

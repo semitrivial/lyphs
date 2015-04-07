@@ -846,7 +846,7 @@ int load_lyphs( void )
           continue;
         }
         else
-          return 1;
+          return fclose(fp);
       }
 
       *rptr = '\0';
@@ -857,11 +857,11 @@ int load_lyphs( void )
         log_linenum( line );
         log_string( err );
 
-        return 0;
+        return fclose(fp);
       }
 
       if ( !c )
-        return 1;
+        return fclose(fp);
 
       line++;
       rptr = row;
@@ -874,14 +874,14 @@ int load_lyphs( void )
         log_linenum( line );
         log_string( "Line exceeds maximum length" );
 
-        return 0;
+        return fclose(fp);
       }
 
       *rptr++ = c;
     }
   }
 
-  return 1;
+  return fclose(fp);
 }
 
 void save_lyphs( void )
@@ -1108,7 +1108,7 @@ int load_lyphs_one_line( char *line, char **err )
   e->from = from;
   e->to = to;
 
-  add_exit( e, from );
+  add_exit( e );
 
   return 1;
 }
@@ -1165,59 +1165,13 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
   return trie_strdup( namebuf, lyph_names );
 }
 
-void add_exit( lyph *e, lyphnode *n )
+void add_exit( lyph *e )
 {
-  lyphnode *to;
-  exit_data **x;
-
-  if ( e->to == n )
-  {
-    if ( e->from == n )
-      return;
-
-    to = e->from;
-  }
-  else
-    to = e->to;
-
-  if ( n->exits )
-  {
-    int size;
-
-    for ( x = n->exits; *x; x++ )
-      if ( (*x)->to == to )
-      {
-        /*
-         * Possible future to-do: keep track of ALL edges associated with an exit, not just one
-         */
-        return;
-      }
-
-    size = x - n->exits;
-
-    CREATE( x, exit_data *, size + 2 );
-
-    if ( size )
-      memcpy( x, n->exits, size * sizeof(exit_data *) );
-
-    CREATE( x[size], exit_data, 1 );
-    x[size]->to = to;
-    x[size]->via = e;
-    x[size+1] = NULL;
-
-    free( n->exits );
-    n->exits = x;
-  }
-  else
-  {
-    CREATE( x, exit_data *, 2 );
-    CREATE( x[0], exit_data, 1 );
-    x[0]->to = to;
-    x[0]->via = e;
-    x[1] = NULL;
-
-    n->exits = x;
-  }
+//printf("Debug: add_exit: e=[%s],", trie_to_static(e->id) );
+//printf(" from=[%s],", trie_to_static(e->from->id) );
+//printf(" to=[%s]\n", trie_to_static(e->to->id) );
+  add_to_exits( e, e->to, &e->from->exits );
+  add_to_exits( e, e->from, &e->to->incoming );
 }
 
 char *lyph_type_str( int type )
@@ -2344,7 +2298,7 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   CREATE( e->annots, annot *, 1 );
   e->annots[0] = NULL;
 
-  add_exit( e, from );
+  add_exit( e );
 
   save_lyphs();
 
@@ -2619,4 +2573,74 @@ void free_lyphnode_wrappers( lyphnode_wrapper *head )
     next = head->next;
     free(head);
   }
+}
+
+void remove_from_exits( lyph *e, exit_data ***victim )
+{
+  exit_data **x, **xptr, **oldptr;
+
+  CREATE( x, exit_data *, VOIDLEN( *victim ) + 1 );
+  xptr = x;
+
+  for ( oldptr = *victim; *oldptr; oldptr++ )
+  {
+    if ( (*oldptr)->via == e )
+      free( *oldptr );
+    else
+      *xptr++ = *oldptr;
+  }
+
+  *xptr = NULL;
+  free( *victim );
+  *victim = xptr;
+}
+
+void add_to_exits( lyph *e, lyphnode *to, exit_data ***victim )
+{
+  exit_data **x, *newx;
+  int len;
+
+  if ( !*victim )
+  {
+    CREATE( x, exit_data *, 2 );
+    CREATE( x[0], exit_data, 1 );
+    x[0]->to = to;
+    x[0]->via = e;
+    x[1] = NULL;
+    *victim = x;
+    return;
+  }
+
+  len = VOIDLEN( *victim );
+
+  CREATE( x, exit_data *, len+2 );
+  memcpy( x, *victim, len * sizeof(exit_data *) );
+
+  CREATE( newx, exit_data, 1 );
+  newx->to = to;
+  newx->via = e;
+
+  x[len] = newx;
+  x[len+1] = NULL;
+
+  free( *victim );
+  *victim = x;
+}
+
+void change_source_of_exit( lyph *via, lyphnode *new_src, exit_data **exits )
+{
+  exit_data **x;
+
+  for ( x = exits; *x; x++ )
+    if ( (*x)->via == via )
+      (*x)->to = new_src;
+}
+
+void change_dest_of_exit( lyph *via, lyphnode *new_dest, exit_data **exits )
+{
+  exit_data **x;
+
+  for ( x = exits; *x; x++ )
+    if ( (*x)->via == via )
+      (*x)->to = new_dest;
 }

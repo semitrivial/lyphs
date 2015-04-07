@@ -649,7 +649,10 @@ char *load_file( char *filename )
     QUICK_GETC(*bptr,fp);
 
     if ( !*bptr )
+    {
+      fclose(fp);
       return buf;
+    }
   }
 }
 
