@@ -753,14 +753,9 @@ void load_lyphviews( void )
 
             if ( !nodetr->data )
             {
-              CREATE( node, lyphnode, 1 );
+              node = blank_lyphnode();
               node->id = nodetr;
               nodetr->data = (trie **)node;
-              node->flags = 0;
-              CREATE( node->exits, exit_data *, 1 );
-              node->exits[0] = NULL;
-              node->location = NULL;
-              node->loctype = -1;
               maybe_update_top_id( &top_lyphnode_id, left );
             }
             else
@@ -974,14 +969,6 @@ int load_lyphnode_location( char *line, char **err )
   KEY( locbuf, "Missing location on a location line" );
   KEY( loctypebuf, "Missing loctype on a location line" );
 
-  n = lyphnode_by_id( nodeidbuf );
-
-  if ( !n )
-  {
-    *err = "Invalid node id on a location line";
-    return 0;
-  }
-
   loc = lyph_by_id( locbuf );
 
   if ( !loc )
@@ -997,6 +984,14 @@ int load_lyphnode_location( char *line, char **err )
   else
   {
     *err = "Invalid loctype on a location line";
+    return 0;
+  }
+
+  n = lyphnode_by_id( nodeidbuf );
+
+  if ( !n )
+  {
+    *err = "Invalid node id on a location line";
     return 0;
   }
 
@@ -1076,15 +1071,9 @@ int load_lyphs_one_line( char *line, char **err )
 
   if ( !fromtr->data )
   {
-    CREATE( from, lyphnode, 1 );
-
+    from = blank_lyphnode();
     from->id = fromtr;
     fromtr->data = (trie **)from;
-    from->flags = 0;
-    CREATE( from->exits, exit_data *, 1 );
-    from->exits[0] = NULL;
-    from->location = NULL;
-    from->loctype = -1;
 
     maybe_update_top_id( &top_lyphnode_id, frombuf );
   }
@@ -1095,15 +1084,9 @@ int load_lyphs_one_line( char *line, char **err )
 
   if ( !totr->data )
   {
-    CREATE( to, lyphnode, 1 );
-
+    to = blank_lyphnode();
     to->id = totr;
     totr->data = (trie **)to;
-    to->flags = 0;
-    CREATE( to->exits, exit_data *, 1 );
-    to->exits[0] = NULL;
-    to->location = NULL;
-    to->loctype = -1;
 
     maybe_update_top_id( &top_lyphnode_id, tobuf );
   }
@@ -2251,18 +2234,9 @@ void free_lyphsteps( lyphstep *head )
 
 lyphnode *make_lyphnode( void )
 {
-  lyphnode *n;
-
-  CREATE( n, lyphnode, 1 );
+  lyphnode *n = blank_lyphnode();
 
   n->id = new_lyphnode_id(n);
-  n->flags = 0;
-
-  CREATE( n->exits, exit_data *, 1 );
-  n->exits[0] = NULL;
-
-  n->location = NULL;
-  n->loctype = -1;
 
   return n;
 }
@@ -2657,4 +2631,18 @@ void change_dest_of_exit( lyph *via, lyphnode *new_dest, exit_data **exits )
   for ( x = exits; *x; x++ )
     if ( (*x)->via == via )
       (*x)->to = new_dest;
+}
+
+lyphnode *blank_lyphnode( void )
+{
+  lyphnode *n;
+
+  CREATE( n, lyphnode, 1 );
+  CREATE( n->exits, exit_data *, 1 );
+  CREATE( n->incoming, exit_data *, 1 );
+  n->exits[0] = NULL;
+  n->incoming[0] = NULL;
+  n->loctype = -1;
+
+  return n;
 }

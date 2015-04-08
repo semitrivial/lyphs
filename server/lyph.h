@@ -472,6 +472,7 @@ void save_lyphplates(void);
 lyphplate **get_all_lyphplates( void );
 void free_lyphnode_wrappers( lyphnode_wrapper *head );
 lyph *get_lyph_location( lyph *e );
+lyphnode *blank_lyphnode( void );
 
 /*
  * meta.c
