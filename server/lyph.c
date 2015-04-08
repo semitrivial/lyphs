@@ -991,8 +991,9 @@ int load_lyphnode_location( char *line, char **err )
 
   if ( !n )
   {
-    *err = "Invalid node id on a location line";
-    return 0;
+    n = blank_lyphnode();
+    n->id = trie_strdup( nodeidbuf, lyphnode_ids );
+    n->id->data = (trie**)n;
   }
 
   n->location = loc;

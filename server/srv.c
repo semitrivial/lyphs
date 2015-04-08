@@ -1027,6 +1027,9 @@ HANDLER( handle_makelyphnode_request )
   send_200_response( req, lyphnode_to_json( n ) );
 
   lyphnode_to_json_flags = 0;
+
+  if ( !configs.readonly )
+    save_lyphs();
 }
 
 HANDLER( handle_makelyph_request )
