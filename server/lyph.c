@@ -2175,15 +2175,7 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
       *pathsptr++ = path;
 
       if ( ++pathcnt == numpaths )
-      {
-        for ( w = to_head; w; w = w->next )
-          REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );
-
-        free_lyphsteps( head );
-        *pathsptr = NULL;
-
-        return paths;
-      }
+        goto compute_lyphpaths_escape;
 
       continue;
     }
@@ -2199,7 +2191,10 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
         continue;
 
       if ( filter && !lyph_passes_filter( (*x)->via, filter ) )
+      {
+        SET_BIT( step->location->flags, LYPHNODE_SEEN );
         continue;
+      }
 
       CREATE( step, lyphstep, 1 );
       step->depth = curr->depth + 1;
@@ -2210,6 +2205,8 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
       SET_BIT( step->location->flags, LYPHNODE_SEEN );
     }
   }
+
+  compute_lyphpaths_escape:
 
   for ( w = to_head; w; w = w->next )
     REMOVE_BIT( w->n->flags, LYPHNODE_GOAL );

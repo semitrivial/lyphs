@@ -31,6 +31,7 @@ void init_command_table(void)
   add_handler( "lyphs_to_view", handle_nodes_to_view_request, CMD_READWRITE ); // Not a type -- lyphs_from_view and nodes_to_view are actually handled by the same handler function
   add_handler( "lyphs_from_view", handle_lyphs_from_view_request, CMD_READWRITE );
   add_handler( "nodes_from_view", handle_nodes_from_view_request, CMD_READWRITE );
+  add_handler( "change_coords", handle_change_coords_request, CMD_READWRITE );
   add_handler( "lyphpath", handle_lyphpath_request, CMD_READONLY );
   add_handler( "reset_db", handle_reset_db_request, CMD_READWRITE );
   add_handler( "uclsyntax", handle_ucl_syntax_request, CMD_READONLY );

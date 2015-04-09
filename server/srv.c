@@ -829,7 +829,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
     char *na_param;
 
     if ( !filt )
-      HND_ERR( "The indicated template (to act as filter)  was not found in the database" );
+      HND_ERR( "The indicated template (to act as filter) was not found in the database" );
 
     CREATE( f, lyph_filter, 1 );
 
@@ -1097,9 +1097,15 @@ HANDLER( handle_nodes_to_view_request )
   makeview_worker( request, req, params, 1 );
 }
 
+HANDLER( handle_change_coords_request )
+{
+  makeview_worker( request, req, params, 2 );
+}
+
 /*
  *  Type = 0:  makeview
  *  Type = 1:  nodes_to_view or rects_to_view
+ *  Type = 2:  change_coords
  */
 void makeview_worker( char *request, http_request *req, url_param **params, int type )
 {
@@ -1117,7 +1123,10 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   {
     char *viewstr;
 
-    TRY_PARAM( viewstr, "view", "You did not specify which view to add nodes to." );
+    if ( type == 1 )
+      TRY_PARAM( viewstr, "view", "You did not specify which view to add nodes to." );
+    else
+      TRY_PARAM( viewstr, "view", "You did not specify which view to change coordinates in." );
 
     v = lyphview_by_id( viewstr );
 
@@ -1142,7 +1151,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( xct < nodect )
     {
       MULTIFREE( nodes, xs );
-      HND_ERR( "You did not specify x-coordinates for every node" );
+      HND_ERR( "You did not specify x-coordinates for all the nodes you listed" );
     }
 
     ys = (char**)GET_NUMBERED_ARGS( params, "y", NULL, NULL, &yct );
@@ -1150,7 +1159,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( yct < nodect )
     {
       MULTIFREE( nodes, xs, ys );
-      HND_ERR( "You did not specify y-coordinates for every node" );
+      HND_ERR( "You did not specify y-coordinates for all the nodes you listed" );
     }
   }
 
@@ -1173,7 +1182,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( lxct < lyphct )
     {
       MULTIFREE( nodes, xs, ys, lyphs, lxs );
-      HND_ERR( "You did not specify x-coordinates ('lx') for every lyph" );
+      HND_ERR( "You did not specify x-coordinates ('lx') for all the lyphs you listed" );
     }
 
     lys = (char**)GET_NUMBERED_ARGS( params, "ly", NULL, NULL, &lyct );
@@ -1181,7 +1190,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( lyct < lyphct )
     {
       MULTIFREE( nodes, xs, ys, lyphs, lxs, lys );
-      HND_ERR( "You did not specify y-coordinates ('ly') for every lyph" );
+      HND_ERR( "You did not specify y-coordinates ('ly') for all the lyphs you listed" );
     }
 
     widths = (char**)GET_NUMBERED_ARGS( params, "width", NULL, NULL, &widthct );
@@ -1189,7 +1198,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( widthct < lyphct )
     {
       MULTIFREE( nodes, xs, ys, lyphs, lxs, lys, widths );
-      HND_ERR( "You did not specify widths for every lyph" );
+      HND_ERR( "You did not specify widths for all the lyphs you listed" );
     }
 
     heights = (char**)GET_NUMBERED_ARGS( params, "height", NULL, NULL, &heightct );
@@ -1197,7 +1206,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     if ( heightct < lyphct )
     {
       MULTIFREE( nodes, xs, ys, lyphs, lxs, lys, widths, heights );
-      HND_ERR( "You did not specify heights for every lyph" );
+      HND_ERR( "You did not specify heights for all the lyphs you listed" );
     }
   }
 
@@ -1228,7 +1237,9 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   }
 
   /*
-   * Remaining case is nodes_to_view
+   * Remaining cases:
+   * 1 = nodes_to_view/lyphs_to_view
+   * 2 = change_coords
    */
   #define LYPHNODE_ALREADY_IN_VIEW 1
   #define LYPHNODE_QUEUED_FOR_ADDING 2
@@ -1293,6 +1304,32 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     v->coords = newc;
   }
 
+  if ( type == 2 && nodect )  // change_coords
+  {
+    for ( nptr = nodes, xsptr = xs, ysptr = ys; *nptr; nptr++, xsptr++, ysptr++ )
+    {
+      if ( !IS_SET( (*nptr)->flags, LYPHNODE_QUEUED_FOR_ADDING ) )
+      {
+        /*
+         * The node was already in the view, and did not to be added.
+         * Find it and change its coordinates.
+         */
+        char **oldc;
+        lyphnode **oldnptr;
+
+        for ( oldnptr = v->nodes, oldc = v->coords; *oldnptr; oldnptr++, oldc += 2 )
+        {
+          if ( *oldnptr == *nptr )
+          {
+            oldc[0] = *xsptr;
+            oldc[1] = *ysptr;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   for ( nptr = v->nodes; *nptr; nptr++ )
   {
     REMOVE_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
@@ -1354,6 +1391,35 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
     free( v->rects );
     v->rects = buf;
+  }
+
+  if ( type == 2 && lyphct ) // change_coords
+  {
+    for ( lptr = lyphs, lxsptr = lxs, lysptr = lys, wptr = widths, hptr = heights;
+          *lptr; lptr++, lxsptr++, lysptr++, wptr++, hptr++ )
+    {
+      if ( !IS_SET( (*lptr)->flags, LYPH_QUEUED_FOR_ADDING ) )
+      {
+        /*
+         * The lyph was already present, and didn't need adding.
+         * Find it and change its coordinates.
+         */
+        lv_rect **oldrptr;
+
+        for ( oldrptr = v->rects; *oldrptr; oldrptr++ )
+        {
+          if ( (*oldrptr)->L == *lptr )
+          {
+            lv_rect *needle = *oldrptr;
+            needle->x = *lxsptr;
+            needle->y = *lysptr;
+            needle->width = *wptr;
+            needle->height = *hptr;
+            break;
+          }
+        }
+      }
+    }
   }
 
   for ( rptr = v->rects; *rptr; rptr++ )
