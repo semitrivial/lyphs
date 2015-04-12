@@ -1335,3 +1335,46 @@ void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *)
 
   return retval;
 }
+
+void find_lyphs_with_template( lyphplate *L, lyph ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+
+    if ( e->lyphplate == L )
+    {
+      **bptr = e;
+      (*bptr)++;
+    }
+  }
+
+  TRIE_RECURSE( find_lyphs_with_template( L, bptr, *child ) );
+}
+
+HANDLER( handle_has_template_request )
+{
+  lyphplate *L;
+  lyph **buf, **bptr;
+  char *tmpltid;
+  int cnt;
+
+  TRY_PARAM( tmpltid, "template", "You did not specify a template" );
+
+  L = lyphplate_by_id( tmpltid );
+
+  if ( !L )
+    HND_ERR( "The indicated template was not recognized" );
+
+  cnt = count_nontrivial_members( lyph_ids );
+
+  CREATE( buf, lyph *, cnt + 1 );
+  bptr = buf;
+
+  find_lyphs_with_template( L, &bptr, lyph_ids );
+  *bptr = NULL;
+
+  send_200_response( req, JS_ARRAY( lyph_to_json, buf ) );
+
+  free( buf );
+}

@@ -45,6 +45,7 @@ void init_command_table(void)
   add_handler( "subtemplates", handle_subtemplates_request, CMD_READONLY );
   add_handler( "instances_of", handle_instances_of_request, CMD_READONLY );
   add_handler( "involves_template", handle_involves_template_request, CMD_READONLY );
+  add_handler( "has_template", handle_has_template_request, CMD_READONLY );
   add_handler( "annotate", handle_annotate_request, CMD_READWRITE );
   add_handler( "editlyph", handle_editlyph_request, CMD_READWRITE );
   add_handler( "editlyphnode", handle_editlyphnode_request, CMD_READWRITE );
