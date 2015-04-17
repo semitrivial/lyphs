@@ -1040,12 +1040,17 @@ HANDLER( handle_makelyph_request )
   char *fmastr, *fromstr, *tostr, *namestr, *tmpltstr, *typestr;
   int type;
 
-  TRY_PARAM( typestr, "type", "You did not specify a type" );
+  typestr = get_param( params, "type" );
 
-  type = strtol( typestr, NULL, 10 );
+  if ( typestr )
+  {
+    type = strtol( typestr, NULL, 10 );
 
-  if ( type < 1 || type > 4 )
-    HND_ERR( "Type must be 1, 2, 3, or 4" );
+    if ( type < 1 || type > 4 )
+      HND_ERR( "Type must be 1, 2, 3, or 4" );
+  }
+  else
+    type = 1;
 
   fmastr = get_param( params, "fma" );
 
