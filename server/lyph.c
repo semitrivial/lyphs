@@ -1856,6 +1856,65 @@ lyphnode *lyphnode_by_id_or_new( char *id )
     return lyphnode_by_id( id );
 }
 
+lyph *lyph_by_template( trie *t, lyphplate *L )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+
+    if ( e->lyphplate == L )
+      return e;
+  }
+
+  TRIE_RECURSE
+  (
+    lyph *e = lyph_by_template( *child, L );
+
+    if ( e )
+      return e;
+  );
+
+  return NULL;
+}
+
+lyph *lyph_by_template_or_id( char *id )
+{
+  lyph *e = lyph_by_id( id );
+  lyphplate *L;
+  lyphnode *from, *to;
+  char *namestr;
+
+  if ( e )
+    return e;
+
+  L = lyphplate_by_id( id );
+
+  if ( !L )
+    return NULL;
+
+  e = lyph_by_template( lyph_ids, L );
+
+  if ( e )
+    return e;
+
+  from = make_lyphnode();
+  to = make_lyphnode();
+
+  if ( L->name )
+    namestr = trie_to_static( L->name );
+  else
+    namestr = "none";
+
+  e = make_lyph( 1, from, to, L, NULL, namestr );
+
+  /*
+   * To do: pass this work upward to avoid duplicated effort
+   */
+  save_lyphs();
+
+  return e;
+}
+
 lyph *lyph_by_id( char *id )
 {
   trie *t = trie_search( id, lyph_ids );

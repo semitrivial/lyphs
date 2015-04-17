@@ -415,6 +415,7 @@ layer *layer_by_description_recurse( const lyphplate *L, const float thickness, 
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( char *id );
+lyph *lyph_by_template_or_id( char *id );
 trie *assign_new_layer_id( layer *lyr );
 lyphplate *lyphplate_by_layers( int type, layer **layers, char *name );
 lyphplate *lyphplate_by_layers_recurse( int type, layer **layers, trie *t );

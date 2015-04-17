@@ -1163,7 +1163,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     }
   }
 
-  lyphs = (lyph**) GET_NUMBERED_ARGS( params, "lyph", lyph_by_id, &err, &lyphct );
+  lyphs = (lyph**) GET_NUMBERED_ARGS( params, "lyph", lyph_by_template_or_id, &err, &lyphct );
 
   if ( !lyphs )
   {
