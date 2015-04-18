@@ -334,10 +334,33 @@ void load_pubmeds( void )
 
 void save_one_clinical_index( FILE *fp, clinical_index *c )
 {
+  pubmed **pubmeds;
   char *index = url_encode( trie_to_static( c->index ) );
   char *label = url_encode( trie_to_static( c->label ) );
 
-  fprintf( fp, "%s %s\n", index, label );
+  fprintf( fp, "%s %s ", index, label );
+
+  if ( !*c->pubmeds )
+    fprintf( fp, "none" );
+  else
+  {
+    int fFirst = 0;
+
+    for ( pubmeds = c->pubmeds; *pubmeds; pubmeds++ )
+    {
+      char *pubmed = url_encode( (*pubmeds)->id );
+
+      if ( fFirst )
+        fprintf( fp, "," );
+      else
+        fFirst = 1;
+
+      fprintf( fp, "%s", pubmed );
+      free( pubmed );
+    }
+  }
+
+  fprintf( fp, "\n" );
 
   free( index );
   free( label );
@@ -381,15 +404,19 @@ void load_clinical_indices( void )
 
   if ( !fp )
   {
-    error_messagef( "Couldn't open " CLINICAL_INDEX_FILE " for reading" );
-    EXIT();
+    error_messagef( "Couldn't open " CLINICAL_INDEX_FILE " for reading -- no clinical indices loaded" );
+    return;
   }
 
   for ( ; ; )
   {
     clinical_index *ci;
+    pubmed **pubmeds;
     trie *index_tr, *label_tr;
-    char index_enc[MAX_STRING_LEN], label_enc[MAX_STRING_LEN], *index, *label;
+    char index_enc[MAX_STRING_LEN], *index;
+    char label_enc[MAX_STRING_LEN], *label;
+    char pubmeds_enc[MAX_STRING_LEN], *pubmedsstr;
+    char *err;
     int sscanf_results;
 
     QUICK_GETLINE( buf, bptr, c, fp );
@@ -399,9 +426,9 @@ void load_clinical_indices( void )
 
     line++;
 
-    sscanf_results = sscanf( buf, "%s %s", index_enc, label_enc );
+    sscanf_results = sscanf( buf, "%s %s %s", index_enc, label_enc, pubmeds_enc );
 
-    if ( sscanf_results != 2 )
+    if ( sscanf_results != 3 )
     {
       error_messagef( CLINICAL_INDEX_FILE ":%d: Unrecognized format", line );
       EXIT();
@@ -412,11 +439,30 @@ void load_clinical_indices( void )
     index_tr = trie_strdup( index, metadata );
     label_tr = trie_strdup( label, metadata );
 
-    MULTIFREE( index, label, index_enc, label_enc );
+    pubmedsstr = url_decode( pubmeds_enc );
+
+    if ( !strcmp( pubmedsstr, "none" ) )
+    {
+      CREATE( pubmeds, pubmed *, 1 );
+      pubmeds[0] = NULL;
+    }
+    else
+    {
+      pubmeds = (pubmed **) PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
+
+      if ( !pubmeds )
+      {
+        error_messagef( CLINICAL_INDEX_FILE ":%d: %s", line, err ? err : "Could not parse pubmeds list" );
+        EXIT();
+      }
+    }
+
+    MULTIFREE( index, label, pubmedsstr );
 
     CREATE( ci, clinical_index, 1 );
     ci->index = index_tr;
     ci->label = label_tr;
+    ci->pubmeds = pubmeds;
     LINK( ci, first_clinical_index, last_clinical_index, next );
   }
 
@@ -474,7 +520,8 @@ char *pubmed_to_json_brief( pubmed *p )
 HANDLER( handle_make_clinical_index_request )
 {
   clinical_index *ci;
-  char *index, *label;
+  pubmed **pubmeds;
+  char *index, *label, *pubmedsstr;
 
   TRY_PARAM( index, "index", "You did not specify an 'index' for this clinical index" );
   TRY_PARAM( label, "label", "You did not specify a 'label' for this clinical index" );
@@ -492,9 +539,32 @@ HANDLER( handle_make_clinical_index_request )
       HND_ERR( "There is already a clinical index with that index" );
   }
 
+  pubmedsstr = get_param( params, "pubmeds" );
+
+  if ( pubmedsstr )
+  {
+    char *err;
+
+    pubmeds = (pubmed **)PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
+
+    if ( !pubmeds )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated pubmed IDs was not recognized" );
+    }
+  }
+  else
+  {
+    CREATE( pubmeds, pubmed *, 1 );
+    pubmeds[0] = NULL;
+  }
+
   CREATE( ci, clinical_index, 1 );
   ci->index = trie_strdup( index, metadata );
   ci->label = trie_strdup( label, metadata );
+  ci->pubmeds = pubmeds;
   LINK( ci, first_clinical_index, last_clinical_index, next );
 
   save_clinical_indices();
@@ -507,7 +577,8 @@ char *clinical_index_to_json_full( clinical_index *ci )
   return JSON
   (
     "index": trie_to_json( ci->index ),
-    "label": trie_to_json( ci->label )
+    "label": trie_to_json( ci->label ),
+    "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds )
   );
 }
 
@@ -530,7 +601,8 @@ clinical_index *clinical_index_by_index( char *ind )
 HANDLER( handle_edit_clinical_index_request )
 {
   clinical_index *ci;
-  char *indexstr, *label;
+  pubmed **pubmeds;
+  char *indexstr, *label, *pubmedsstr;
 
   TRY_PARAM( indexstr, "index", "You did not specify which clinical index ('index') to edit" );
 
@@ -539,9 +611,31 @@ HANDLER( handle_edit_clinical_index_request )
   if ( !ci )
     HND_ERR( "The indicated clinical index was not recognized" );
 
-  TRY_PARAM( label, "label", "You did not specify a new label for the clinical index" );
+  label = get_param( params, "label" );
 
-  ci->label = trie_strdup( label, metadata );
+  pubmedsstr = get_param( params, "pubmeds" );
+
+  if ( !label && !pubmedsstr )
+    HND_ERR( "You did not specify any changes to make" );
+
+  if ( pubmedsstr )
+  {
+    char *err;
+
+    pubmeds = (pubmed **) PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
+
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated pubmeds was not recognized" );
+
+    ci->pubmeds = pubmeds;
+  }
+
+  if ( label )
+    ci->label = trie_strdup( label, metadata );
+
+  save_clinical_indices();
 
   send_200_response( req, clinical_index_to_json_full( ci ) );
 }

@@ -382,18 +382,6 @@ int copy_file( char *dest_ch, char *src_ch )
   return 1;
 }
 
-int count_commas( char *str )
-{
-  char *ptr;
-  int commas = 0;
-
-  for ( ptr = str; *ptr; ptr++ )
-    if ( *ptr == ',' )
-      commas++;
-
-  return commas;
-}
-
 void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
 {
   void **buf, **bptr;

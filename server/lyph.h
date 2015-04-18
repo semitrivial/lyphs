@@ -208,6 +208,7 @@ struct CLINICAL_INDEX
   clinical_index *next;
   trie *index;
   trie *label;
+  pubmed **pubmeds;
 };
 
 struct PUBMED
@@ -364,7 +365,6 @@ void json_gc( void );
 size_t voidlen( void **x );
 char *constraints_comma_list( lyphplate **constraints );
 int copy_file( char *dest_ch, char *src_ch );
-int count_commas( char *str );
 void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err );
 void maybe_update_top_id( int *top, char *idstr );
 char *loctype_to_str( int loctype );
