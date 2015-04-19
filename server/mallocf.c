@@ -68,4 +68,3 @@ size_t vstrlenf( const char *fmt, va_list args )
 
   return vsnprintf( &buf, 0, fmt, args );
 }
-

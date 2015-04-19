@@ -590,9 +590,15 @@ char *clinical_index_to_json_brief( clinical_index *ci )
 clinical_index *clinical_index_by_index( char *ind )
 {
   clinical_index *ci;
+  trie *ind_tr;
+
+  ind_tr = trie_search( ind, metadata );
+
+  if ( !ind_tr )
+    return NULL;
 
   for ( ci = first_clinical_index; ci; ci = ci->next )
-    if ( !strcmp( ind, trie_to_static( ci->index ) ) )
+    if ( ci->index == ind_tr )
       return ci;
 
   return NULL;
