@@ -1635,12 +1635,15 @@ HANDLER( handle_template_request )
 HANDLER( handle_lyph_request )
 {
   lyph *e = lyph_by_id( request );
-  int show_annots = has_param( params, "annots" );
+  lyph_to_json_details details;
 
   if ( !e )
     HND_ERR( "No lyph by that id" );
 
-  send_200_response( req, lyph_to_json_r( e, &show_annots ) );
+  details.show_annots = has_param( params, "annots" );
+  details.buf = NULL;
+
+  send_200_response( req, lyph_to_json_r( e, &details ) );
 }
 
 HANDLER( handle_lyphnode_request )

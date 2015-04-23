@@ -266,7 +266,24 @@ lyph *get_lyph_location( lyph *e )
   }
 }
 
-lyph *get_relative_lyph_loc( lyph *e, lyphview *v )
+lyph *get_relative_lyph_loc_buf( lyph *e, lyph **buf )
+{
+  lyph *house, **bptr;
+
+  for ( bptr = buf; *bptr; bptr++ )
+    SET_BIT( (*bptr)->flags, 2 );
+
+  for ( house = get_lyph_location( e ); house; house = get_lyph_location( house ) )
+    if ( IS_SET( house->flags, 2 ) )
+      break;
+
+  for ( bptr = buf; *bptr; bptr++ )
+    REMOVE_BIT( (*bptr)->flags, 2 );
+
+  return house;
+}
+
+lyph *get_relative_lyph_loc_v( lyph *e, lyphview *v )
 {
   lv_rect **rects;
   lyph *house;
@@ -284,9 +301,19 @@ lyph *get_relative_lyph_loc( lyph *e, lyphview *v )
   return house;
 }
 
-char *lyph_relative_loc_to_json( lyph *e, lyphview *v )
+char *lyph_relative_loc_to_json_buf( lyph *e, lyph **buf )
 {
-  lyph *loc = get_relative_lyph_loc( e, v );
+  lyph *loc = get_relative_lyph_loc_buf( e, buf );
+
+  if ( loc )
+    return trie_to_json( loc->id );
+  else
+    return NULL;
+}
+
+char *lyph_relative_loc_to_json_v( lyph *e, lyphview *v )
+{
+  lyph *loc = get_relative_lyph_loc_v( e, v );
 
   if ( loc )
     return trie_to_json( loc->id );
@@ -313,7 +340,7 @@ char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
     "y": rect->y,
     "width": rect->width,
     "height": rect->height,
-    "location": lyph_relative_loc_to_json( rect->L, v )
+    "location": lyph_relative_loc_to_json_v( rect->L, v )
   );
 }
 
@@ -2028,18 +2055,32 @@ char *annot_to_json( annot *a )
 
 char *lyph_to_json( lyph *e )
 {
-  int yes = 1;
+  lyph_to_json_details details;
 
-  return lyph_to_json_r( e, &yes );
+  details.show_annots = 1;
+  details.buf = NULL;
+
+  return lyph_to_json_r( e, &details );
 }
 
-char *lyph_to_json_r( lyph *e, int *show_annots )
+char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
 {
-  char *retval, *annots;
+  char *retval, *annots, *house;
   int old_LTJ_flags = lyphnode_to_json_flags;
   lyphnode_to_json_flags = 0;
 
-  if ( show_annots && *show_annots )
+  if ( details )
+  {
+    annots = details->show_annots ? JS_ARRAY( annot_to_json, e->annots ) : json_suppressed;
+    house = details->buf ? lyph_relative_loc_to_json_buf( e, details->buf ) : json_suppressed;
+  }
+  else
+  {
+    annots = json_suppressed;
+    house = json_suppressed;
+  }
+
+  if ( details && details->show_annots )
     annots = JS_ARRAY( annot_to_json, e->annots );
   else
     annots = json_suppressed;
@@ -2054,7 +2095,8 @@ char *lyph_to_json_r( lyph *e, int *show_annots )
     "to": lyphnode_to_json( e->to ),
     "template": e->lyphplate ? lyphplate_to_json( e->lyphplate ) : NULL,
     "annots": annots,
-    "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints )
+    "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
+    "house": house
   );
 
   lyphnode_to_json_flags = old_LTJ_flags;

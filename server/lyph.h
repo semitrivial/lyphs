@@ -38,6 +38,7 @@ typedef struct LYPHNODE lyphnode;
 typedef struct LYPHNODE_WRAPPER lyphnode_wrapper;
 typedef struct LYPH lyph;
 typedef struct LYPH_WRAPPER lyph_wrapper;
+typedef struct LYPH_TO_JSON_DETAILS lyph_to_json_details;
 typedef struct EXIT_DATA exit_data;
 typedef struct LYPHSTEP lyphstep;
 typedef struct LYPHVIEW lyphview;
@@ -196,6 +197,12 @@ struct LYPH_WRAPPER
   lyph_wrapper *next;
 };
 
+struct LYPH_TO_JSON_DETAILS
+{
+  int show_annots;
+  lyph **buf;
+};
+
 struct ANNOT
 {
   trie *pred;
@@ -210,6 +217,9 @@ struct CLINICAL_INDEX
   trie *label;
   pubmed **pubmeds;
 };
+
+#define CLINICAL_INDEX_SEARCH_UNION 1
+#define CLINICAL_INDEX_SEARCH_IX 2
 
 struct PUBMED
 {
@@ -406,7 +416,7 @@ lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
 char *lyph_to_json( lyph *e );
-char *lyph_to_json_r( lyph *e, int *show_annots );
+char *lyph_to_json_r( lyph *e, lyph_to_json_details *details );
 char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );

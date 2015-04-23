@@ -746,3 +746,108 @@ HANDLER( handle_all_pubmeds_request )
 
   send_200_response( req, retval );
 }
+
+int has_some_clinical_index( lyph *e, clinical_index **cis )
+{
+  annot **a;
+
+  for ( a = e->annots; *a; a++ )
+  {
+    clinical_index **cptr;
+
+    for ( cptr = cis; *cptr; cptr++ )
+      if ( (*cptr)->index == (*a)->obj )
+        return 1;
+  }
+
+  return 0;
+}
+
+int has_all_clinical_indices( lyph *e, clinical_index **cis )
+{
+  clinical_index **cptr;
+
+  for ( cptr = cis; *cptr; cptr++ )
+  {
+    annot **a;
+
+    for ( a = e->annots; *a; a++ )
+      if ( (*a)->obj == (*cptr)->index )
+        break;
+
+    if ( !*a )
+      return 0;
+  }
+
+  return 1;
+}
+
+void calc_lyphs_with_indices( trie *t, lyph ***bptr, clinical_index **cis, int type )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+
+    if ( ( type == CLINICAL_INDEX_SEARCH_UNION && has_some_clinical_index( e, cis ) )
+    ||   ( type == CLINICAL_INDEX_SEARCH_IX && has_all_clinical_indices( e, cis ) ) )
+    {
+      (**bptr) = e;
+      (*bptr)++;
+    }
+  }
+
+  TRIE_RECURSE( calc_lyphs_with_indices( *child, bptr, cis, type ) );
+}
+
+HANDLER( handle_has_clinical_index_request )
+{
+  clinical_index **cis;
+  lyph **buf, **bptr;
+  lyph_to_json_details details;
+  char *cistr, *typestr, *err;
+  int cnt, type;
+
+  typestr = get_param( params, "type" );
+
+  if ( typestr )
+  {
+    if ( !strcmp( typestr, "union" ) )
+      type = CLINICAL_INDEX_SEARCH_UNION;
+    else if ( !strcmp( typestr, "intersection" ) )
+      type = CLINICAL_INDEX_SEARCH_IX;
+    else
+      HND_ERR( "'type' must be either 'union' or 'intersection'" );
+  }
+  else
+    type = CLINICAL_INDEX_SEARCH_UNION;
+
+  TRY_TWO_PARAMS( cistr, "index", "indices", "You did not specify a list of 'indices'" );
+
+  cis = (clinical_index **)PARSE_LIST( cistr, clinical_index_by_index, "clinical index", &err );
+
+  if ( !cis )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated clinical indices was unrecognized" );
+  }
+
+  cnt = count_nontrivial_members( lyph_ids );
+
+  CREATE( buf, lyph *, cnt + 1 );
+  bptr = buf;
+
+  calc_lyphs_with_indices( lyph_ids, &bptr, cis, type );
+
+  free( cis );
+
+  *bptr = NULL;
+
+  details.show_annots = 1;
+  details.buf = buf;
+
+  send_200_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
+
+  free( buf );
+}
