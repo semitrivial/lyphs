@@ -1378,3 +1378,46 @@ HANDLER( handle_has_template_request )
 
   free( buf );
 }
+
+int index_is_used( clinical_index *ci, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph *)t->data;
+    annot **a;
+
+    for ( a = e->annots; *a; a++ )
+      if ( (*a)->obj == ci->index )
+        return 1;
+  }
+
+  TRIE_RECURSE
+  (
+    if ( index_is_used( ci, *child ) )
+      return 1;
+  );
+
+  return 0;
+}
+
+HANDLER( handle_unused_indices_request )
+{
+  clinical_index *ci, **buf, **bptr;
+  int cnt = 0;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+    cnt++;
+
+  CREATE( buf, clinical_index *, cnt + 1 );
+  bptr = buf;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+    if ( !index_is_used( ci, lyph_ids ) )
+      *bptr++ = ci;
+
+  *bptr = NULL;
+
+  send_200_response( req, JS_ARRAY( clinical_index_to_json_full, buf ) );
+
+  free( buf );
+}

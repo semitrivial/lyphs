@@ -262,6 +262,7 @@ HANDLER( handle_instances_of_request );
 HANDLER( handle_involves_template_request );
 HANDLER( handle_has_template_request );
 HANDLER( handle_has_clinical_index_request );
+HANDLER( handle_unused_indices_request );
 HANDLER( handle_editlyph_request );
 HANDLER( handle_editlyphnode_request );
 HANDLER( handle_edit_template_request );

@@ -47,6 +47,7 @@ void init_command_table(void)
   add_handler( "involves_template", handle_involves_template_request, CMD_READONLY );
   add_handler( "has_template", handle_has_template_request, CMD_READONLY );
   add_handler( "has_clinical_index", handle_has_clinical_index_request, CMD_READONLY );
+  add_handler( "unused_indices", handle_unused_indices_request, CMD_READONLY );
   add_handler( "annotate", handle_annotate_request, CMD_READWRITE );
   add_handler( "editlyph", handle_editlyph_request, CMD_READWRITE );
   add_handler( "editlyphnode", handle_editlyphnode_request, CMD_READWRITE );
