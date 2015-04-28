@@ -29,7 +29,9 @@ void init_labels(FILE *fp)
   load_clinical_indices();
   load_annotations();
 
+#ifdef PRE_LAYER_CHANGE
   compute_lyphplate_hierarchy( lyphplate_ids );
+#endif
 
   return;
 }

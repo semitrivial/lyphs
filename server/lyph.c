@@ -1442,7 +1442,7 @@ void load_layer_material( char *subj_full, char *obj_full )
   if ( !lyr )
     return;
 
-  lyr->material = create_or_find_lyphplate( obj );
+  lyr->material = (lyphplate **)PARSE_LIST( obj, create_or_find_lyphplate, "template", NULL );
 }
 
 void load_layer_thickness( char *subj_full, char *obj )
@@ -1620,9 +1620,10 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
 
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes )
 {
-  char *lid = id_as_iri( lyr->id, NULL );
+  lyphplate **materials;
   trie *dupe_search;
-  char *mat_iri;
+  char *lid = id_as_iri( lyr->id, NULL );
+  int fFirst;
 
   fprintf( fp, "_:node%d <http://www.w3.org/1999/02/22-rdf-syntax-ns#_%d> %s .\n", bnodes, cnt, lid );
 
@@ -1636,9 +1637,18 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
 
   trie_strdup( lid, avoid_dupes );
 
-  mat_iri = id_as_iri( lyr->material->id, NULL );
-  fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> %s .\n", lid, mat_iri );
-  free( mat_iri );
+  fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> <http://open-physiology.org/lyphs/", lid );
+
+  for ( fFirst = 0, materials = lyr->material; *materials; materials++ )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
+  }
+  fprintf( fp, "> .\n" );
 
   if ( lyr->thickness != -1 )
     fprintf( fp, "%s <http://open-physiology.org/lyph#has_thickness> \"%d\" .\n", lid, lyr->thickness );
@@ -1675,8 +1685,10 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, char *name )
     L->layers = copy_layers( layers );
     L->ont_term = NULL;
     L->supers = NULL;
+#ifdef PRE_LAYER_CHANGE
     compute_lyphplate_hierarchy_one_lyphplate( L );
     add_lyphplate_as_super( L, lyphplate_ids );
+#endif
 
     save_lyphplates();
   }
@@ -1720,28 +1732,20 @@ int same_layers( layer **x, layer **y )
   }
 }
 
-layer *layer_by_description( char *mtid, int thickness )
+layer *layer_by_description( lyphplate **materials, int thickness )
 {
-  lyphplate *L = lyphplate_by_id( mtid );
   layer *lyr;
-
-  if ( !L )
-    return NULL;
 
   if ( thickness < 0 && thickness != -1 )
     return NULL;
 
-  lyr = layer_by_description_recurse( L, thickness, layer_ids );
+  CREATE( lyr, layer, 1 );
+  CREATE( lyr->material, lyphplate *, 2 );
+  lyr->material = materials;
+  lyr->id = assign_new_layer_id( lyr );
+  lyr->thickness = thickness;
 
-  if ( !lyr )
-  {
-    CREATE( lyr, layer, 1 );
-    lyr->material = L;
-    lyr->id = assign_new_layer_id( lyr );
-    lyr->thickness = thickness;
-
-    save_lyphplates();
-  }
+  save_lyphplates();
 
   return lyr;
 }
@@ -1779,28 +1783,16 @@ trie *assign_new_layer_id( layer *lyr )
 
 int layer_matches( layer *candidate, const lyphplate *material, const float thickness )
 {
-  if ( candidate->material != material )
+  if ( *candidate->material != material )
+    return 0;
+
+  if ( *candidate->material && candidate->material[1] )
     return 0;
 
   if ( thickness != -1 && thickness != candidate->thickness )
     return 0;
 
   return 1;
-}
-
-layer *layer_by_description_recurse( const lyphplate *L, const float thickness, const trie *t )
-{
-  if ( t->data && layer_matches( (layer *)t->data, L, thickness ) )
-      return (layer *)t->data;
-
-  TRIE_RECURSE
-  (
-    layer *lyr = layer_by_description_recurse( L, thickness, *child );
-    if ( lyr )
-      return lyr;
-  );
-
-  return NULL;
 }
 
 layer *layer_by_id( char *id )
@@ -1851,8 +1843,10 @@ lyphplate *lyphplate_by_id( char *id )
     L->layers = NULL;
     L->supers = NULL;
 
+#ifdef PRE_LAYER_CHANGE
     compute_lyphplate_hierarchy_one_lyphplate( L );
     add_lyphplate_as_super( L, lyphplate_ids );
+#endif
 
     L->id->data = (trie **)L;
     L->name->data = (trie **)L;
@@ -1952,6 +1946,15 @@ lyph *lyph_by_id( char *id )
   return NULL;
 }
 
+char *lyphplate_to_json_brief( lyphplate *L )
+{
+  return JSON
+  (
+    "id": trie_to_json( L->id ),
+    "name": trie_to_json( L->name )
+  );
+}
+
 char *lyphplate_to_json( lyphplate *L )
 {
   return JSON
@@ -1969,8 +1972,7 @@ char *layer_to_json( layer *lyr )
   return JSON
   (
     "id": trie_to_json( lyr->id ),
-    "mtlname": trie_to_json( lyr->material->name ),
-    "mtlid": trie_to_json( lyr->material->id ),
+    "materials": JS_ARRAY( lyphplate_to_json_brief, lyr->material ),
     "thickness": lyr->thickness == -1 ? "unspecified" : int_to_json( lyr->thickness )
   );
 }
@@ -2569,6 +2571,7 @@ lyphplate **parse_lyph_constraints( char *str )
 
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
 {
+#ifdef PRE_LAYER_CHANGE
   lyphplate **c;
 
   for ( c = e->constraints; *c; c++ )
@@ -2579,12 +2582,14 @@ int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
       return 0;
     }
   }
+#endif
 
   return 1;
 }
 
 int lyph_passes_filter( lyph *e, lyph_filter *f )
 {
+#ifdef PRE_LAYER_CHANGE
   if ( e->lyphplate )
     return is_superlyphplate( f->sup, e->lyphplate );
 
@@ -2600,6 +2605,9 @@ int lyph_passes_filter( lyph *e, lyph_filter *f )
 
     return 1;
   }
+#else
+  return 1;
+#endif
 }
 
 #define LYPHPLATE_ACCOUNTED_FOR 1
@@ -2611,9 +2619,11 @@ void populate_all_lyphplates_L( lyphplate ***bptr, lyphplate *L )
   if ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL )
   {
     layer **lyr;
+    lyphplate **materials;
 
     for ( lyr = L->layers; *lyr; lyr++ )
-      populate_all_lyphplates_L( bptr, (*lyr)->material );
+    for ( materials = (*lyr)->material; *materials; materials++ )
+      populate_all_lyphplates_L( bptr, *materials );
   }
 
   **bptr = L;

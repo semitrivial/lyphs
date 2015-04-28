@@ -1,5 +1,7 @@
 #include "lyph.h"
 
+#ifdef PRE_LAYER_CHANGE
+
 void add_lyphplate_to_wrappers( lyphplate *L, lyphplates_wrapper **head, lyphplates_wrapper **tail );
 void add_lyphplates_to_wrappers( lyphplate **L, lyphplates_wrapper **head, lyphplates_wrapper **tail );
 void add_ont_term_parents( trie *t, lyphplates_wrapper **head, lyphplates_wrapper **tail );
@@ -217,11 +219,6 @@ int is_superlayer( layer *sup, layer *sub )
   return 0;
 }
 
-char *lyphplate_to_shallow_json( lyphplate *L )
-{
-  return trie_to_json( L->id );
-}
-
 /*
  * add_lyphplate_as_super is for adding a new lyphplate to the hierarchy when it is
  * first created (as opposed to when it is loaded).
@@ -429,6 +426,12 @@ void recalculate_lyphplate_hierarchy( void )
 {
   clear_lyphplate_hierarchy( lyphplate_ids );
   compute_lyphplate_hierarchy( lyphplate_ids );
+}
+#endif
+
+char *lyphplate_to_shallow_json( lyphplate *L )
+{
+  return trie_to_json( L->id );
 }
 
 #define LYPHNODE_DEFINITELY_IN_LYPH 1

@@ -131,7 +131,7 @@ struct LYPHPLATES_WRAPPER
 
 struct LAYER
 {
-  lyphplate *material;
+  lyphplate **material;
   int thickness;
   trie *id;
 };
@@ -394,17 +394,6 @@ void free_ambigs( ambig *head );
 char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible_error );
 
 /*
- * hier.c
- */
-void compute_lyphplate_hierarchy_one_lyphplate( lyphplate *L );
-void add_lyphplate_as_super( lyphplate *sup, trie *t );
-int is_superlyphplate( lyphplate *sup, lyphplate *sub );
-lyphplate **get_sublyphplates( lyphplate *L, int direct );
-void remove_lyphplate_as_super( lyphplate *L, trie *t );
-void recalculate_lyphplate_hierarchy( void );
-void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
-
-/*
  * lyph.c
  */
 lyphplate *lyphplate_by_name( char *name );
@@ -420,8 +409,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details );
 char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
-layer *layer_by_description( char *mtid, int thickness );
-layer *layer_by_description_recurse( const lyphplate *L, const float thickness, const trie *t );
+layer *layer_by_description( lyphplate **materials, int thickness );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( char *id );
@@ -484,6 +472,11 @@ lyphplate **get_all_lyphplates( void );
 void free_lyphnode_wrappers( lyphnode_wrapper *head );
 lyph *get_lyph_location( lyph *e );
 lyphnode *blank_lyphnode( void );
+
+/*
+ * hier.c
+ */
+void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
 
 /*
  * meta.c

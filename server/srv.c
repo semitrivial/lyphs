@@ -922,7 +922,11 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 
       for ( pptr = p; *pptr; pptr++ )
       {
+#ifdef PRE_LAYER_CHANGE
         if ( (*pptr)->lyphplate && !is_superlyphplate( L, (*pptr)->lyphplate ) )
+#else
+        if ( 0 )
+#endif
         {
           if ( f )
             free( f );
@@ -1446,9 +1450,10 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
 HANDLER( handle_makelayer_request )
 {
-  char *mtid, *thickstr;
-  int thickness;
   layer *lyr;
+  lyphplate **materials;
+  char *mtid, *thickstr, *err;
+  int thickness;
 
   TRY_PARAM( mtid, "material", "No material specified for layer" );
 
@@ -1459,16 +1464,27 @@ HANDLER( handle_makelayer_request )
   else
     thickness = -1;
 
-  lyr = layer_by_description( mtid, thickness );
+  materials = (lyphplate **)PARSE_LIST( mtid, lyphplate_by_id, "template", &err );
+
+  if ( !materials )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated templates was unrecognized" );
+  }
+
+  lyr = layer_by_description( materials, thickness );
 
   if ( !lyr )
-    HND_ERR( "Invalid material id specified for layer" );
+    HND_ERR( "Invalid layer" );
 
   send_200_response( req, layer_to_json( lyr ) );
 }
 
 HANDLER( handle_lyphconstrain_request )
 {
+#ifdef PRE_LAYER_CHANGE
   lyph *e;
   lyphplate *L, **c;
   char *lyphid, *tmpltid;
@@ -1508,6 +1524,9 @@ HANDLER( handle_lyphconstrain_request )
   save_lyphs();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
+#else
+  send_200_response( req, JSON1( "Response": "Temporarily disabled" ) );
+#endif
 }
 
 HANDLER( handle_assign_template_request )
@@ -1769,7 +1788,11 @@ HANDLER( handle_all_templates_request )
 
 HANDLER( handle_template_hierarchy_request )
 {
+#ifdef PRE_LAYER_CHANGE
   send_200_response( req, lyphplate_hierarchy_to_json() );
+#else
+  send_200_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
+#endif
 }
 
 HANDLER( handle_all_ont_terms_request )
@@ -1799,6 +1822,7 @@ HANDLER( handle_all_lyphviews_request )
 
 HANDLER( handle_subtemplates_request )
 {
+#ifdef PRE_LAYER_CHANGE
   lyphplate *L, **subs;
   char *tmpltstr, *directstr;
   int direct;
@@ -1829,6 +1853,9 @@ HANDLER( handle_subtemplates_request )
   send_200_response( req, JS_ARRAY( lyphplate_to_json, subs ) );
 
   free( subs );
+#else
+  send_200_response( req, JSON1( "Response": "Temporarily disabled" ) );
+#endif
 }
 
 HANDLER( handle_all_lyphnodes_request )

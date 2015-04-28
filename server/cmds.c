@@ -108,10 +108,14 @@ HANDLER( handle_editlyph_request )
 
   if ( constraintstr )
   {
+#ifdef PRE_LAYER_CHANGE
     constraint = lyphplate_by_id( constraintstr );
 
     if ( !constraint )
       HND_ERR( "The indicated constraint was not found in the database." );
+#else
+    HND_ERR( "Constraints are temporarily disabled due to change in layer structure" );
+#endif
   }
   else
     constraint = NULL;
@@ -140,6 +144,7 @@ HANDLER( handle_editlyph_request )
   else
     to = NULL;
 
+#ifdef PRE_LAYER_CHANGE
   if ( L && constraint )
   {
     if ( !is_superlyphplate( constraint, L ) )
@@ -158,6 +163,7 @@ HANDLER( handle_editlyph_request )
     if ( e->lyphplate && !is_superlyphplate( constraint, e->lyphplate ) )
       HND_ERR( "The lyph's template is not a subtemplate of the indicated constraint" );
   }
+#endif
 
   if ( namestr )
   {
@@ -295,8 +301,10 @@ HANDLER( handle_edit_template_request )
     L->ont_term = ont;
   }
 
+#ifdef PRE_LAYER_CHANGE
   if ( fQualitativeChange )
     recalculate_lyphplate_hierarchy();
+#endif
 
   save_lyphplates();
 
@@ -333,7 +341,7 @@ HANDLER( handle_editview_request )
 HANDLER( handle_editlayer_request )
 {
   layer *lyr;
-  lyphplate *mat;
+  lyphplate **mat;
   char *lyrstr, *matstr, *thkstr;
   int thk, fQualitativeChange = 0;
 
@@ -345,16 +353,6 @@ HANDLER( handle_editlayer_request )
     HND_ERR( "The indicated layer was not found in the database" );
 
   matstr = get_param( params, "material" );
-
-  if ( matstr )
-  {
-    mat = lyphplate_by_id( matstr );
-
-    if ( !mat )
-      HND_ERR( "The indicated material was not found in the database" );
-  }
-  else
-    mat = NULL;
 
   thkstr = get_param( params, "thickness" );
 
@@ -368,6 +366,23 @@ HANDLER( handle_editlayer_request )
   else
     thk = -1;
 
+  if ( matstr )
+  {
+    char *err;
+
+    mat = (lyphplate **)PARSE_LIST( matstr, lyphplate_by_id, "template", &err );
+
+    if ( !mat )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated templates was not recognized" );
+    }
+  }
+  else
+    mat = NULL;
+
   if ( mat )
   {
     fQualitativeChange = 1;
@@ -380,8 +395,10 @@ HANDLER( handle_editlayer_request )
     lyr->thickness = thk;
   }
 
+#ifdef PRE_LAYER_CHANGE
   if ( fQualitativeChange )
     recalculate_lyphplate_hierarchy();
+#endif
 
   save_lyphplates();
 
@@ -715,9 +732,11 @@ int spread_lyphplate_doom( trie *t )
     && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
     {
       layer **lyr;
+      lyphplate **materials;
 
       for ( lyr = L->layers; *lyr; lyr++ )
-        if ( (*lyr)->material->flags == LYPHPLATE_BEING_DELETED )
+      for ( materials = (*lyr)->material; *materials; materials++ )
+        if ( (*materials)->flags == LYPHPLATE_BEING_DELETED )
           break;
 
       if ( *lyr )
@@ -733,6 +752,17 @@ int spread_lyphplate_doom( trie *t )
   return fMatch;
 }
 
+int layer_has_doomed_material( layer *lyr )
+{
+  lyphplate **materials;
+
+  for ( materials = lyr->material; *materials; materials++ )
+    if ( (*materials)->flags == LYPHPLATE_BEING_DELETED )
+      return 1;
+
+  return 0;
+}
+
 void delete_doomed_layers( trie *t )
 {
   if ( t->data )
@@ -740,7 +770,7 @@ void delete_doomed_layers( trie *t )
     layer *lyr = (layer *)t->data;
 
     if ( lyr->thickness == LAYER_BEING_DELETED_THICKNESS
-    ||   lyr->material->flags == LYPHPLATE_BEING_DELETED )
+    ||   layer_has_doomed_material( lyr ) )
     {
       t->data = NULL;
       free( lyr );
@@ -815,7 +845,9 @@ HANDLER( handle_delete_templates_request )
 
   save_lyphplates();
 
+#ifdef PRE_LAYER_CHANGE
   recalculate_lyphplate_hierarchy();
+#endif
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -943,7 +975,9 @@ HANDLER( handle_delete_layers_request )
 
   save_lyphplates();
 
+#ifdef PRE_LAYER_CHANGE
   recalculate_lyphplate_hierarchy();
+#endif
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -1038,9 +1072,11 @@ int template_involves( lyphplate *L, lyphplate *part )
       case LYPHPLATE_MIX:
       {
         layer **lyr;
+        lyphplate **materials;
 
         for ( lyr = L->layers; *lyr; lyr++ )
-          if ( template_involves( (*lyr)->material, part ) )
+        for ( materials = (*lyr)->material; *materials; materials++ )
+          if ( template_involves( *materials, part ) )
             break;
 
         if ( *lyr )
@@ -1123,6 +1159,7 @@ HANDLER( handle_involves_template_request )
 
 void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
 {
+#ifdef PRE_LAYER_CHANGE
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
@@ -1140,10 +1177,12 @@ void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, 
   }
 
   TRIE_RECURSE( find_instances_of( L, head, tail, cnt, *child ) );
+#endif
 }
 
 HANDLER( handle_instances_of_request )
 {
+#ifdef PRE_LAYER_CHANGE
   lyphplate *L;
   lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
   lyph **buf, **bptr;
@@ -1179,6 +1218,9 @@ HANDLER( handle_instances_of_request )
   ) );
 
   free( buf );
+#else
+  send_200_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
+#endif
 }
 
 HANDLER( handle_nodes_from_view_request )
