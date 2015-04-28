@@ -304,6 +304,12 @@ HANDLER( handle_edit_template_request )
 #ifdef PRE_LAYER_CHANGE
   if ( fQualitativeChange )
     recalculate_lyphplate_hierarchy();
+#else
+  /*
+   * Suppress warning about fQualitativeChange being set but not used
+   */
+  if ( fQualitativeChange && 0 )
+    printf( "..." );
 #endif
 
   save_lyphplates();
@@ -398,6 +404,12 @@ HANDLER( handle_editlayer_request )
 #ifdef PRE_LAYER_CHANGE
   if ( fQualitativeChange )
     recalculate_lyphplate_hierarchy();
+#else
+  /*
+   * Suppress compiler warning about variable being set and never used
+   */
+  if ( fQualitativeChange && 0 )
+    printf( "..." );
 #endif
 
   save_lyphplates();
