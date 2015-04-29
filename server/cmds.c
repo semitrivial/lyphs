@@ -219,9 +219,9 @@ HANDLER( handle_editlyph_request )
 
 HANDLER( handle_edit_template_request )
 {
-  lyphplate *L;
+  lyphplate *L, **misc_mats;
   trie *ont;
-  char *tmpltstr, *namestr, *typestr, *ontstr;
+  char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr;
   int type, fQualitativeChange = 0;
 
   TRY_PARAM( tmpltstr, "template", "You did not specify which template to edit" );
@@ -233,6 +233,7 @@ HANDLER( handle_edit_template_request )
 
   namestr = get_param( params, "name" );
   typestr = get_param( params, "type" );
+  miscstr = get_param( params, "misc_materials" );
 
   if ( typestr )
   {
@@ -281,6 +282,26 @@ HANDLER( handle_edit_template_request )
   }
   else
     ont = NULL;
+
+  if ( miscstr )
+  {
+    char *err;
+
+    misc_mats = (lyphplate **)PARSE_LIST( miscstr, lyphplate_by_id, "template", &err );
+
+    if ( !misc_mats )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated templates was not recognized" );
+    }
+
+    free( L->misc_material );
+
+    L->misc_material = misc_mats;
+    fQualitativeChange = 1;
+  }
 
   if ( namestr )
   {
@@ -1067,6 +1088,7 @@ int template_involves( lyphplate *L, lyphplate *part )
     return 0;
   else
   {
+    lyphplate **misc_mats;
     int answer;
 
     if ( L == part )
@@ -1075,6 +1097,13 @@ int template_involves( lyphplate *L, lyphplate *part )
       return 1;
     }
 
+    for ( misc_mats = L->misc_material; *misc_mats; misc_mats++ )
+      if ( template_involves( *misc_mats, part ) )
+        break;
+
+    if ( *misc_mats )
+      answer = 1;
+    else
     switch( L->type )
     {
       case LYPHPLATE_BASIC:
@@ -1089,7 +1118,9 @@ int template_involves( lyphplate *L, lyphplate *part )
         for ( lyr = L->layers; *lyr; lyr++ )
         for ( materials = (*lyr)->material; *materials; materials++ )
           if ( template_involves( *materials, part ) )
-            break;
+            goto template_involves_escape_tag;
+
+        template_involves_escape_tag:
 
         if ( *lyr )
           answer = 1;

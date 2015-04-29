@@ -1581,11 +1581,11 @@ HANDLER( handle_assign_template_request )
 
 HANDLER( handle_maketemplate_request )
 {
-  char *name, *typestr;
-  int type, lcnt;
+  lyphplate *L, **misc_mats;
   static layer **lyrs;
   layer **lptr;
-  lyphplate *L;
+  char *name, *typestr, *miscstr;
+  int type, lcnt;
 
   if ( !lyrs )
     CREATE( lyrs, layer *, MAX_URL_PARAMS + 2 );
@@ -1631,10 +1631,34 @@ HANDLER( handle_maketemplate_request )
 
   *lptr = NULL;
 
-  L = lyphplate_by_layers( type, lyrs, name );
+  miscstr = get_param( params, "misc_materials" );
+
+  if ( miscstr )
+  {
+    char *err;
+
+    misc_mats = (lyphplate **)PARSE_LIST( miscstr, lyphplate_by_id, "template", &err );
+
+    if ( !misc_mats )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated templates was unrecognized" );
+    }
+  }
+  else
+    misc_mats = NULL;
+
+  L = lyphplate_by_layers( type, lyrs, misc_mats, name );
 
   if ( !L )
+  {
+    if ( misc_mats )
+      free( misc_mats );
+
     HND_ERR( "Could not create the desired template" );
+  }
 
   send_200_response( req, lyphplate_to_json( L ) );
 }

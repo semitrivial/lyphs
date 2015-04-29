@@ -1270,6 +1270,8 @@ void got_lyphplate_triple( char *subj, char *pred, char *obj )
     load_lyphplate_label( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#lyph_type" ) )
     load_lyphplate_type( s, o );
+  else if ( !strcmp( p, "http://open-physiology.org/lyph#misc_materials" ) )
+    load_misc_materials( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#ont_term" ) )
     load_ont_term( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_layers" ) )
@@ -1308,6 +1310,22 @@ void load_ont_term( char *subj_full, char *ont_term_str )
   ((lyphplate*)iri->data)->ont_term = ont_term;
 }
 
+void load_misc_materials( char *subj_full, char *misc_materials_str )
+{
+  lyphplate *L;
+  char *subj = get_url_shortform( subj_full );
+  trie *iri;
+
+  iri = trie_search( subj, lyphplate_ids );
+
+  if ( !iri )
+    return;
+
+  L = (lyphplate *)iri->data;
+
+  L->misc_material = (lyphplate **) strdup( misc_materials_str );
+}
+
 void load_lyphplate_type( char *subj_full, char *type_str )
 {
   char *subj = get_url_shortform( subj_full );
@@ -1341,6 +1359,7 @@ void load_lyphplate_label( char *subj_full, char *label )
       CREATE( L, lyphplate, 1 );
       L->id = iri;
       L->type = LYPHPLATE_MISSING;
+      L->misc_material = NULL;
       L->layers = NULL;
       L->supers = NULL;
       L->subs = NULL;
@@ -1424,6 +1443,7 @@ lyphplate *create_or_find_lyphplate( char *id )
   L->id = trie_strdup( id, lyphplate_ids );
   L->id->data = (void *)L;
   L->type = LYPHPLATE_MISSING;
+  L->misc_material = NULL;
   L->layers = NULL;
   L->supers = NULL;
   L->subs = NULL;
@@ -1459,6 +1479,38 @@ void load_layer_thickness( char *subj_full, char *obj )
   lyr->thickness = strtol( obj, NULL, 10 );
 }
 
+void handle_loading_misc_materials( trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate *)t->data;
+
+    if ( L->misc_material )
+    {
+      lyphplate **misc_mats;
+      char *miscstr = (char*) L->misc_material;
+
+      misc_mats = (lyphplate**)PARSE_LIST( miscstr, lyphplate_by_id, "template", NULL );
+      free( miscstr );
+
+      if ( misc_mats )
+        L->misc_material = misc_mats;
+      else
+      {
+        CREATE( L->misc_material, lyphplate *, 1 );
+        L->misc_material[0] = NULL;
+      }
+    }
+    else
+    {
+      CREATE( L->misc_material, lyphplate *, 1 );
+      L->misc_material[0] = NULL;
+    }
+  }
+
+  TRIE_RECURSE( handle_loading_misc_materials( *child ) );
+}
+
 void load_lyphplates(void)
 {
   FILE *fp;
@@ -1483,7 +1535,9 @@ void load_lyphplates(void)
 
   handle_loaded_layers( blank_nodes );
 
-  if ( (naked=missing_layers( lyph_ids )) != NULL )
+  handle_loading_misc_materials( lyphplate_ids );
+
+  if ( (naked=missing_layers( lyphplate_ids )) != NULL )
   {
     error_message( strdupf( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) ) );
     EXIT();
@@ -1595,6 +1649,26 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
     free( ch );
 
+    if ( L->misc_material && *L->misc_material )
+    {
+      lyphplate **materials;
+      int fFirst = 0;
+
+      fprintf( fp, "%s <http://open-physiology.org/lyph#misc_materials> \"", id );
+
+      for ( materials = L->misc_material; *materials; materials++ )
+      {
+        if ( fFirst )
+          fprintf( fp, "," );
+        else
+          fFirst = 1;
+
+        fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
+      }
+
+      fprintf( fp, "\" .\n" );
+    }
+
     fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyphplate_type_as_char( L ) );
 
     if ( L->ont_term )
@@ -1664,57 +1738,40 @@ char *id_as_iri( trie *id, char *prefix )
     return strdupf( "<http://open-physiology.org/lyphs/#%s>", trie_to_static(id) );
 }
 
-lyphplate *lyphplate_by_layers( int type, layer **layers, char *name )
+lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name )
 {
   lyphplate *L;
 
   if ( type == LYPHPLATE_MIX )
     sort_layers( layers );
 
-  L = lyphplate_by_layers_recurse( type, layers, lyphplate_ids );
+  if ( !name )
+    return NULL;
 
-  if ( !L )
+  CREATE( L, lyphplate, 1 );
+  L->name = trie_strdup( name, lyphplate_names );
+  L->id = assign_new_lyphplate_id( L );
+  L->type = type;
+  L->layers = copy_layers( layers );
+  L->ont_term = NULL;
+  L->supers = NULL;
+
+  if ( misc_material )
+    L->misc_material = misc_material;
+  else
   {
-    if ( !name )
-      return NULL;
+    CREATE( L->misc_material, lyphplate *, 1 );
+    L->misc_material[0] = NULL;
+  }
 
-    CREATE( L, lyphplate, 1 );
-    L->name = trie_strdup( name, lyphplate_names );
-    L->id = assign_new_lyphplate_id( L );
-    L->type = type;
-    L->layers = copy_layers( layers );
-    L->ont_term = NULL;
-    L->supers = NULL;
 #ifdef PRE_LAYER_CHANGE
-    compute_lyphplate_hierarchy_one_lyphplate( L );
-    add_lyphplate_as_super( L, lyphplate_ids );
+  compute_lyphplate_hierarchy_one_lyphplate( L );
+  add_lyphplate_as_super( L, lyphplate_ids );
 #endif
 
-    save_lyphplates();
-  }
+  save_lyphplates();
 
   return L;
-}
-
-lyphplate *lyphplate_by_layers_recurse( int type, layer **layers, trie *t )
-{
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
-
-    if ( L->type == type && same_layers( L->layers, layers ) )
-      return L;
-  }
-
-  TRIE_RECURSE
-  (
-    lyphplate *L = lyphplate_by_layers_recurse( type, layers, *child );
-
-    if ( L )
-      return L;
-  );
-
-  return NULL;
 }
 
 int same_layers( layer **x, layer **y )
@@ -1843,6 +1900,9 @@ lyphplate *lyphplate_by_id( char *id )
     L->layers = NULL;
     L->supers = NULL;
 
+    CREATE( L->misc_material, lyphplate *, 1 );
+    L->misc_material[0] = NULL;
+
 #ifdef PRE_LAYER_CHANGE
     compute_lyphplate_hierarchy_one_lyphplate( L );
     add_lyphplate_as_super( L, lyphplate_ids );
@@ -1963,7 +2023,8 @@ char *lyphplate_to_json( lyphplate *L )
     "name": trie_to_json( L->name ),
     "type": lyphplate_type_as_char( L ),
     "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
-    "layers": JS_ARRAY( layer_to_json, L->layers )
+    "layers": JS_ARRAY( layer_to_json, L->layers ),
+    "misc_material": JS_ARRAY( lyphplate_to_json_brief, L->misc_material )
   );
 }
 

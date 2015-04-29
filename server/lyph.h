@@ -102,13 +102,14 @@ struct AMBIG
 
 struct LYPHPLATE
 {
+  lyphplate **misc_material;
+  lyphplate **supers;
+  lyphplate **subs;
+  layer **layers;
+  trie *ont_term;
   trie *name;
   trie *id;
   int type;
-  layer **layers;
-  lyphplate **supers;
-  lyphplate **subs;
-  trie *ont_term;
   int flags;
 };
 
@@ -415,8 +416,7 @@ lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( char *id );
 lyph *lyph_by_template_or_id( char *id );
 trie *assign_new_layer_id( layer *lyr );
-lyphplate *lyphplate_by_layers( int type, layer **layers, char *name );
-lyphplate *lyphplate_by_layers_recurse( int type, layer **layers, trie *t );
+lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name );
 int same_layers( layer **x, layer **y );
 layer **copy_layers( layer **src );
 void sort_layers( layer **layers );
@@ -428,6 +428,7 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
 void load_lyphplates( void );
 int parse_lyphplate_type( char *str );
 void load_lyphplate_label( char *subj_full, char *label );
+void load_misc_materials( char *subj_full, char *misc_materials_str );
 void load_lyphplate_type( char *subj_full, char *type_str );
 void acknowledge_has_layers( char *subj_full, char *bnode_id );
 void load_layer_material( char *subj_full, char *obj_full );
