@@ -2024,7 +2024,7 @@ char *lyphplate_to_json( lyphplate *L )
     "type": lyphplate_type_as_char( L ),
     "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
     "layers": JS_ARRAY( layer_to_json, L->layers ),
-    "misc_material": JS_ARRAY( lyphplate_to_json_brief, L->misc_material )
+    "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material )
   );
 }
 
