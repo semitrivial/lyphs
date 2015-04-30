@@ -107,6 +107,9 @@ while(0)
 #define GET_NUMBERED_ARGS( params, base, fnc, err, size )\
         get_numbered_args( (params), (base), (char * (*) (void*))(fnc), (err), (size) )
 
+#define GET_NUMBERED_ARGS_R( params, base, fnc, data, err, size )\
+        get_numbered_args_r( (params), (base), (char * (*) (void*,void*))(fnc), (void*)data, (err), (size) )
+
 /*
  * Structures
  */
@@ -225,6 +228,7 @@ command_entry *lookup_command( char *cmd );
  * cmds.c
  */
 void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size );
+void **get_numbered_args_r( url_param **params, char *base, char * (*fnc) (void *, void *), void *data, char **err, int *size );
 void save_annotations( void );
 
 /*

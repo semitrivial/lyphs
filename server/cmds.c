@@ -57,7 +57,7 @@ HANDLER( handle_editlyphnode_request )
 
 HANDLER( handle_editlyph_request )
 {
-  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr;
+  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr, *speciesstr;
   char *err = NULL;
   lyph *e;
   lyphnode *from, *to;
@@ -211,6 +211,11 @@ HANDLER( handle_editlyph_request )
     change_dest_of_exit( e, to, e->from->exits );
     e->to = to;
   }
+
+  speciesstr = get_param( params, "species" );
+
+  if ( speciesstr )
+    e->species = trie_strdup( speciesstr, metadata );
 
   save_lyphs();
 
@@ -1356,7 +1361,7 @@ HANDLER( handle_nodes_from_view_request )
   #undef LYPHNODE_TO_BE_REMOVED
 }
 
-void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size )
+void **get_numbered_args_( url_param **params, char *base, char * (*non_reentrant) (void *), char * (*reentrant) (void *, void *), void *data, char **err, int *size )
 {
   static void **buf, **vals;
   void **bptr, **retval;
@@ -1387,11 +1392,16 @@ void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *)
 
   bptr = buf;
 
-  if ( fnc )
+  if ( non_reentrant || reentrant )
   {
     for ( i = 1; vals[i]; i++ )
     {
-      void *x = (*fnc)(vals[i]);
+      void *x;
+
+      if ( non_reentrant )
+        x = (*non_reentrant)(vals[i]);
+      else
+        x = (*reentrant)(vals[i],data);
 
       if ( !x )
       {
@@ -1419,6 +1429,16 @@ void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *)
     *size = cnt;
 
   return retval;
+}
+
+void **get_numbered_args( url_param **params, char *base, char * (*fnc) (void *), char **err, int *size )
+{
+  return get_numbered_args_( params, base, fnc, NULL, NULL, err, size );
+}
+
+void **get_numbered_args_r( url_param **params, char *base, char * (*fnc) (void *, void *), void *data, char **err, int *size )
+{
+  return get_numbered_args_( params, base, NULL, fnc, data, err, size );
 }
 
 void find_lyphs_with_template( lyphplate *L, lyph ***bptr, trie *t )

@@ -695,6 +695,7 @@ void load_lyphviews( void )
               e->id = lyphtr;
               lyphtr->data = (trie **)e;
               e->flags = 0;
+              e->species = NULL;
 
               CREATE( e->constraints, lyphplate *, 1 );
               e->constraints[0] = NULL;
@@ -947,6 +948,9 @@ void save_lyphs_recurse( trie *t, FILE *fp )
     if ( *e->constraints )
       fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
 
+    if ( e->species )
+      fprintf( fp, "species:%s ", trie_to_static( e->species ) );
+
     fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
   }
 
@@ -1072,6 +1076,7 @@ int load_lyphs_one_line( char *line, char **err )
     CREATE( e, lyph, 1 );
     e->id = etr;
     e->flags = 0;
+    e->species = NULL;
     etr->data = (trie **)e;
 
     maybe_update_top_id( &top_lyph_id, lyphidbuf );
@@ -1177,6 +1182,9 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
 
   if ( parse_name_preamble( &namebuf, "constraints:", &preamble ) )
     e->constraints = parse_lyph_constraints( preamble );
+
+  if ( parse_name_preamble( &namebuf, "species:", &preamble ) )
+    e->species = trie_strdup( preamble, metadata );
 
   if ( !strcmp( namebuf, "(noname)" ) )
     return NULL;
@@ -1958,7 +1966,7 @@ lyph *lyph_by_template( trie *t, lyphplate *L )
   return NULL;
 }
 
-lyph *lyph_by_template_or_id( char *id )
+lyph *lyph_by_template_or_id( char *id, char *species )
 {
   lyph *e = lyph_by_id( id );
   lyphplate *L;
@@ -1986,7 +1994,7 @@ lyph *lyph_by_template_or_id( char *id )
   else
     namestr = "none";
 
-  e = make_lyph( 1, from, to, L, NULL, namestr );
+  e = make_lyph( 1, from, to, L, NULL, namestr, species );
 
   /*
    * To do: pass this work upward to avoid duplicated effort
@@ -2143,11 +2151,6 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     house = json_suppressed;
   }
 
-  if ( details && details->show_annots )
-    annots = JS_ARRAY( annot_to_json, e->annots );
-  else
-    annots = json_suppressed;
-
   retval = JSON
   (
     "id": trie_to_json( e->id ),
@@ -2159,7 +2162,8 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "template": e->lyphplate ? lyphplate_to_json( e->lyphplate ) : NULL,
     "annots": annots,
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
-    "house": house
+    "house": house,
+    "species": e->species ? trie_to_json( e->species ) : json_suppressed
   );
 
   lyphnode_to_json_flags = old_LTJ_flags;
@@ -2419,7 +2423,7 @@ trie *new_lyphnode_id(lyphnode *n)
   return id;
 }
 
-lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr )
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *speciesstr )
 {
   trie *fma;
   lyph *e;
@@ -2441,6 +2445,11 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   e->lyphplate = L;
   e->fma = fma;
   e->flags = 0;
+
+  if ( speciesstr )
+    e->species = trie_strdup( speciesstr, metadata );
+  else
+    e->species = NULL;
 
   CREATE( e->constraints, lyphplate *, 1 );
   e->constraints[0] = NULL;

@@ -1088,7 +1088,7 @@ HANDLER( handle_makelyph_request )
   else
     L = NULL;
 
-  e = make_lyph( type, from, to, L, fmastr, namestr );
+  e = make_lyph( type, from, to, L, fmastr, namestr, get_param( params, "species" ) );
 
   if ( !e )
     HND_ERR( "The lyph could not be created (out of memory?)" );
@@ -1121,7 +1121,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   lyphnode **nodes, **nptr;
   lyph **lyphs, **lptr;
   lv_rect **rptr;
-  char *namestr, *err = NULL;
+  char *namestr, *speciesstr, *err = NULL;
   char **xs=NULL, **ys=NULL, **lxs=NULL, **lys=NULL, **widths=NULL, **heights=NULL;
   char **xsptr, **ysptr, **lxsptr, **lysptr, **wptr, **hptr;
   int nodect, lyphct, xct, yct, lxct, lyct, widthct, heightct;
@@ -1172,7 +1172,9 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     }
   }
 
-  lyphs = (lyph**) GET_NUMBERED_ARGS( params, "lyph", lyph_by_template_or_id, &err, &lyphct );
+  speciesstr = get_param( params, "species" );
+
+  lyphs = (lyph**) GET_NUMBERED_ARGS_R( params, "lyph", lyph_by_template_or_id, speciesstr, &err, &lyphct );
 
   if ( !lyphs )
   {

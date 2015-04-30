@@ -177,6 +177,7 @@ struct LYPH
 {
   trie *id;
   trie *name;
+  trie *species;
   int type;
   int flags;
   lyphnode *from;
@@ -414,7 +415,7 @@ layer *layer_by_description( lyphplate **materials, int thickness );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( char *id );
-lyph *lyph_by_template_or_id( char *id );
+lyph *lyph_by_template_or_id( char *id, char *species );
 trie *assign_new_layer_id( layer *lyr );
 lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name );
 int same_layers( layer **x, layer **y );
@@ -455,7 +456,7 @@ void save_lyphviews( void );
 void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
 lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs, char **lxs, char **lys, char **widths, char **heights, char *name );
-lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr );
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *speciesstr );
 lyphnode *make_lyphnode( void );
 void compute_lyphplate_hierarchy( trie *t );
 lyphplate *lyphplate_by_ont_term( trie *term );
