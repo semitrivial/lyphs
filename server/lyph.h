@@ -403,6 +403,7 @@ lyphplate *lyphplate_by_id( char *id );
 char *lyphplate_to_json( lyphplate *L );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
+char *annot_to_json( annot *a );
 lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );

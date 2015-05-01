@@ -340,6 +340,7 @@ char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
     "y": rect->y,
     "width": rect->width,
     "height": rect->height,
+    "annots": JS_ARRAY( annot_to_json, rect->L->annots ),
     "location": lyph_relative_loc_to_json_v( rect->L, v )
   );
 }
