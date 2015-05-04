@@ -182,7 +182,7 @@ struct LYPH
   int flags;
   lyphnode *from;
   lyphnode *to;
-  lyphplate *lyphplate;
+  lyphplate *template;
   lyphplate **constraints;
   annot **annots;
   trie *fma;
