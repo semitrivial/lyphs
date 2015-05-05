@@ -137,18 +137,12 @@ HANDLER( handle_annotate_request )
   TRY_TWO_PARAMS( lyphstr, "lyphs", "lyph", "You did not specify which lyphs to annotate" );
 
   TRY_PARAM( annotstr, "annot", "You did not specify (using the 'annot' parameter) what to annotate the lyphs by" );
+  TRY_PARAM( pubmedstr, "pubmed", "You did not specify (using the 'pubmed' parameter) which pubmed ID" );
 
-  pubmedstr = get_param( params, "pubmed" );
+  pubmed = pubmed_by_id( pubmedstr );
 
-  if ( pubmedstr )
-  {
-    pubmed = pubmed_by_id( pubmedstr );
-
-    if ( !pubmed )
-      HND_ERR( "The indicated pubmed ID was not found" );
-  }
-  else
-    pubmed = NULL;
+  if ( !pubmed )
+    HND_ERR( "The indicated pubmed ID was not found" );
 
   predstr = get_param( params, "pred" );
 
