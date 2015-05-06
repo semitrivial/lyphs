@@ -201,6 +201,8 @@ while(0)
 
 #define EXIT() do exit(EXIT_SUCCESS); while(0)
 
-#define PARSE_LIST( list, fnc, name, err ) parse_list( (list), (char * (*) (void*))(fnc), (name), (err) )
+#define PARSE_LIST( list, fnc, name, err ) parse_list( (list), (void * (*) (char*))(fnc), (name), (err) )
+
+#define PARSE_LIST_R( list, fnc, data, name, err ) parse_list_r( (list), (void * (*) (char*,void*))(fnc), (void*)(data), (name), (err) );
 
 #endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD

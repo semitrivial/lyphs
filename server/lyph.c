@@ -2121,7 +2121,7 @@ char *annot_to_json( annot *a )
   (
     "pred": trie_to_json( a->pred ),
     "obj": trie_to_json( a->obj ),
-    "pubmed": pubmed_to_json_brief( a->pubmed )
+    "pubmed": pubmed_to_json_full( a->pubmed )
   );
 }
 

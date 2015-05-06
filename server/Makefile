@@ -1,6 +1,6 @@
 CC = gcc
 FLAGS = -Wall -g
-DEPS = lyph.h srv.h jsonfmt.h jsonfmt_internal.h mallocf.h
+DEPS = lyph.h srv.h jsonfmt.h jsonfmt_internal.h mallocf.h macro.h
 
 all: lyph
 

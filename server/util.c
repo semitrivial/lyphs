@@ -382,7 +382,7 @@ int copy_file( char *dest_ch, char *src_ch )
   return 1;
 }
 
-void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
+void **parse_list_worker( char *list, void * (*non_reentrant) (char *), void * (*reentrant) (char *, void *), void *data, char *name, char **err )
 {
   void **buf, **bptr;
   char *left, *ptr;
@@ -403,7 +403,11 @@ void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
         fEnd = 1;
       case ',':
         *ptr = '\0';
-        *bptr = (*fnc) (left);
+
+        if ( non_reentrant )
+          *bptr = (*non_reentrant) (left);
+        else
+          *bptr = (*reentrant) (left, data);
 
         if ( !*bptr )
         {
@@ -429,6 +433,17 @@ void **parse_list( char *list, char * (*fnc) (void *), char *name, char **err )
     }
   }
 }
+
+void **parse_list( char *list, void * (*fnc) (char *), char *name, char **err )
+{
+  return parse_list_worker( list, fnc, NULL, NULL, name, err );
+}
+
+void **parse_list_r( char *list, void * (*fnc) (char *, void *), void *data, char *name, char **err )
+{
+  return parse_list_worker( list, NULL, fnc, data, name, err );
+}
+
 
 void maybe_update_top_id( int *top, char *idstr )
 {

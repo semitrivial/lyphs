@@ -139,11 +139,6 @@ HANDLER( handle_annotate_request )
   TRY_PARAM( annotstr, "annot", "You did not specify (using the 'annot' parameter) what to annotate the lyphs by" );
   TRY_PARAM( pubmedstr, "pubmed", "You did not specify (using the 'pubmed' parameter) which pubmed ID" );
 
-  pubmed = pubmed_by_id( pubmedstr );
-
-  if ( !pubmed )
-    HND_ERR( "The indicated pubmed ID was not found" );
-
   predstr = get_param( params, "pred" );
 
   lyphs = (lyph**) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
@@ -162,6 +157,8 @@ HANDLER( handle_annotate_request )
     pred = trie_strdup( predstr, metadata );
   else
     pred = NULL;
+
+  pubmed = pubmed_by_id_or_create( pubmedstr, NULL );
 
   for ( lptr = lyphs; *lptr; lptr++ )
     fMatch |= annotate_lyph( *lptr, pred, obj, pubmed );
@@ -236,10 +233,30 @@ pubmed *pubmed_by_id( char *id )
   pubmed *p;
 
   for ( p = first_pubmed; p; p = p->next )
-    if ( !strcmp( p->id, id ) )
+    if ( !strcmp( p->id, id ) || !strcmp( p->title, id ) )
       return p;
 
   return NULL;
+}
+
+pubmed *pubmed_by_id_or_create( char *id, int *callersaves )
+{
+  pubmed *p = pubmed_by_id( id );
+
+  if ( p )
+    return p;
+
+  CREATE( p, pubmed, 1 );
+  p->id = strdup( id );
+  p->title = strdup( id );
+  LINK( p, first_pubmed, last_pubmed, next );
+
+  if ( callersaves )
+    *callersaves = 1;
+  else
+    save_pubmeds();
+
+  return p;
 }
 
 void save_one_pubmed( FILE *fp, pubmed *p )
@@ -473,10 +490,13 @@ HANDLER( handle_make_pubmed_request )
 
   p = pubmed_by_id( id );
 
+  if ( !p )
+    p = pubmed_by_id( title );
+
   if ( p )
   {
     if ( strcmp( p->title, title ) )
-      HND_ERR( "There is already a pubmed entry with that ID." );
+      HND_ERR( "There is already a pubmed entry with that ID or title." );
     else
     {
       send_200_response( req, pubmed_to_json_full( p ) );
@@ -538,8 +558,12 @@ HANDLER( handle_make_clinical_index_request )
   if ( pubmedsstr )
   {
     char *err;
+    int save = 0;
 
-    pubmeds = (pubmed **)PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
+    pubmeds = (pubmed **)PARSE_LIST_R( pubmedsstr, pubmed_by_id_or_create, &save, "pubmed", &err );
+
+    if ( save )
+      save_pubmeds();
 
     if ( !pubmeds )
     {
@@ -621,8 +645,12 @@ HANDLER( handle_edit_clinical_index_request )
   if ( pubmedsstr )
   {
     char *err;
+    int save = 0;
 
-    pubmeds = (pubmed **) PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
+    pubmeds = (pubmed **) PARSE_LIST_R( pubmedsstr, pubmed_by_id_or_create, &save, "pubmed", &err );
+
+    if ( save )
+      save_pubmeds();
 
     if ( err )
       HND_ERR_FREE( err );
