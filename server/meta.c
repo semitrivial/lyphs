@@ -908,7 +908,7 @@ HANDLER( handle_remove_annotation_request )
       (*eptr)->annots[0] = NULL;
     }
 
-    save_lyphs();
+    save_annotations();
     send_200_response( req, JSON1( "Response": "OK" ) );
     return;
   }
