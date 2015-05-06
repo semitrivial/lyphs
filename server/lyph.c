@@ -96,7 +96,7 @@ void strip_lyphplates_from_graph( trie *t )
   {
     lyph *e = (lyph *)t->data;
 
-    e->template = NULL;
+    e->lyphplt = NULL;
 
     if ( *e->constraints )
     {
@@ -943,8 +943,8 @@ void save_lyphs_recurse( trie *t, FILE *fp )
     fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
     fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
 
-    if ( e->template )
-      fprintf( fp, "lyphplate:%s ", trie_to_static( e->template->id ) );
+    if ( e->lyphplt )
+      fprintf( fp, "lyphplate:%s ", trie_to_static( e->lyphplt->id ) );
 
     if ( *e->constraints )
       fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
@@ -1127,7 +1127,7 @@ int load_lyphs_one_line( char *line, char **err )
   else
     to = (lyphnode *)totr->data;
 
-  e->template = NULL;
+  e->lyphplt = NULL;
   e->name = parse_lyph_name_field( namebuf, e );
 
   e->from = from;
@@ -1178,7 +1178,7 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
       return NULL;
     }
 
-    e->template = L;
+    e->lyphplt = L;
   }
 
   if ( parse_name_preamble( &namebuf, "constraints:", &preamble ) )
@@ -1952,7 +1952,7 @@ lyph *lyph_by_template( trie *t, lyphplate *L )
   {
     lyph *e = (lyph *)t->data;
 
-    if ( e->template == L )
+    if ( e->lyphplt == L )
       return e;
   }
 
@@ -2160,7 +2160,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "type": int_to_json( e->type ),
     "from": lyphnode_to_json( e->from ),
     "to": lyphnode_to_json( e->to ),
-    "template": e->template ? lyphplate_to_json( e->template ) : NULL,
+    "template": e->lyphplt ? lyphplate_to_json( e->lyphplt ) : NULL,
     "annots": annots,
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
     "house": house,
@@ -2443,7 +2443,7 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   e->type = type;
   e->from = from;
   e->to = to;
-  e->template = L;
+  e->lyphplt = L;
   e->fma = fma;
   e->flags = 0;
 
@@ -2508,7 +2508,7 @@ lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *
     &&   e->type == type
     &&   e->from == from
     &&   e->to   == to
-    &&   e->template == L
+    &&   e->lyphplt == L
     &&   e->fma  == fma )
       return e;
   }
@@ -2661,8 +2661,8 @@ int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
 int lyph_passes_filter( lyph *e, lyph_filter *f )
 {
 #ifdef PRE_LAYER_CHANGE
-  if ( e->template )
-    return is_superlyphplate( f->sup, e->template );
+  if ( e->lyphplt )
+    return is_superlyphplate( f->sup, e->lyphplt );
 
   if ( !*e->constraints )
     return f->accept_na_edges;

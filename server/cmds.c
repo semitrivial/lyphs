@@ -160,7 +160,7 @@ HANDLER( handle_editlyph_request )
   }
   else if ( constraint )
   {
-    if ( e->template && !is_superlyphplate( constraint, e->template ) )
+    if ( e->lyphplt && !is_superlyphplate( constraint, e->lyphplt ) )
       HND_ERR( "The lyph's template is not a subtemplate of the indicated constraint" );
   }
 #endif
@@ -180,7 +180,7 @@ HANDLER( handle_editlyph_request )
     e->type = type;
 
   if ( L )
-    e->template = L;
+    e->lyphplt = L;
 
   if ( constraint )
   {
@@ -721,9 +721,9 @@ int remove_doomed_lyphplates_from_lyphs( trie *t )
     lyph *e = (lyph *)t->data;
     lyphplate **c;
 
-    if ( e->template && e->template->flags == LYPHPLATE_BEING_DELETED )
+    if ( e->lyphplt && e->lyphplt->flags == LYPHPLATE_BEING_DELETED )
     {
-      e->template = NULL;
+      e->lyphplt = NULL;
       fMatch = 1;
     }
 
@@ -1150,7 +1150,7 @@ void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **t
   {
     lyph *e = (lyph *)t->data;
 
-    if ( e->template && template_involves( e->template, L ) )
+    if ( e->lyphplt && template_involves( e->lyphplt, L ) )
     {
       lyph_wrapper *w;
 
@@ -1212,7 +1212,7 @@ void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, 
   {
     lyph *e = (lyph *)t->data;
 
-    if ( e->template && is_superlyphplate( L, e->template ) )
+    if ( e->lyphplt && is_superlyphplate( L, e->lyphplt ) )
     {
       lyph_wrapper *w;
 
@@ -1447,7 +1447,7 @@ void find_lyphs_with_template( lyphplate *L, lyph ***bptr, trie *t )
   {
     lyph *e = (lyph *)t->data;
 
-    if ( e->template == L )
+    if ( e->lyphplt == L )
     {
       **bptr = e;
       (*bptr)++;

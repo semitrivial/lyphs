@@ -909,7 +909,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
        p = *pathsptr;
 
       for ( pptr = p; *pptr; pptr++ )
-        (*pptr)->template = L;
+        (*pptr)->lyphplt = L;
     }
 
     save_lyphs();
@@ -1572,7 +1572,7 @@ HANDLER( handle_assign_template_request )
   }
 
   for ( e = lyphs; *e; e++ )
-    (*e)->template = L;
+    (*e)->lyphplt = L;
 
   free( lyphs );
 
