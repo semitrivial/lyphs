@@ -873,3 +873,88 @@ HANDLER( handle_has_clinical_index_request )
 
   free( buf );
 }
+
+HANDLER( handle_remove_annotation_request )
+{
+  lyph **lyphs, **eptr;
+  trie *obj;
+  char *lyphsstr, *annotstr, *err;
+  int fMatch;
+
+  TRY_PARAM( lyphsstr, "lyphs", "You did not specify which lyphs to remove the annotations from" );
+  TRY_PARAM( annotstr, "annot", "You did not specify an annotation to remove" );
+
+  lyphs = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+
+  if ( !lyphs )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs could not be recognized" );
+  }
+
+  if ( !strcmp( annotstr, "all" ) )
+  {
+    for ( eptr = lyphs; *eptr; eptr++ )
+    {
+      annot **a;
+
+      for ( a = (*eptr)->annots; *a; a++ )
+        free( *a );
+
+      free( (*eptr)->annots );
+      CREATE( (*eptr)->annots, annot *, 1 );
+      (*eptr)->annots[0] = NULL;
+    }
+
+    save_lyphs();
+    send_200_response( req, JSON1( "Response": "OK" ) );
+    return;
+  }
+
+  obj = trie_strdup( annotstr, metadata );
+  fMatch = 0;
+
+  for ( eptr = lyphs; *eptr; eptr++ )
+  {
+    lyph *e = *eptr;
+    annot **a;
+    int matches = 0;
+
+    for ( a = e->annots; *a; a++ )
+    {
+      if ( (*a)->obj == obj )
+        matches++;
+    }
+
+    if ( matches )
+    {
+      annot **buf, **bptr;
+
+      fMatch = 1;
+      CREATE( buf, annot *, VOIDLEN( e->annots ) - matches );
+      bptr = buf;
+
+      for ( a = e->annots; *a; a++ )
+      {
+        if ( (*a)->obj != obj )
+          *bptr++ = *a;
+        else
+          free( *a );
+      }
+
+      *bptr = NULL;
+      free( e->annots );
+      e->annots = buf;
+    }
+  }
+
+  if ( *lyphs && !lyphs[1] && !fMatch )
+    HND_ERR( "The indicated lyph does not have the indicated annotation" );
+
+  if ( fMatch )
+    save_annotations();
+
+  send_200_response( req, JSON1( "Response": "OK" ) );
+}
