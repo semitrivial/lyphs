@@ -138,11 +138,9 @@ void add_labels_entry( char *iri_ch, char *label_ch )
     add_to_data( &iri_shortform->data, label );
 
     in_superclasses = trie_strdup( iri_shortform_ch, superclasses );
+
     if ( !in_superclasses->data )
-    {
-      CREATE( in_superclasses->data, trie *, 1 );
-      in_superclasses->data[0] = NULL;
-    }
+      in_superclasses->data = (trie**)blank_void_array();
   }
 
   label_lowercase_ch = lowercaserize(label_ch);

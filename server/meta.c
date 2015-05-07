@@ -508,10 +508,7 @@ void load_clinical_indices( void )
     pubmedsstr = url_decode( pubmeds_enc );
 
     if ( !strcmp( pubmedsstr, "none" ) )
-    {
-      CREATE( pubmeds, pubmed *, 1 );
-      pubmeds[0] = NULL;
-    }
+      pubmeds = blank_void_array();
     else
     {
       pubmeds = (pubmed **) PARSE_LIST( pubmedsstr, pubmed_by_id, "pubmed", &err );
@@ -629,10 +626,7 @@ HANDLER( handle_make_clinical_index_request )
     }
   }
   else
-  {
-    CREATE( pubmeds, pubmed *, 1 );
-    pubmeds[0] = NULL;
-  }
+    pubmeds = blank_void_array();
 
   CREATE( ci, clinical_index, 1 );
   ci->index = trie_strdup( index, metadata );
@@ -959,8 +953,7 @@ HANDLER( handle_remove_annotation_request )
         free( *a );
 
       free( (*eptr)->annots );
-      CREATE( (*eptr)->annots, annot *, 1 );
-      (*eptr)->annots[0] = NULL;
+      (*eptr)->annots = blank_void_array();
     }
 
     save_annotations();

@@ -101,8 +101,7 @@ void strip_lyphplates_from_graph( trie *t )
     if ( *e->constraints )
     {
       free( e->constraints );
-      CREATE( e->constraints, lyphplate *, 1 );
-      e->constraints[0] = NULL;
+      e->constraints = (lyphplate**)blank_void_array();
     }
   }
 
@@ -567,15 +566,10 @@ void load_lyphviews( void )
         else
         */
         if ( !views[prev_view_index]->nodes )
-        {
-          CREATE( views[prev_view_index]->nodes, lyphnode *, 1 );
-          views[prev_view_index]->nodes[0] = NULL;
-        }
+          views[prev_view_index]->nodes = (lyphnode**)blank_void_array();
+
         if ( !views[prev_view_index]->rects )
-        {
-          CREATE( views[prev_view_index]->rects, lv_rect *, 1 );
-          views[prev_view_index]->rects[0] = NULL;
-        }
+          views[prev_view_index]->rects = (lv_rect**)blank_void_array();
 
         *nodes = NULL;
         *coords = NULL;
@@ -697,12 +691,8 @@ void load_lyphviews( void )
               lyphtr->data = (trie **)e;
               e->flags = 0;
               e->species = NULL;
-
-              CREATE( e->constraints, lyphplate *, 1 );
-              e->constraints[0] = NULL;
-
-              CREATE( e->annots, annot *, 1 );
-              e->annots[0] = NULL;
+              e->constraints = (lyphplate**)blank_void_array();
+              e->annots = (annot**)blank_void_array();
 
               maybe_update_top_id( &top_lyph_id, left );
             }
@@ -1505,16 +1495,10 @@ void handle_loading_misc_materials( trie *t )
       if ( misc_mats )
         L->misc_material = misc_mats;
       else
-      {
-        CREATE( L->misc_material, lyphplate *, 1 );
-        L->misc_material[0] = NULL;
-      }
+        L->misc_material = (lyphplate**)blank_void_array();
     }
     else
-    {
-      CREATE( L->misc_material, lyphplate *, 1 );
-      L->misc_material[0] = NULL;
-    }
+      L->misc_material = (lyphplate**)blank_void_array();
   }
 
   TRIE_RECURSE( handle_loading_misc_materials( *child ) );
@@ -1768,10 +1752,7 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
   if ( misc_material )
     L->misc_material = misc_material;
   else
-  {
-    CREATE( L->misc_material, lyphplate *, 1 );
-    L->misc_material[0] = NULL;
-  }
+    L->misc_material = (lyphplate**)blank_void_array();
 
 #ifdef PRE_LAYER_CHANGE
   compute_lyphplate_hierarchy_one_lyphplate( L );
@@ -1908,9 +1889,7 @@ lyphplate *lyphplate_by_id( const char *id )
     L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyphplate_names );
     L->layers = NULL;
     L->supers = NULL;
-
-    CREATE( L->misc_material, lyphplate *, 1 );
-    L->misc_material[0] = NULL;
+    L->misc_material = (lyphplate**)blank_void_array();
 
 #ifdef PRE_LAYER_CHANGE
     compute_lyphplate_hierarchy_one_lyphplate( L );
@@ -2275,8 +2254,7 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
   {
     compute_lyphpath_trivial_path:
 
-    CREATE( path, lyph *, 1 );
-    path[0] = NULL;
+    path = (lyph**)blank_void_array();
     paths[0] = path;
     paths[1] = NULL;
 
@@ -2452,11 +2430,8 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   else
     e->species = NULL;
 
-  CREATE( e->constraints, lyphplate *, 1 );
-  e->constraints[0] = NULL;
-
-  CREATE( e->annots, annot *, 1 );
-  e->annots[0] = NULL;
+  e->constraints = (lyphplate**)blank_void_array();
+  e->annots = (annot**)blank_void_array();
 
   add_exit( e );
 
@@ -2818,10 +2793,8 @@ lyphnode *blank_lyphnode( void )
   lyphnode *n;
 
   CREATE( n, lyphnode, 1 );
-  CREATE( n->exits, exit_data *, 1 );
-  CREATE( n->incoming, exit_data *, 1 );
-  n->exits[0] = NULL;
-  n->incoming[0] = NULL;
+  n->exits = (exit_data**)blank_void_array();
+  n->incoming = (exit_data**)blank_void_array();
   n->loctype = -1;
 
   return n;
