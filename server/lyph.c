@@ -1881,7 +1881,7 @@ lyphplate *lyphplate_by_name( char *name )
   return NULL;
 }
 
-lyphplate *lyphplate_by_id( char *id )
+lyphplate *lyphplate_by_id( const char *id )
 {
   trie *t = trie_search( id, lyphplate_ids );
 
@@ -2005,7 +2005,7 @@ lyph *lyph_by_template_or_id( char *id, char *species )
   return e;
 }
 
-lyph *lyph_by_id( char *id )
+lyph *lyph_by_id( const char *id )
 {
   trie *t = trie_search( id, lyph_ids );
 

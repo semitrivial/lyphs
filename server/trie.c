@@ -31,9 +31,9 @@ trie *blank_trie( void )
   return t;
 }
 
-trie *trie_strdup( char *buf, trie *base )
+trie *trie_strdup( const char *buf, trie *base )
 {
-  char *bptr;
+  const char *bptr;
   trie *t;
   int cnt;
 
@@ -66,7 +66,7 @@ trie *trie_strdup( char *buf, trie *base )
           /*
            * Found an edge with same initial char as bptr
            */
-          char *bx, *lx;
+          const char *bx, *lx;
 
           for ( bx = bptr, lx = ((*child)->label); ; )
           {
@@ -184,9 +184,9 @@ trie *trie_strdup( char *buf, trie *base )
   }
 }
 
-trie *trie_search( char *buf, trie *base )
+trie *trie_search( const char *buf, trie *base )
 {
-  char *bptr;
+  const char *bptr;
   trie *t;
 
   bptr = buf;
@@ -210,7 +210,7 @@ trie *trie_search( char *buf, trie *base )
           /*
            * Found an edge with same initial char as bptr
            */
-          char *bx, *lx;
+          const char *bx, *lx;
 
           for ( bx = bptr, lx = ((*child)->label); ; )
           {

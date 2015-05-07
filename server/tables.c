@@ -13,6 +13,7 @@ void init_command_table(void)
   add_handler( "all_ont_terms", handle_all_ont_terms_request, CMD_READONLY );
   add_handler( "all_pubmeds", handle_all_pubmeds_request, CMD_READONLY );
   add_handler( "all_clinical_indices", handle_all_clinical_indices_request, CMD_READONLY );
+  add_handler( "all_radiological_indices", handle_radiological_indices_request, CMD_READONLY );
   add_handler( "clinical_index", handle_clinical_index_request, CMD_READONLY );
   add_handler( "pubmed", handle_pubmed_request, CMD_READONLY );
   add_handler( "template_hierarchy", handle_template_hierarchy_request, CMD_READONLY );

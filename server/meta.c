@@ -7,6 +7,11 @@ clinical_index *last_clinical_index;
 pubmed *first_pubmed;
 pubmed *last_pubmed;
 
+char *annot_obj_to_json( annot *a )
+{
+  return trie_to_json( a->obj );
+}
+
 void load_annotations(void)
 {
   FILE *fp;
@@ -124,6 +129,56 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
   e->annots = buf;
 
   return 1;
+}
+
+void populate_annot_list_by_pred( trie *pred, annot_wrapper **head, annot_wrapper **tail, int *cnt, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+    annot **a;
+
+    for ( a = e->annots; *a; a++ )
+    {
+      if ( (*a)->pred == pred )
+      {
+        annot_wrapper *w;
+
+        CREATE( w, annot_wrapper, 1 );
+        w->a = *a;
+        LINK( w, *head, *tail, next );
+        (*cnt)++;
+      }
+    }
+  }
+
+  TRIE_RECURSE( populate_annot_list_by_pred( pred, head, tail, cnt, *child ) );
+}
+
+HANDLER( handle_radiological_indices_request )
+{
+  annot **buf, **bptr;
+  annot_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  trie *pred = trie_strdup( RADIOLOGICAL_INDEX_PRED, metadata );
+  int cnt = 0;
+
+  populate_annot_list_by_pred( pred, &head, &tail, &cnt, lyph_ids );
+
+  CREATE( buf, annot *, cnt + 1 );
+  bptr = buf;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+
+    *bptr++ = w->a;
+    free( w );
+  }
+  *bptr = NULL;
+
+  send_200_response( req, JS_ARRAY( annot_obj_to_json, buf ) );
+
+  free( buf );
 }
 
 HANDLER( handle_annotate_request )

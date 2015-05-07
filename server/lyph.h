@@ -22,6 +22,8 @@
 #define PUBMED_FILE "pubmed.dat"
 #define CLINICAL_INDEX_FILE "clinical_indices.dat"
 
+#define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
+
 /*
  * Typedefs
  */
@@ -48,6 +50,7 @@ typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
 typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
 typedef struct LYPH_FILTER lyph_filter;
 typedef struct ANNOT annot;
+typedef struct ANNOT_WRAPPER annot_wrapper;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
 typedef struct SYSTEM_CONFIGS system_configs;
@@ -212,6 +215,12 @@ struct ANNOT
   pubmed *pubmed;
 };
 
+struct ANNOT_WRAPPER
+{
+  annot_wrapper *next;
+  annot *a;
+};
+
 struct CLINICAL_INDEX
 {
   clinical_index *next;
@@ -346,8 +355,8 @@ void main_loop(void);
  * trie.c
  */
 trie *blank_trie(void);
-trie *trie_strdup( char *buf, trie *base );
-trie *trie_search( char *buf, trie *base );
+trie *trie_strdup( const char *buf, trie *base );
+trie *trie_search( const char *buf, trie *base );
 char *trie_to_static( trie *t );
 char *trie_to_json( trie *t );
 void trie_search_autocomplete( char *label_ch, trie **buf, trie *base );
@@ -383,6 +392,7 @@ void maybe_update_top_id( int *top, char *idstr );
 char *loctype_to_str( int loctype );
 void multifree( void *first, ... );
 int req_cmp( char *req, char *match );
+void **blank_void_array( void );
 
 /*
  * ucl.c
@@ -400,7 +410,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
  * lyph.c
  */
 lyphplate *lyphplate_by_name( char *name );
-lyphplate *lyphplate_by_id( char *id );
+lyphplate *lyphplate_by_id( const char *id );
 char *lyphplate_to_json( lyphplate *L );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
@@ -416,7 +426,7 @@ layer *layer_by_id( char *id );
 layer *layer_by_description( lyphplate **materials, int thickness );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
-lyph *lyph_by_id( char *id );
+lyph *lyph_by_id( const char *id );
 lyph *lyph_by_template_or_id( char *id, char *species );
 trie *assign_new_layer_id( layer *lyr );
 lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name );
@@ -485,6 +495,7 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
 /*
  * meta.c
  */
+char *annot_obj_to_json( annot *a );
 void load_annotations(void);
 int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
 void save_annotations( void );

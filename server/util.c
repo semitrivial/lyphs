@@ -509,3 +509,13 @@ int req_cmp( char *req, char *match )
 
   return 0;
 }
+
+void **blank_void_array( void )
+{
+  void **buf;
+
+  CREATE( buf, void *, 1 );
+  buf[0] = NULL;
+
+  return buf;
+}
