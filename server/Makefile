@@ -1,6 +1,6 @@
 CC = gcc
 CPPC = g++
-FLAGS = -Wall -g
+FLAGS = -Wall -Werror -g
 DEPS = lyph.h srv.h jsonfmt.h jsonfmt_internal.h mallocf.h macro.h
 
 all: lyph
