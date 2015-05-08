@@ -9,6 +9,7 @@
 #define MAX_STRING_LEN 64000
 #define READ_BLOCK_SIZE 1048576  // 1024 * 1024.  For QUICK_GETC.
 #define MAX_IRI_LEN 2048
+#define MAX_API_TEMPLATE_LEN (MAX_IRI_LEN * 2)
 #define MAX_AUTOCOMPLETE_RESULTS_PRESORT 30
 #define MAX_AUTOCOMPLETE_RESULTS_POSTSORT 10
 #define MAX_URL_PARAMS 300
@@ -22,6 +23,7 @@
 #define PUBMED_FILE "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
 #define CLINICAL_INDEX_FILE "clinical_indices.json"
+#define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
 

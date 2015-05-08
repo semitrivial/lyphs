@@ -65,6 +65,7 @@ void init_command_table(void)
   add_handler( "delete_templates", handle_delete_templates_request, CMD_READWRITE );
   add_handler( "delete_views", handle_delete_views_request, CMD_READWRITE );
   add_handler( "delete_layers", handle_delete_layers_request, CMD_READWRITE );
+  add_handler( "parse_csv", handle_parse_csv_request, CMD_READWRITE );
 }
 
 void add_handler( char *cmd, handle_function *fnc, int read_write_state )

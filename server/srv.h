@@ -63,12 +63,19 @@ do\
 }\
 while(0)
 
-#define HND_ERRF( ... )\
+#define HND_ERRF_NORETURN( ... )\
 do\
 {\
   char *__hnd_errf_errmsg = strdupf( __VA_ARGS__ );\
   HND_ERR_NORETURN( __hnd_errf_errmsg );\
   free( __hnd_errf_errmsg );\
+}\
+while(0)
+
+#define HND_ERRF( ... )\
+do\
+{\
+  HND_ERRF_NORETURN( __VA_ARGS__ );\
   return;\
 }\
 while(0)
@@ -201,6 +208,7 @@ void http_parse_input( http_conn *c );
 http_request *http_recv( void );
 void http_write( http_request *req, char *txt );
 void http_send( http_request *req, char *txt, int len );
+void handle_request( http_request *req, char *query );
 void send_400_response( http_request *req );
 void send_200_response( http_request *req, char *txt );
 void send_200_with_type( http_request *req, char *txt, char *type );
@@ -290,3 +298,4 @@ HANDLER( handle_remove_annotation_request );
 HANDLER( handle_radiological_indices_request );
 HANDLER( handle_layer_from_template_request );
 HANDLER( handle_layer_to_template_request );
+HANDLER( handle_parse_csv_request );

@@ -116,79 +116,83 @@ void main_loop( void )
 
     if ( req )
     {
-      char *reqptr, *reqtype, *request;
-      const char *parse_params_err;
-      command_entry *entry;
-      url_param *params[MAX_URL_PARAMS+1];
-
       count++;
 
       to_logfile( "Got request:\n%s", req->query );
 
-      if ( req_cmp( req->query, "gui" )
-      ||   req_cmp( req->query, "lyphgui" ) )
-      {
-        send_gui( req );
-        continue;
-      }
-
-      if ( req_cmp( req->query, "js" )
-      ||   req_cmp( req->query, "lyphjs" ) )
-      {
-        send_js( req );
-        continue;
-      }
-
-      for ( reqptr = (*req->query == '/') ? req->query + 1 : req->query; *reqptr; reqptr++ )
-        if ( *reqptr == '/' )
-          break;
-
-      if ( !*reqptr )
-      {
-        send_400_response( req );
-        continue;
-      }
-
-      *reqptr = '\0';
-      reqtype = (*req->query == '/') ? req->query + 1 : req->query;
-
-      parse_params_err = parse_params( &reqptr[1], req, params );
-
-      if ( parse_params_err )
-      {
-        HND_ERR_NORETURN( parse_params_err );
-
-        free_url_params( params );
-        continue;
-      }
-
-      request = url_decode(&reqptr[1]);
-
-      entry = lookup_command( reqtype );
-
-      if ( entry )
-      {
-        if ( entry->read_write_state == CMD_READWRITE && configs.readonly )
-          send_200_response( req, "{\"error\": \"This instance of the LYPH system is read-only\"}" );
-        else
-          (*(entry->f))( request, req, params );
-
-        free( request );
-        free_url_params( params );
-        continue;
-      }
-
-      free_url_params( params );
-      *reqptr = '/';
-      free( request );
-      send_400_response( req );
-      continue;
+      handle_request( req, req->query );
     }
     else
       break;
   }
 
   json_gc();
+}
+
+void handle_request( http_request *req, char *query )
+{
+  char *reqptr, *reqtype, *request;
+  const char *parse_params_err;
+  command_entry *entry;
+  url_param *params[MAX_URL_PARAMS+1];
+
+  if ( req_cmp( query, "gui" )
+  ||   req_cmp( query, "lyphgui" ) )
+  {
+    send_gui( req );
+    return;
+  }
+
+  if ( req_cmp( query, "js" )
+  ||   req_cmp( query, "lyphjs" ) )
+  {
+    send_js( req );
+    return;
+  }
+
+  for ( reqptr = (*query == '/') ? query + 1 : query; *reqptr; reqptr++ )
+    if ( *reqptr == '/' )
+      break;
+
+  if ( !*reqptr )
+  {
+    send_400_response( req );
+    return;
+  }
+
+  *reqptr = '\0';
+  reqtype = (*query == '/') ? query + 1 : query;
+
+  parse_params_err = parse_params( &reqptr[1], req, params );
+
+  if ( parse_params_err )
+  {
+    HND_ERR_NORETURN( parse_params_err );
+
+    free_url_params( params );
+    return;
+  }
+
+  request = url_decode(&reqptr[1]);
+
+  entry = lookup_command( reqtype );
+
+  if ( entry )
+  {
+    if ( entry->read_write_state == CMD_READWRITE && configs.readonly )
+      send_200_response( req, "{\"error\": \"This instance of the LYPH system is read-only\"}" );
+    else
+      (*(entry->f))( request, req, params );
+
+    free( request );
+    free_url_params( params );
+    return;
+  }
+
+  free_url_params( params );
+  *reqptr = '/';
+  free( request );
+  send_400_response( req );
 }
 
 void http_update_connections( void )
