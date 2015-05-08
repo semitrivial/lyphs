@@ -28,7 +28,7 @@ void log_stringf( char *fmt, ... )
   free( buf );
 }
 
-void to_logfile( char *fmt, ... )
+void to_logfile( const char *fmt, ... )
 {
   FILE *fp;
   va_list args;

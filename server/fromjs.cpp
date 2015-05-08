@@ -27,7 +27,7 @@ void **array_from_value( Value &v, void * (*fnc) (const char *) )
   return buf;
 }
 
-void **array_from_doc( Document &d, const char *key, void * (*fnc) (const char *) )
+void **array_from_doc( Value &d, const char *key, void * (*fnc) (const char *) )
 {
   if ( d.HasMember( key ) )
     return array_from_value( d[key], fnc );
@@ -47,6 +47,32 @@ void int_from_doc( Document &d, const char *key, int *dest )
 {
   if ( d.HasMember( key ) )
     *dest = d[key].GetInt();
+}
+
+void clinical_index_from_js( clinical_index *ci, Value &v )
+{
+  ci->index = trie_strdup( v["index"].GetString(), metadata );
+  ci->label = trie_strdup( v["label"].GetString(), metadata );
+  ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id) );
+}
+
+extern "C" void clinical_indices_from_js( const char *js )
+{
+  Document d;
+  int size;
+
+  d.Parse(js);
+
+  size = d.Size();
+
+  for ( int i = 0; i < size; i++ )
+  {
+    clinical_index *ci;
+
+    CREATE( ci, clinical_index, 1 );
+    clinical_index_from_js( ci, d[i] );
+    LINK( ci, first_clinical_index, last_clinical_index, next );
+  }
 }
 
 void lyphplate_from_document( Document &d, lyphplate **Lptr )

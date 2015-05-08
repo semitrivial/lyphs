@@ -56,6 +56,12 @@ void init_lyph_http_server( int port )
   html = load_file( "lyphgui.html" );
   js = load_file( "lyphgui.js" );
 
+  if ( !html || !js )
+  {
+    error_messagef( "Could not load %s for reading, aborting", !html ? "lyphgui.html" : "lyphgui.js" );
+    EXIT();
+  }
+
   memset( &hints, 0, sizeof(hints) );
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -627,10 +633,7 @@ char *load_file( char *filename )
   fp = fopen( filename, "r" );
 
   if ( !fp )
-  {
-    fprintf( stderr, "Fatal: Couldn't open %s for reading\n", filename );
-    abort();
-  }
+    return NULL;
 
   fseek(fp, 0L, SEEK_END);
   size = ftell(fp);

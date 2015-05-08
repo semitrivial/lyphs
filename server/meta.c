@@ -436,6 +436,7 @@ void save_clinical_indices( void )
 {
   FILE *fp;
   clinical_index *c;
+  int fFirst = 0;
 
   if ( configs.readonly )
     return;
@@ -444,7 +445,39 @@ void save_clinical_indices( void )
 
   if ( !fp )
   {
-    error_messagef( "Could not open " CLINICAL_INDEX_FILE " for writing" );
+    error_messagef( "Could not open " CLINICAL_INDEX_FILE_DEPRECATED " for writing" );
+    EXIT();
+  }
+
+  fprintf( fp, "[" );
+
+  for ( c = first_clinical_index; c; c = c->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", clinical_index_to_json_full( c ) );
+  }
+
+  fprintf( fp, "]" );
+  fclose( fp );
+}
+
+void save_clinical_indices_deprecated( void )
+{
+  FILE *fp;
+  clinical_index *c;
+
+  if ( configs.readonly )
+    return;
+
+  fp = fopen( CLINICAL_INDEX_FILE_DEPRECATED, "w" );
+
+  if ( !fp )
+  {
+    error_messagef( "Could not open " CLINICAL_INDEX_FILE_DEPRECATED " for writing" );
     EXIT();
   }
 
@@ -454,7 +487,7 @@ void save_clinical_indices( void )
   fclose( fp );
 }
 
-void load_clinical_indices( void )
+void load_clinical_indices_deprecated( void )
 {
   FILE *fp;
   char buf[MAX_STRING_LEN], *bptr, c;
@@ -466,11 +499,11 @@ void load_clinical_indices( void )
   char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
   int fread_len;
 
-  fp = fopen( CLINICAL_INDEX_FILE, "r" );
+  fp = fopen( CLINICAL_INDEX_FILE_DEPRECATED, "r" );
 
   if ( !fp )
   {
-    error_messagef( "Couldn't open " CLINICAL_INDEX_FILE " for reading -- no clinical indices loaded" );
+    error_messagef( "Couldn't open " CLINICAL_INDEX_FILE_DEPRECATED " for reading -- no clinical indices loaded" );
     return;
   }
 
@@ -496,7 +529,7 @@ void load_clinical_indices( void )
 
     if ( sscanf_results != 3 )
     {
-      error_messagef( CLINICAL_INDEX_FILE ":%d: Unrecognized format", line );
+      error_messagef( CLINICAL_INDEX_FILE_DEPRECATED ":%d: Unrecognized format", line );
       EXIT();
     }
 
@@ -515,7 +548,7 @@ void load_clinical_indices( void )
 
       if ( !pubmeds )
       {
-        error_messagef( CLINICAL_INDEX_FILE ":%d: %s", line, err ? err : "Could not parse pubmeds list" );
+        error_messagef( CLINICAL_INDEX_FILE_DEPRECATED ":%d: %s", line, err ? err : "Could not parse pubmeds list" );
         EXIT();
       }
     }
@@ -530,6 +563,22 @@ void load_clinical_indices( void )
   }
 
   fclose( fp );
+}
+
+void load_clinical_indices( void )
+{
+  char *js = load_file( CLINICAL_INDEX_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading, attempting to read %s instead", CLINICAL_INDEX_FILE, CLINICAL_INDEX_FILE_DEPRECATED );
+    load_clinical_indices_deprecated();
+    return;
+  }
+
+  clinical_indices_from_js( js );
+
+  free( js );
 }
 
 HANDLER( handle_make_pubmed_request )

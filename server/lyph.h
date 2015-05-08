@@ -20,7 +20,8 @@
 #define LOG_FILE "log.txt"
 #define ANNOTS_FILE "annots.dat"
 #define PUBMED_FILE "pubmed.dat"
-#define CLINICAL_INDEX_FILE "clinical_indices.dat"
+#define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
+#define CLINICAL_INDEX_FILE "clinical_indices.json"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
 
@@ -326,8 +327,9 @@ extern trie *lyph_names;
 extern trie *superclasses;
 
 extern trie *metadata;
-clinical_index *first_clinical_index;
-pubmed *first_pubmed;
+extern clinical_index *first_clinical_index;
+extern clinical_index *last_clinical_index;
+extern pubmed *first_pubmed;
 
 /*
  * Function prototypes
@@ -370,7 +372,7 @@ int count_nontrivial_members( trie *t );
 void log_string( char *txt );
 void log_stringf( char *fmt, ... );
 void log_linenum( int linenum );
-void to_logfile( char *fmt, ... );
+void to_logfile( const char *fmt, ... );
 char *html_encode( char *str );
 void init_html_codes( void );
 char *lowercaserize( const char *x );
@@ -506,7 +508,13 @@ void save_pubmeds( void );
 void load_pubmeds( void );
 void save_clinical_indices( void );
 void load_clinical_indices( void );
+void load_clinical_indices_deprecated( void );
 char *pubmed_to_json_brief( pubmed *p );
 char *pubmed_to_json_full( pubmed *p );
 char *clinical_index_to_json_brief( clinical_index *ci );
 char *clinical_index_to_json_full( clinical_index *ci );
+
+/*
+ * fromjs.cpp
+ */
+void clinical_indices_from_js( const char *js );
