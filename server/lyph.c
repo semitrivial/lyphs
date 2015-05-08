@@ -1545,7 +1545,7 @@ lyphplate *missing_layers( trie *t )
   {
     lyphplate *L = (lyphplate *)t->data;
 
-    if ( ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) && ( !L->layers || !L->layers[0] ) )
+    if ( ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) && !L->layers )
       return L;
   }
 

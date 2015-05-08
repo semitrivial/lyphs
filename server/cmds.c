@@ -1526,3 +1526,138 @@ HANDLER( handle_unused_indices_request )
 
   free( buf );
 }
+
+HANDLER( handle_layer_from_template_request )
+{
+  lyphplate *L;
+  layer *lyr, **lyrptr, **buf, **bptr;
+  char *tmpltstr, *lyrstr, *posstr;
+  int pos, n, cnt;
+
+  TRY_PARAM( tmpltstr, "template", "You did not specify which template you want to remove the layer from" );
+  TRY_PARAM( lyrstr, "layer", "You did not specify which layer you want to remove from the template" );
+
+  L = lyphplate_by_id( tmpltstr );
+
+  if ( !L )
+    HND_ERR( "The indicated template was not recognized" );
+
+  lyr = layer_by_id( lyrstr );
+
+  if ( !lyr )
+    HND_ERR( "The indicated layer was not recognized" );
+
+  if ( !*L->layers || !L->layers[1] )
+    HND_ERR( "The template ought to have at least two layers, before you delete more layers from it." );
+
+  posstr = get_param( params, "pos" );
+
+  if ( posstr )
+  {
+    pos = strtoul( posstr, NULL, 10 );
+
+    if ( pos < 1 )
+      HND_ERR( "'pos' must be a positive integer" );
+  }
+  else
+    pos = 1;
+
+  for ( n = 0, cnt = 0, lyrptr = L->layers; *lyrptr; lyrptr++ )
+  {
+    cnt++;
+
+    if ( *lyrptr == lyr && ++n == pos )
+      break;
+  }
+
+  if ( !*lyrptr )
+  {
+    if ( pos > 1 )
+      HND_ERR( "The indicated layer does not occur that many times in the indicated template" );
+    else
+      HND_ERR( "The indicated layer does not occur in the indicated template" );
+  }
+
+  CREATE( buf, layer *, cnt );
+  bptr = buf;
+
+  for ( lyrptr = L->layers, n = 0; *lyrptr; lyrptr++ )
+    if ( *lyrptr != lyr || ++n != pos )
+      *bptr++ = *lyrptr;
+
+  *bptr = NULL;
+
+  free( L->layers );
+  L->layers = buf;
+
+  save_lyphplates();
+
+  send_200_response( req, lyphplate_to_json( L ) );
+}
+
+HANDLER( handle_layer_to_template_request )
+{
+  lyphplate *L;
+  layer *lyr, **lyrptr, **buf, **bptr;
+  char *lyrstr, *tmpltstr, *posstr;
+  int pos, n, size;
+
+  TRY_PARAM( tmpltstr, "template", "You did not indicate which template you want to add the layer to" );
+  TRY_PARAM( lyrstr, "layer", "You did not indicate which layer you want to add to the template" );
+
+  L = lyphplate_by_id( tmpltstr );
+
+  if ( !L )
+    HND_ERR( "The indicated template was not recognized" );
+
+  lyr = layer_by_id( lyrstr );
+
+  if ( !lyr )
+    HND_ERR( "The indicated layer was not recognized" );
+
+  if ( L->type != LYPHPLATE_SHELL && L->type != LYPHPLATE_MIX )
+    HND_ERR( "Layers can only be added to a template if that template has type 'shell' or 'mix'" );
+
+  posstr = get_param( params, "pos" );
+
+  if ( !posstr && L->type == LYPHPLATE_SHELL )
+    HND_ERR( "Since this template is of type 'shell', a position ('pos') must be specified for the new layer" );
+
+  if ( posstr )
+  {
+    pos = strtoul( posstr, NULL, 10 );
+
+    if ( pos < 1 )
+      HND_ERR( "'pos' must be a positive integer" );
+  }
+  else
+    pos = 1;
+
+  size = VOIDLEN( L->layers );
+
+  if ( pos > size + 1 )
+    HND_ERRF( "You indicated a position of pos=%d but the template only has %d nodes", pos, size );
+
+  CREATE( buf, layer *, size + 2 );
+  bptr = buf;
+
+  for ( n = 0, lyrptr = L->layers; *lyrptr; lyrptr++ )
+  {
+    if ( ++n == pos )
+      *bptr++ = lyr;
+
+    *bptr++ = *lyrptr;
+  }
+
+  if ( pos == size + 1 )
+    *bptr++ = lyr;
+
+  *bptr = NULL;
+
+  free( L->layers );
+  L->layers = buf;
+
+  save_lyphplates();
+
+  send_200_response( req, lyphplate_to_json( L ) );
+}

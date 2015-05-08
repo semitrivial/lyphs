@@ -288,3 +288,5 @@ HANDLER( handle_all_pubmeds_request );
 HANDLER( handle_all_clinical_indices_request );
 HANDLER( handle_remove_annotation_request );
 HANDLER( handle_radiological_indices_request );
+HANDLER( handle_layer_from_template_request );
+HANDLER( handle_layer_to_template_request );
