@@ -415,6 +415,8 @@ HANDLER( handle_editlayer_request )
   else
     mat = NULL;
 
+  lyr = clone_layer( lyr );
+
   if ( mat )
   {
     fQualitativeChange = 1;

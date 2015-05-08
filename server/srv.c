@@ -1464,7 +1464,7 @@ HANDLER( handle_makelayer_request )
   char *mtid, *thickstr, *err;
   int thickness;
 
-  TRY_PARAM( mtid, "material", "No material specified for layer" );
+  TRY_TWO_PARAMS( mtid, "material", "materials", "No material specified for layer" );
 
   thickstr = get_param( params, "thickness" );
 

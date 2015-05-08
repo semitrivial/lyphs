@@ -2799,3 +2799,24 @@ lyphnode *blank_lyphnode( void )
 
   return n;
 }
+
+layer *clone_layer( layer *lyr )
+{
+  layer *dest;
+  lyphplate **materials, **mptr, **lptr;
+
+  CREATE( dest, layer, 1 );
+  CREATE( materials, lyphplate *, VOIDLEN( lyr->material ) + 1 );
+  mptr = materials;
+
+  for ( lptr = lyr->material; *lptr; lptr++ )
+    *mptr++ = *lptr;
+
+  *mptr = NULL;
+
+  dest->material = materials;
+  dest->thickness = lyr->thickness;
+  dest->id = assign_new_layer_id( dest );
+
+  return dest;
+}
