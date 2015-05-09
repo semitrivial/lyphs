@@ -374,7 +374,7 @@ HANDLER( handle_editlayer_request )
 {
   layer *lyr;
   lyphplate **mat;
-  char *lyrstr, *matstr, *thkstr;
+  char *lyrstr, *matstr, *thkstr, *mutablestr;
   int thk, fQualitativeChange = 0;
 
   TRY_PARAM( lyrstr, "layer", "You did not indicate which layer to edit" );
@@ -402,20 +402,28 @@ HANDLER( handle_editlayer_request )
   {
     char *err;
 
-    mat = (lyphplate **)PARSE_LIST( matstr, lyphplate_by_id, "template", &err );
-
-    if ( !mat )
+    if ( !strcmp( matstr, "none" ) )
+      mat = (lyphplate **)blank_void_array();
+    else
     {
-      if ( err )
-        HND_ERR_FREE( err );
-      else
-        HND_ERR( "One of the indicated templates was not recognized" );
+      mat = (lyphplate **)PARSE_LIST( matstr, lyphplate_by_id, "template", &err );
+
+      if ( !mat )
+      {
+        if ( err )
+          HND_ERR_FREE( err );
+        else
+          HND_ERR( "One of the indicated templates was not recognized" );
+      }
     }
   }
   else
     mat = NULL;
 
-  lyr = clone_layer( lyr );
+  mutablestr = get_param( params, "mutable" );
+
+  if ( !mutablestr || strcmp( mutablestr, "yes" ) )
+    lyr = clone_layer( lyr );
 
   if ( mat )
   {

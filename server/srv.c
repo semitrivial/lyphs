@@ -1473,7 +1473,10 @@ HANDLER( handle_makelayer_request )
   else
     thickness = -1;
 
-  materials = (lyphplate **)PARSE_LIST( mtid, lyphplate_by_id, "template", &err );
+  if ( !strcmp( mtid, "none" ) )
+    materials = (lyphplate **)blank_void_array();
+  else
+    materials = (lyphplate **)PARSE_LIST( mtid, lyphplate_by_id, "template", &err );
 
   if ( !materials )
   {
