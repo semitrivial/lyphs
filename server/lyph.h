@@ -20,7 +20,8 @@
 
 #define LOG_FILE "log.txt"
 #define ANNOTS_FILE "annots.dat"
-#define PUBMED_FILE "pubmed.dat"
+#define PUBMED_FILE "pubmed.json"
+#define PUBMED_FILE_DEPRECATED "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
 #define CLINICAL_INDEX_FILE "clinical_indices.json"
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
@@ -332,6 +333,7 @@ extern trie *metadata;
 extern clinical_index *first_clinical_index;
 extern clinical_index *last_clinical_index;
 extern pubmed *first_pubmed;
+extern pubmed *last_pubmed;
 
 /*
  * Function prototypes
@@ -504,8 +506,8 @@ char *annot_obj_to_json( annot *a );
 void load_annotations(void);
 int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
 void save_annotations( void );
-pubmed *pubmed_by_id( char *id );
-pubmed *pubmed_by_id_or_create( char *id, int *callersaves );
+pubmed *pubmed_by_id( const char *id );
+pubmed *pubmed_by_id_or_create( const char *id, int *callersaves );
 clinical_index *clinical_index_by_index( char *ind );
 void save_pubmeds( void );
 void load_pubmeds( void );
@@ -521,3 +523,4 @@ char *clinical_index_to_json_full( clinical_index *ci );
  * fromjs.cpp
  */
 void clinical_indices_from_js( const char *js );
+void pubmeds_from_js( const char *js );

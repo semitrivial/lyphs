@@ -283,7 +283,7 @@ void save_annotations( void )
   return;
 }
 
-pubmed *pubmed_by_id( char *id )
+pubmed *pubmed_by_id( const char *id )
 {
   pubmed *p;
 
@@ -294,7 +294,7 @@ pubmed *pubmed_by_id( char *id )
   return NULL;
 }
 
-pubmed *pubmed_by_id_or_create( char *id, int *callersaves )
+pubmed *pubmed_by_id_or_create( const char *id, int *callersaves )
 {
   pubmed *p = pubmed_by_id( id );
 
@@ -325,7 +325,7 @@ void save_one_pubmed( FILE *fp, pubmed *p )
   free( title );
 }
 
-void save_pubmeds( void )
+void save_pubmeds_deprecated( void )
 {
   pubmed *p;
   FILE *fp;
@@ -347,7 +347,7 @@ void save_pubmeds( void )
   fclose( fp );
 }
 
-void load_pubmeds( void )
+void load_pubmeds_deprecated( void )
 {
   FILE *fp;
   char buf[MAX_STRING_LEN], *bptr, c;
@@ -359,11 +359,11 @@ void load_pubmeds( void )
   char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
   int fread_len;
 
-  fp = fopen( PUBMED_FILE, "r" );
+  fp = fopen( PUBMED_FILE_DEPRECATED, "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open " PUBMED_FILE " for reading -- no pubmeds loaded" );
+    log_string( "Could not open " PUBMED_FILE_DEPRECATED " for reading -- no pubmeds loaded" );
     return;
   }
 
@@ -430,6 +430,39 @@ void save_one_clinical_index( FILE *fp, clinical_index *c )
 
   free( index );
   free( label );
+}
+
+void save_pubmeds( void )
+{
+  FILE *fp;
+  pubmed *p;
+  int fFirst = 0;
+
+  if ( configs.readonly )
+    return;
+
+  fp = fopen( PUBMED_FILE, "w" );
+
+  if ( !fp )
+  {
+    error_messagef( "Could not open %s for writing", PUBMED_FILE );
+    EXIT();
+  }
+
+  fprintf( fp, "[" );
+
+  for ( p = first_pubmed; p; p = p->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", pubmed_to_json_full( p ) );
+  }
+
+  fprintf( fp, "]" );
+  fclose( fp );
 }
 
 void save_clinical_indices( void )
@@ -563,6 +596,22 @@ void load_clinical_indices_deprecated( void )
   }
 
   fclose( fp );
+}
+
+void load_pubmeds( void )
+{
+  char *js = load_file( PUBMED_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading, attempting to read %s instead", PUBMED_FILE, PUBMED_FILE_DEPRECATED );
+    load_pubmeds_deprecated();
+    return;
+  }
+
+  pubmeds_from_js( js );
+
+  free( js );
 }
 
 void load_clinical_indices( void )

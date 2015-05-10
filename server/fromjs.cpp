@@ -53,7 +53,7 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
 {
   ci->index = trie_strdup( v["index"].GetString(), metadata );
   ci->label = trie_strdup( v["label"].GetString(), metadata );
-  ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id) );
+  ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id_or_create) );
 }
 
 extern "C" void clinical_indices_from_js( const char *js )
@@ -75,37 +75,33 @@ extern "C" void clinical_indices_from_js( const char *js )
   }
 }
 
-void lyphplate_from_document( Document &d, lyphplate **Lptr )
+void pubmed_from_js( pubmed *p, Value &v )
 {
-  lyphplate *L = *Lptr;
-
-  L->supers = NULL;
-  L->subs = NULL;
-  L->flags = 0;
-
-  L->misc_material = (lyphplate**)array_from_doc( d, "misc_material", CST(lyphplate_by_id) );
-
-  L->layers = (layer**)array_from_doc( d, "layers", CST(layer_by_id) );
-
-  L->ont_term = trie_from_doc( d, "ont_term", superclasses );
-
-  L->name = trie_from_doc( d, "name", lyphplate_names );
-  L->name->data = (trie**)L;
-
-  L->id = trie_from_doc( d, "id", lyphplate_ids );
-  L->id->data = (trie**)L;
-
-  int_from_doc( d, "type", &L->type );
+  p->id = strdup( v["id"].GetString() );
+  p->title = strdup( v["title"].GetString() );
 }
 
-extern "C" lyphplate *lyphplate_from_json( char *json )
+extern "C" void pubmeds_from_js( const char *js )
 {
   Document d;
-  d.Parse(json);
+  int size;
 
-  lyphplate *L = (lyphplate*) malloc(sizeof(lyphplate));
+  d.Parse(js);
 
-  lyphplate_from_document( d, &L );
+  size = d.Size();
 
-  return L;
+  for ( int i = 0; i < size; i++ )
+  {
+    pubmed *p = pubmed_by_id( d[i]["id"].GetString() );
+
+    if ( p )
+      MULTIFREE( p->id, p->title );
+    else
+    {
+      CREATE( p, pubmed, 1 );
+      LINK( p, first_pubmed, last_pubmed, next );
+    }
+
+    pubmed_from_js( p, d[i] );
+  }
 }
