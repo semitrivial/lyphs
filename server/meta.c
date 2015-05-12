@@ -7,12 +7,12 @@ clinical_index *last_clinical_index;
 pubmed *first_pubmed;
 pubmed *last_pubmed;
 
-char *annot_obj_to_json( annot *a )
+char *lyph_annot_obj_to_json( lyph_annot *a )
 {
   return trie_to_json( a->obj );
 }
 
-void load_annotations(void)
+void load_lyph_annotations(void)
 {
   FILE *fp;
   char buf[MAX_STRING_LEN], *bptr, c;
@@ -24,11 +24,11 @@ void load_annotations(void)
   char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
   int fread_len;
 
-  fp = fopen( ANNOTS_FILE, "r" );
+  fp = fopen( LYPH_ANNOTS_FILE, "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open " ANNOTS_FILE " for reading, so no annotations have been loaded" );
+    log_string( "Could not open " LYPH_ANNOTS_FILE " for reading, so no lyph_annotations have been loaded" );
     return;
   }
 
@@ -49,7 +49,7 @@ void load_annotations(void)
 
     if ( !str_begins( buf, "Annot " ) )
     {
-      error_messagef( "Bad line in " ANNOTS_FILE ": %d", line );
+      error_messagef( "Bad line in " LYPH_ANNOTS_FILE ": %d", line );
       EXIT();
     }
 
@@ -57,7 +57,7 @@ void load_annotations(void)
 
     if ( sscanf_result != 4 )
     {
-      error_messagef( "In " ANNOTS_FILE ":%d, the line (%s) has an unrecognized format (%d)", line, &buf[strlen("Annot ")], sscanf_result );
+      error_messagef( "In " LYPH_ANNOTS_FILE ":%d, the line (%s) has an unrecognized format (%d)", line, &buf[strlen("Annot ")], sscanf_result );
       EXIT();
     }
 
@@ -70,7 +70,7 @@ void load_annotations(void)
 
     if ( !e )
     {
-      error_messagef( "In " ANNOTS_FILE ":%d, lyph '%s' is unrecognized", line, subj );
+      error_messagef( "In " LYPH_ANNOTS_FILE ":%d, lyph '%s' is unrecognized", line, subj );
       EXIT();
     }
 
@@ -89,7 +89,7 @@ void load_annotations(void)
 
       if ( !pubmed )
       {
-        error_messagef( "In " ANNOTS_FILE ":%d, pubmed ID '%s' is unrecognized", line, pubmed_ch );
+        error_messagef( "In " LYPH_ANNOTS_FILE ":%d, pubmed ID '%s' is unrecognized", line, pubmed_ch );
         EXIT();
       }
     }
@@ -104,23 +104,23 @@ void load_annotations(void)
 
 int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
 {
-  annot **aptr, *a, **buf;
+  lyph_annot **aptr, *a, **buf;
   int size;
 
   for ( aptr = e->annots; *aptr; aptr++ )
     if ( (*aptr)->pred == pred && (*aptr)->obj == obj )
       return 0;
 
-  CREATE( a, annot, 1 );
+  CREATE( a, lyph_annot, 1 );
   a->pred = pred;
   a->obj = obj;
   a->pubmed = pubmed;
 
   size = VOIDLEN( e->annots );
 
-  CREATE( buf, annot *, size + 2 );
+  CREATE( buf, lyph_annot *, size + 2 );
 
-  memcpy( buf, e->annots, (size + 1) * sizeof(annot *) );
+  memcpy( buf, e->annots, (size + 1) * sizeof(lyph_annot *) );
 
   buf[size] = a;
   buf[size+1] = NULL;
@@ -131,20 +131,20 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
   return 1;
 }
 
-void populate_annot_list_by_pred( trie *pred, annot_wrapper **head, annot_wrapper **tail, int *cnt, trie *t )
+void populate_lyph_annot_list_by_pred( trie *pred, lyph_annot_wrapper **head, lyph_annot_wrapper **tail, int *cnt, trie *t )
 {
   if ( t->data )
   {
     lyph *e = (lyph*)t->data;
-    annot **a;
+    lyph_annot **a;
 
     for ( a = e->annots; *a; a++ )
     {
       if ( (*a)->pred == pred )
       {
-        annot_wrapper *w;
+        lyph_annot_wrapper *w;
 
-        CREATE( w, annot_wrapper, 1 );
+        CREATE( w, lyph_annot_wrapper, 1 );
         w->a = *a;
         LINK( w, *head, *tail, next );
         (*cnt)++;
@@ -152,19 +152,19 @@ void populate_annot_list_by_pred( trie *pred, annot_wrapper **head, annot_wrappe
     }
   }
 
-  TRIE_RECURSE( populate_annot_list_by_pred( pred, head, tail, cnt, *child ) );
+  TRIE_RECURSE( populate_lyph_annot_list_by_pred( pred, head, tail, cnt, *child ) );
 }
 
 HANDLER( handle_radiological_indices_request )
 {
-  annot **buf, **bptr;
-  annot_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  lyph_annot **buf, **bptr;
+  lyph_annot_wrapper *head = NULL, *tail = NULL, *w, *w_next;
   trie *pred = trie_strdup( RADIOLOGICAL_INDEX_PRED, metadata );
   int cnt = 0;
 
-  populate_annot_list_by_pred( pred, &head, &tail, &cnt, lyph_ids );
+  populate_lyph_annot_list_by_pred( pred, &head, &tail, &cnt, lyph_ids );
 
-  CREATE( buf, annot *, cnt + 1 );
+  CREATE( buf, lyph_annot *, cnt + 1 );
   bptr = buf;
 
   for ( w = head; w; w = w_next )
@@ -176,7 +176,7 @@ HANDLER( handle_radiological_indices_request )
   }
   *bptr = NULL;
 
-  send_200_response( req, JS_ARRAY( annot_obj_to_json, buf ) );
+  send_200_response( req, JS_ARRAY( lyph_annot_obj_to_json, buf ) );
 
   free( buf );
 }
@@ -219,12 +219,12 @@ HANDLER( handle_annotate_request )
     fMatch |= annotate_lyph( *lptr, pred, obj, pubmed );
 
   if ( fMatch )
-    save_annotations();
+    save_lyph_annotations();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-void save_annotations_recurse( FILE *fp, trie *t )
+void save_lyph_annotations_recurse( FILE *fp, trie *t )
 {
   if ( t->data )
   {
@@ -232,7 +232,7 @@ void save_annotations_recurse( FILE *fp, trie *t )
 
     if ( *e->annots )
     {
-      annot **a;
+      lyph_annot **a;
 
       for ( a = e->annots; *a; a++ )
       {
@@ -258,25 +258,25 @@ void save_annotations_recurse( FILE *fp, trie *t )
     }
   }
 
-  TRIE_RECURSE( save_annotations_recurse( fp, *child ) );
+  TRIE_RECURSE( save_lyph_annotations_recurse( fp, *child ) );
 }
 
-void save_annotations( void )
+void save_lyph_annotations( void )
 {
   FILE *fp;
 
   if ( configs.readonly )
     return;
 
-  fp = fopen( ANNOTS_FILE, "w" );
+  fp = fopen( LYPH_ANNOTS_FILE, "w" );
 
   if ( !fp )
   {
-    error_message( "Could not open " ANNOTS_FILE " for writing" );
+    error_message( "Could not open " LYPH_ANNOTS_FILE " for writing" );
     return;
   }
 
-  save_annotations_recurse( fp, lyph_ids );
+  save_lyph_annotations_recurse( fp, lyph_ids );
 
   fclose(fp);
 
@@ -930,7 +930,7 @@ HANDLER( handle_all_pubmeds_request )
 
 int has_some_clinical_index( lyph *e, clinical_index **cis )
 {
-  annot **a;
+  lyph_annot **a;
 
   for ( a = e->annots; *a; a++ )
   {
@@ -950,7 +950,7 @@ int has_all_clinical_indices( lyph *e, clinical_index **cis )
 
   for ( cptr = cis; *cptr; cptr++ )
   {
-    annot **a;
+    lyph_annot **a;
 
     for ( a = e->annots; *a; a++ )
       if ( (*a)->obj == (*cptr)->index )
@@ -1057,16 +1057,16 @@ HANDLER( handle_remove_annotation_request )
   {
     for ( eptr = lyphs; *eptr; eptr++ )
     {
-      annot **a;
+      lyph_annot **a;
 
       for ( a = (*eptr)->annots; *a; a++ )
         free( *a );
 
       free( (*eptr)->annots );
-      (*eptr)->annots = (annot**)blank_void_array();
+      (*eptr)->annots = (lyph_annot**)blank_void_array();
     }
 
-    save_annotations();
+    save_lyph_annotations();
     send_200_response( req, JSON1( "Response": "OK" ) );
     return;
   }
@@ -1077,7 +1077,7 @@ HANDLER( handle_remove_annotation_request )
   for ( eptr = lyphs; *eptr; eptr++ )
   {
     lyph *e = *eptr;
-    annot **a;
+    lyph_annot **a;
     int matches = 0;
 
     for ( a = e->annots; *a; a++ )
@@ -1088,10 +1088,10 @@ HANDLER( handle_remove_annotation_request )
 
     if ( matches )
     {
-      annot **buf, **bptr;
+      lyph_annot **buf, **bptr;
 
       fMatch = 1;
-      CREATE( buf, annot *, VOIDLEN( e->annots ) - matches );
+      CREATE( buf, lyph_annot *, VOIDLEN( e->annots ) - matches );
       bptr = buf;
 
       for ( a = e->annots; *a; a++ )
@@ -1112,7 +1112,7 @@ HANDLER( handle_remove_annotation_request )
     HND_ERR( "The indicated lyph does not have the indicated annotation" );
 
   if ( fMatch )
-    save_annotations();
+    save_lyph_annotations();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }

@@ -646,7 +646,7 @@ HANDLER( handle_delete_lyphs_request )
   save_lyphs();
 
   if ( fAnnot )
-    save_annotations();
+    save_lyph_annotations();
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -1499,7 +1499,7 @@ int index_is_used( clinical_index *ci, trie *t )
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
-    annot **a;
+    lyph_annot **a;
 
     for ( a = e->annots; *a; a++ )
       if ( (*a)->obj == ci->index )

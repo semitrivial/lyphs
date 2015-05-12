@@ -19,7 +19,7 @@
 #define MAX_NUMPATHS 16
 
 #define LOG_FILE "log.txt"
-#define ANNOTS_FILE "annots.dat"
+#define LYPH_ANNOTS_FILE "lyph_annots.dat"
 #define PUBMED_FILE "pubmed.json"
 #define PUBMED_FILE_DEPRECATED "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
@@ -53,8 +53,8 @@ typedef struct VIEWED_NODE viewed_node;
 typedef struct LYPHPLATE_WRAPPER lyphplate_wrapper;
 typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
 typedef struct LYPH_FILTER lyph_filter;
-typedef struct ANNOT annot;
-typedef struct ANNOT_WRAPPER annot_wrapper;
+typedef struct LYPH_ANNOT lyph_annot;
+typedef struct LYPH_ANNOT_WRAPPER lyph_annot_wrapper;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
 typedef struct SYSTEM_CONFIGS system_configs;
@@ -191,7 +191,7 @@ struct LYPH
   lyphnode *to;
   lyphplate *lyphplt;
   lyphplate **constraints;
-  annot **annots;
+  lyph_annot **annots;
   trie *fma;
 };
 
@@ -212,17 +212,17 @@ struct LYPH_TO_JSON_DETAILS
   lyph **buf;
 };
 
-struct ANNOT
+struct LYPH_ANNOT
 {
   trie *pred;
   trie *obj;
   pubmed *pubmed;
 };
 
-struct ANNOT_WRAPPER
+struct LYPH_ANNOT_WRAPPER
 {
-  annot_wrapper *next;
-  annot *a;
+  lyph_annot_wrapper *next;
+  lyph_annot *a;
 };
 
 struct CLINICAL_INDEX
@@ -421,7 +421,7 @@ lyphplate *lyphplate_by_id( const char *id );
 char *lyphplate_to_json( lyphplate *L );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
-char *annot_to_json( annot *a );
+char *lyph_annot_to_json( lyph_annot *a );
 lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
@@ -503,10 +503,10 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
 /*
  * meta.c
  */
-char *annot_obj_to_json( annot *a );
-void load_annotations(void);
+char *lyph_annot_obj_to_json( lyph_annot *a );
+void load_lyph_annotations(void);
 int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
-void save_annotations( void );
+void save_lyph_annotations( void );
 pubmed *pubmed_by_id( const char *id );
 pubmed *pubmed_by_id_or_create( const char *id, int *callersaves );
 clinical_index *clinical_index_by_index( char *ind );

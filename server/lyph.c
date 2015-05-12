@@ -339,7 +339,7 @@ char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
     "y": rect->y,
     "width": rect->width,
     "height": rect->height,
-    "annots": JS_ARRAY( annot_to_json, rect->L->annots ),
+    "annots": JS_ARRAY( lyph_annot_to_json, rect->L->annots ),
     "location": lyph_relative_loc_to_json_v( rect->L, v )
   );
 }
@@ -692,7 +692,7 @@ void load_lyphviews( void )
               e->flags = 0;
               e->species = NULL;
               e->constraints = (lyphplate**)blank_void_array();
-              e->annots = (annot**)blank_void_array();
+              e->annots = (lyph_annot**)blank_void_array();
 
               maybe_update_top_id( &top_lyph_id, left );
             }
@@ -1075,7 +1075,7 @@ int load_lyphs_one_line( char *line, char **err )
     CREATE( e->constraints, lyphplate *, 1 );
     *e->constraints = NULL;
 
-    CREATE( e->annots, annot *, 1 );
+    CREATE( e->annots, lyph_annot *, 1 );
     *e->annots = NULL;
   }
   else
@@ -2094,7 +2094,7 @@ char *exit_to_json( exit_data *x )
   );
 }
 
-char *annot_to_json( annot *a )
+char *lyph_annot_to_json( lyph_annot *a )
 {
   return JSON
   (
@@ -2122,7 +2122,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
 
   if ( details )
   {
-    annots = details->show_annots ? JS_ARRAY( annot_to_json, e->annots ) : json_suppressed;
+    annots = details->show_annots ? JS_ARRAY( lyph_annot_to_json, e->annots ) : json_suppressed;
     house = details->buf ? lyph_relative_loc_to_json_buf( e, details->buf ) : json_suppressed;
   }
   else
@@ -2431,7 +2431,7 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
     e->species = NULL;
 
   e->constraints = (lyphplate**)blank_void_array();
-  e->annots = (annot**)blank_void_array();
+  e->annots = (lyph_annot**)blank_void_array();
 
   add_exit( e );
 
