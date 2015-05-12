@@ -1671,3 +1671,105 @@ HANDLER( handle_layer_to_template_request )
 
   send_200_response( req, lyphplate_to_json( L ) );
 }
+
+HANDLER( handle_material_to_layer_request )
+{
+  layer *lyr;
+  lyphplate *material, **mptr, **buf;
+  char *layerstr, *matstr, *mutablestr, *repeatstr;
+  int size;
+
+  TRY_PARAM( layerstr, "layer", "You did not specify which layer to add the material to" );
+  TRY_PARAM( matstr, "material", "You did not specify which material to add to the layer" );
+
+  lyr = layer_by_id( layerstr );
+
+  if ( !lyr )
+    HND_ERR( "The indicated layer was not recognized" );
+
+  material = lyphplate_by_id( matstr );
+
+  if ( !material )
+    HND_ERR( "The indicated material was not recognized" );
+
+  repeatstr = get_param( params, "repeat" );
+
+  if ( !repeatstr || strcmp( repeatstr, "yes" ) )
+  {
+    for ( mptr = lyr->material; *mptr; mptr++ )
+      if ( *mptr == material )
+        HND_ERR( "The layer in question already has that material" );
+  }
+
+  mutablestr = get_param( params, "mutable" );
+
+  if ( !mutablestr || strcmp( mutablestr, "yes" ) )
+    lyr = clone_layer( lyr );
+
+  size = VOIDLEN( lyr->material );
+
+  CREATE( buf, lyphplate *, size + 2 );
+  memcpy( buf, lyr->material, size * sizeof(lyphplate *) );
+  buf[size] = material;
+  buf[size+1] = NULL;
+
+  free( lyr->material );
+  lyr->material = buf;
+
+  save_lyphplates();
+
+  send_200_response( req, layer_to_json( lyr ) );
+}
+
+HANDLER( handle_material_from_layer_request )
+{
+  layer *lyr;
+  lyphplate *material, **mptr, **buf, **bptr;
+  char *layerstr, *matstr, *mutablestr;
+  int cnt;
+
+  TRY_PARAM( layerstr, "layer", "You did not specify which layer to remove the material from" );
+  TRY_PARAM( matstr, "material", "You did not specify which material to remove from the layer" );
+
+  lyr = layer_by_id( layerstr );
+
+  if ( !lyr )
+    HND_ERR( "The indicated layer was not recognized" );
+
+  material = lyphplate_by_id( matstr );
+
+  if ( !material )
+    HND_ERR( "The indicated material was not recognized" );
+
+  for ( cnt = 0, mptr = lyr->material; *mptr; mptr++ )
+  {
+    if ( *mptr == material )
+      break;
+
+    cnt++;
+  }
+
+  if ( !*mptr )
+    HND_ERR( "The layer in question does not have that material" );
+
+  mutablestr = get_param( params, "mutable" );
+
+  if ( !mutablestr || strcmp( mutablestr, "yes" ) )
+    lyr = clone_layer( lyr );
+
+  CREATE( buf, lyphplate *, cnt + 1 );
+  bptr = buf;
+
+  for ( mptr = lyr->material; *mptr; mptr++ )
+    if ( *mptr != material )
+      *bptr++ = *mptr;
+
+  *bptr = NULL;
+
+  free( lyr->material );
+  lyr->material = buf;
+
+  save_lyphplates();
+
+  send_200_response( req, layer_to_json( lyr ) );
+}

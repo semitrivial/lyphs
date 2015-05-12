@@ -34,6 +34,8 @@ void init_command_table(void)
   add_handler( "nodes_from_view", handle_nodes_from_view_request, CMD_READWRITE );
   add_handler( "layer_from_template", handle_layer_from_template_request, CMD_READWRITE );
   add_handler( "layer_to_template", handle_layer_to_template_request, CMD_READWRITE );
+  add_handler( "material_to_layer", handle_material_to_layer_request, CMD_READWRITE );
+  add_handler( "material_from_layer", handle_material_from_layer_request, CMD_READWRITE );
   add_handler( "change_coords", handle_change_coords_request, CMD_READWRITE );
   add_handler( "lyphpath", handle_lyphpath_request, CMD_READONLY );
   add_handler( "reset_db", handle_reset_db_request, CMD_READWRITE );
