@@ -54,6 +54,9 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
   ci->index = trie_strdup( v["index"].GetString(), metadata );
   ci->label = trie_strdup( v["label"].GetString(), metadata );
   ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id_or_create) );
+
+  if ( v.HasMember("claimed") )
+    ci->claimed = strdup( v["claimed"].GetString() );
 }
 
 extern "C" void clinical_indices_from_js( const char *js )
@@ -70,6 +73,7 @@ extern "C" void clinical_indices_from_js( const char *js )
     clinical_index *ci;
 
     CREATE( ci, clinical_index, 1 );
+    ci->claimed = NULL;
     clinical_index_from_js( ci, d[i] );
     LINK( ci, first_clinical_index, last_clinical_index, next );
   }

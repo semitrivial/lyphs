@@ -592,6 +592,7 @@ void load_clinical_indices_deprecated( void )
     ci->index = index_tr;
     ci->label = label_tr;
     ci->pubmeds = pubmeds;
+    ci->claimed = NULL;
     LINK( ci, first_clinical_index, last_clinical_index, next );
   }
 
@@ -730,6 +731,7 @@ HANDLER( handle_make_clinical_index_request )
   ci->index = trie_strdup( index, metadata );
   ci->label = trie_strdup( label, metadata );
   ci->pubmeds = pubmeds;
+  ci->claimed = NULL;
   LINK( ci, first_clinical_index, last_clinical_index, next );
 
   save_clinical_indices();
@@ -743,7 +745,8 @@ char *clinical_index_to_json_full( clinical_index *ci )
   (
     "index": trie_to_json( ci->index ),
     "label": trie_to_json( ci->label ),
-    "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds )
+    "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds ),
+    "claimed": ci->claimed ? ci->claimed : json_suppressed
   );
 }
 
@@ -773,7 +776,7 @@ HANDLER( handle_edit_clinical_index_request )
 {
   clinical_index *ci;
   pubmed **pubmeds;
-  char *indexstr, *label, *pubmedsstr;
+  char *indexstr, *label, *pubmedsstr, *claimedstr;
 
   TRY_PARAM( indexstr, "index", "You did not specify which clinical index ('index') to edit" );
 
@@ -785,8 +788,9 @@ HANDLER( handle_edit_clinical_index_request )
   label = get_param( params, "label" );
 
   pubmedsstr = get_param( params, "pubmeds" );
+  claimedstr = get_param( params, "claimed" );
 
-  if ( !label && !pubmedsstr )
+  if ( !label && !pubmedsstr && !claimedstr )
     HND_ERR( "You did not specify any changes to make" );
 
   if ( pubmedsstr )
@@ -809,6 +813,14 @@ HANDLER( handle_edit_clinical_index_request )
 
   if ( label )
     ci->label = trie_strdup( label, metadata );
+
+  if ( claimedstr )
+  {
+    if ( ci->claimed )
+      free( ci->claimed );
+
+    ci->claimed = strdup( claimedstr );
+  }
 
   save_clinical_indices();
 

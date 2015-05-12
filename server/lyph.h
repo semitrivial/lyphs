@@ -231,6 +231,7 @@ struct CLINICAL_INDEX
   trie *index;
   trie *label;
   pubmed **pubmeds;
+  char *claimed;
 };
 
 #define CLINICAL_INDEX_SEARCH_UNION 1
