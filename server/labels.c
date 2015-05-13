@@ -18,6 +18,7 @@ void init_labels(FILE *fp)
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
   metadata = blank_trie();
+  radiological_index_predicate = trie_strdup( RADIOLOGICAL_INDEX_PRED, metadata );
 
   init_html_codes();
 

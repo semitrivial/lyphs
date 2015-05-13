@@ -357,6 +357,7 @@ extern bulk_annot *first_bulk_annot;
 extern bulk_annot *last_bulk_annot;
 
 extern int top_bulk_annot_id;
+extern trie *radiological_index_predicate;
 
 /*
  * Function prototypes
@@ -531,11 +532,12 @@ char *bulk_annot_to_json_save( bulk_annot *b );
 bulk_annot *bulk_annot_by_id( const char *id );
 char *lyph_annot_obj_to_json( lyph_annot *a );
 void load_lyph_annotations(void);
-int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
+int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bulk_annots );
 void save_lyph_annotations( void );
 pubmed *pubmed_by_id( const char *id );
 pubmed *pubmed_by_id_or_create( const char *id, int *callersaves );
 clinical_index *clinical_index_by_index( const char *ind );
+clinical_index *clinical_index_by_trie( trie *ind_tr );
 void save_pubmeds( void );
 void load_pubmeds( void );
 void load_bulk_annots( void );

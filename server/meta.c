@@ -9,6 +9,7 @@ pubmed *last_pubmed;
 bulk_annot *first_bulk_annot;
 bulk_annot *last_bulk_annot;
 int top_bulk_annot_id;
+trie *radiological_index_predicate;
 
 HANDLER( handle_all_bulk_annots_request )
 {
@@ -126,6 +127,38 @@ void save_bulk_annots( void )
   fclose( fp );
 }
 
+void bulk_annot_to_lyph_annots( bulk_annot *b, int *save )
+{
+  lyph **eptr;
+  trie *pred, *obj;
+  pubmed *pubmed;
+  int fChange = 0;
+
+  switch( b->type )
+  {
+    case BULK_ANNOT_FUNCTIONAL:
+      return;
+    case BULK_ANNOT_CLINICAL:
+      obj = b->ci->index;
+      pred = NULL;
+      break;
+    case BULK_ANNOT_RADIOLOGICAL:
+      obj = b->radio_index;
+      pred = radiological_index_predicate;
+      break;
+    default:
+      error_messagef( "Bulk_annot_to_lyph_annots: invalid bulk annot type %d", b->type );
+      return;
+  }
+
+  pubmed = b->pbmd;
+
+  for ( eptr = b->lyphs; *eptr; eptr++ )
+    fChange |= annotate_lyph( *eptr, pred, obj, pubmed, 0 );
+
+  *save = fChange;
+}
+
 HANDLER( handle_bulk_annot_request )
 {
   bulk_annot *b;
@@ -134,7 +167,7 @@ HANDLER( handle_bulk_annot_request )
   clinical_index *ci;
   trie *radio;
   char *typestr, *lyphsstr, *cistr, *radiostr, *pubmedstr, *err;
-  int type, savepubs = 0;
+  int type, savepubs = 0, should_save_lyph_annots = 0;
 
   TRY_PARAM( typestr, "type", "You did not indicate a 'type' ('C', 'R', or 'F')" );
   TRY_PARAM( lyphsstr, "lyphs", "You did not indicate which 'lyphs' the annotation covers" );
@@ -197,8 +230,13 @@ HANDLER( handle_bulk_annot_request )
   b->pbmd = pbmd;
   b->radio_index = radio;
   b->id = assign_bulk_annot_id();
-printf( "Debug3: %s\n", trie_to_static( b->id ) );
+
   LINK( b, first_bulk_annot, last_bulk_annot, next );
+
+  bulk_annot_to_lyph_annots( b, &should_save_lyph_annots );
+
+  if ( should_save_lyph_annots )
+    save_lyph_annotations();
 
   save_bulk_annots();
 
@@ -294,13 +332,13 @@ void load_lyph_annotations(void)
 
     MULTIFREE( subj, pred, obj, pubmed_ch );
 
-    annotate_lyph( e, pred_tr, obj_tr, pubmed );
+    annotate_lyph( e, pred_tr, obj_tr, pubmed, 0 );
   }
 
   fclose( fp );
 }
 
-int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
+int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bulk_annots )
 {
   lyph_annot **aptr, *a, **buf;
   int size;
@@ -325,6 +363,63 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
 
   free( e->annots );
   e->annots = buf;
+
+  if ( update_bulk_annots && ( !pred || pred == radiological_index_predicate ) )
+  {
+    bulk_annot *b;
+
+    for ( b = first_bulk_annot; b; b = b->next )
+    {
+      if ( !pred && ( b->type != BULK_ANNOT_CLINICAL || b->ci->index != obj ) )
+        continue;
+
+      if ( pred == radiological_index_predicate
+      && ( b->type != BULK_ANNOT_RADIOLOGICAL || b->radio_index != obj ) )
+        continue;
+
+      if ( b->pbmd != pubmed )
+        continue;
+
+      break;
+    }
+
+    if ( b )
+    {
+      lyph **buf;
+      int lyphssize = VOIDLEN( b->lyphs );
+
+      CREATE( buf, lyph *, lyphssize + 2 );
+      memcpy( buf, b->lyphs, lyphssize * sizeof( lyph * ) );
+      buf[lyphssize] = e;
+      buf[lyphssize+1] = NULL;
+      free( b->lyphs );
+      b->lyphs = buf;
+    }
+    else
+    {
+      CREATE( b, bulk_annot, 1 );
+      if ( pred )
+      {
+        b->type = BULK_ANNOT_RADIOLOGICAL;
+        b->radio_index = obj;
+        b->ci = NULL;
+      }
+      else
+      {
+        b->type = BULK_ANNOT_CLINICAL;
+        b->ci = clinical_index_by_trie( obj );
+        b->radio_index = NULL;
+      }
+      b->id = assign_bulk_annot_id();
+      b->pbmd = pubmed;
+
+      CREATE( b->lyphs, lyph *, 2 );
+      b->lyphs[0] = e;
+      b->lyphs[1] = NULL;
+
+      LINK( b, first_bulk_annot, last_bulk_annot, next );
+    }
+  }
 
   return 1;
 }
@@ -357,7 +452,7 @@ HANDLER( handle_radiological_indices_request )
 {
   lyph_annot **buf, **bptr;
   lyph_annot_wrapper *head = NULL, *tail = NULL, *w, *w_next;
-  trie *pred = trie_strdup( RADIOLOGICAL_INDEX_PRED, metadata );
+  trie *pred = radiological_index_predicate;
   int cnt = 0;
 
   populate_lyph_annot_list_by_pred( pred, &head, &tail, &cnt, lyph_ids );
@@ -414,10 +509,13 @@ HANDLER( handle_annotate_request )
   pubmed = pubmed_by_id_or_create( pubmedstr, NULL );
 
   for ( lptr = lyphs; *lptr; lptr++ )
-    fMatch |= annotate_lyph( *lptr, pred, obj, pubmed );
+    fMatch |= annotate_lyph( *lptr, pred, obj, pubmed, 1 );
 
   if ( fMatch )
+  {
     save_lyph_annotations();
+    save_bulk_annots();
+  }
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
@@ -970,13 +1068,19 @@ char *clinical_index_to_json_brief( clinical_index *ci )
 
 clinical_index *clinical_index_by_index( const char *ind )
 {
-  clinical_index *ci;
   trie *ind_tr;
 
   ind_tr = trie_search( ind, metadata );
 
   if ( !ind_tr )
     return NULL;
+
+  return clinical_index_by_trie( ind_tr );
+}
+
+clinical_index *clinical_index_by_trie( trie *ind_tr )
+{
+  clinical_index *ci;
 
   for ( ci = first_clinical_index; ci; ci = ci->next )
     if ( ci->index == ind_tr )
@@ -1246,6 +1350,54 @@ HANDLER( handle_has_clinical_index_request )
   free( buf );
 }
 
+void lyph_annot_from_bulk_annots( lyph_annot *a, lyph *e )
+{
+  bulk_annot *b;
+
+  if ( a->pred && a->pred != radiological_index_predicate )
+    return;
+
+  for ( b = first_bulk_annot; b; b = b->next )
+  {
+    lyph **eptr;
+
+    if ( b->pbmd != a->pubmed )
+      continue;
+
+    if ( !a->pred && ( b->type != BULK_ANNOT_CLINICAL || b->ci->index != a->obj ) )
+      continue;
+
+    if ( a->pred == radiological_index_predicate
+    && ( b->type != BULK_ANNOT_RADIOLOGICAL || b->radio_index != a->obj ) )
+      continue;
+
+    for ( eptr = b->lyphs; *eptr; eptr++ )
+      if ( *eptr == e )
+        break;
+
+    if ( *eptr )
+    {
+      lyph **buf, **bptr;
+      int cnt = 0;
+
+      for ( eptr = b->lyphs; *eptr; eptr++ )
+        if ( *eptr != e )
+          cnt++;
+
+      CREATE( buf, lyph *, cnt + 1 );
+      bptr = buf;
+
+      for ( eptr = b->lyphs; *eptr; eptr++ )
+        if ( *eptr != e )
+          *bptr++ = *eptr;
+
+      *bptr = NULL;
+      free( b->lyphs );
+      b->lyphs = buf;
+    }
+  }
+}
+
 HANDLER( handle_remove_annotation_request )
 {
   lyph **lyphs, **eptr;
@@ -1273,7 +1425,10 @@ HANDLER( handle_remove_annotation_request )
       lyph_annot **a;
 
       for ( a = (*eptr)->annots; *a; a++ )
+      {
+        lyph_annot_from_bulk_annots( *a, *eptr );
         free( *a );
+      }
 
       free( (*eptr)->annots );
       (*eptr)->annots = (lyph_annot**)blank_void_array();
@@ -1312,7 +1467,10 @@ HANDLER( handle_remove_annotation_request )
         if ( (*a)->obj != obj )
           *bptr++ = *a;
         else
+        {
+          lyph_annot_from_bulk_annots( *a, e );
           free( *a );
+        }
       }
 
       *bptr = NULL;
@@ -1325,7 +1483,10 @@ HANDLER( handle_remove_annotation_request )
     HND_ERR( "The indicated lyph does not have the indicated annotation" );
 
   if ( fMatch )
+  {
     save_lyph_annotations();
+    save_bulk_annots();
+  }
 
   send_200_response( req, JSON1( "Response": "OK" ) );
 }

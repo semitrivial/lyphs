@@ -86,7 +86,7 @@ void bulk_annot_from_js( bulk_annot *b, Value &v )
 
   b->id = trie_strdup( id, metadata );
   b->type = stoi( v["type"].GetString() );
-  b->lyphs = (lyph**)array_from_doc( v, "lyph", CST( lyph_by_id ) );
+  b->lyphs = (lyph**)array_from_doc( v, "lyphs", CST( lyph_by_id ) );
 
   maybe_update_top_id( &top_bulk_annot_id, &id[idpos] );
 
