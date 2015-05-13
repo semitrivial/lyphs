@@ -1,8 +1,9 @@
 #include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#include <iostream>
 
 using namespace rapidjson;
 using namespace std;
@@ -85,7 +86,7 @@ void bulk_annot_from_js( bulk_annot *b, Value &v )
   const char *id = v["id"].GetString();
 
   b->id = trie_strdup( id, metadata );
-  b->type = stoi( v["type"].GetString() );
+  b->type = atoi( v["type"].GetString() );
   b->lyphs = (lyph**)array_from_doc( v, "lyphs", CST( lyph_by_id ) );
 
   maybe_update_top_id( &top_bulk_annot_id, &id[idpos] );
