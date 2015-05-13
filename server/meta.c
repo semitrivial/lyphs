@@ -6,6 +6,204 @@ clinical_index *first_clinical_index;
 clinical_index *last_clinical_index;
 pubmed *first_pubmed;
 pubmed *last_pubmed;
+bulk_annot *first_bulk_annot;
+bulk_annot *last_bulk_annot;
+int top_bulk_annot_id;
+
+HANDLER( handle_all_bulk_annots_request )
+{
+  bulk_annot *b, **buf, **bptr;
+  int cnt = 0;
+
+  for ( b = first_bulk_annot; b; b = b->next )
+    cnt++;
+
+  CREATE( buf, bulk_annot *, cnt + 1 );
+  bptr = buf;
+
+  for ( b = first_bulk_annot; b; b = b->next )
+    *bptr++ = b;
+
+  *bptr = NULL;
+
+  send_200_response( req, JS_ARRAY( bulk_annot_to_json, buf ) );
+
+  free( buf );
+}
+
+trie *assign_bulk_annot_id( void )
+{
+  char buf[256];
+
+  sprintf( buf, "BULK_ANNOT_%d", ++top_bulk_annot_id );
+
+  return trie_strdup( buf, metadata );
+}
+
+char *bulk_annot_type_to_str( int type )
+{
+  switch( type )
+  {
+    case BULK_ANNOT_CLINICAL:
+      return "clinical index";
+    case BULK_ANNOT_RADIOLOGICAL:
+      return "radiological index";
+    case BULK_ANNOT_FUNCTIONAL:
+      return "functional";
+    default:
+      return "unknown";
+  }
+}
+
+char *bulk_annot_to_json( bulk_annot *a )
+{
+  return JSON
+  (
+    "id": trie_to_json( a->id ),
+    "type": bulk_annot_type_to_str( a->type ),
+    "lyphs": JS_ARRAY( lyph_to_json_id, a->lyphs ),
+    "clinical index": a->ci ? clinical_index_to_json_full( a->ci ) : json_suppressed,
+    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : json_suppressed,
+    "pubmed": pubmed_to_json_brief( a->pbmd )
+  );
+}
+
+char *lyph_to_json_id( lyph *e )
+{
+  return trie_to_json( e->id );
+}
+
+char *bulk_annot_to_json_save( bulk_annot *a )
+{
+  return JSON
+  (
+    "id": trie_to_json( a->id ),
+    "type": int_to_json( a->type ),
+    "lyphs": JS_ARRAY( lyph_to_json_id, a->lyphs ),
+    "clinical index": a->ci ? clinical_index_to_json_brief( a->ci ) : json_suppressed,
+    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : json_suppressed,
+    "pubmed": pubmed_to_json_brief( a->pbmd )
+  );
+}
+
+bulk_annot *bulk_annot_by_id( const char *id )
+{
+  bulk_annot *b;
+  trie *idtr = trie_strdup( id, metadata );
+
+  for ( b = first_bulk_annot; b; b = b->next )
+    if ( b->id == idtr )
+      return b;
+
+  return NULL;
+}
+
+void save_bulk_annots( void )
+{
+  bulk_annot *b;
+  FILE *fp = fopen( BULK_ANNOTS_FILE, "w" );
+  int fFirst = 0;
+
+  if ( !fp )
+  {
+    error_message( "Could not open " BULK_ANNOTS_FILE " to write" );
+    EXIT();
+  }
+
+  fprintf( fp, "[" );
+
+  for ( b = first_bulk_annot; b; b = b->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", bulk_annot_to_json_save( b ) );
+  }
+
+  fprintf( fp, "]" );
+  fclose( fp );
+}
+
+HANDLER( handle_bulk_annot_request )
+{
+  bulk_annot *b;
+  lyph **lyphs;
+  pubmed *pbmd;
+  clinical_index *ci;
+  trie *radio;
+  char *typestr, *lyphsstr, *cistr, *radiostr, *pubmedstr, *err;
+  int type, savepubs = 0;
+
+  TRY_PARAM( typestr, "type", "You did not indicate a 'type' ('C', 'R', or 'F')" );
+  TRY_PARAM( lyphsstr, "lyphs", "You did not indicate which 'lyphs' the annotation covers" );
+  TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed' associated with the annotation" );
+
+  if ( *typestr == 'C' || *typestr == 'c' )
+    type = BULK_ANNOT_CLINICAL;
+  else if ( *typestr == 'R' || *typestr == 'r' )
+    type = BULK_ANNOT_RADIOLOGICAL;
+  else if ( *typestr == 'F' || *typestr == 'f' )
+    type = BULK_ANNOT_FUNCTIONAL;
+  else
+    HND_ERR( "'type' must be 'C' (clinical index), 'R' (radiological index), or 'F' (functional)" );
+
+  if ( type == BULK_ANNOT_CLINICAL )
+  {
+    TRY_PARAM( cistr, "clindex", "You did not specify a 'clindex' (clinical index)" );
+
+    ci = clinical_index_by_index( cistr );
+
+    if ( !ci )
+      HND_ERR( "The indicated clinical index was not recognized" );
+  }
+  else
+    ci = NULL;
+
+  if ( type == BULK_ANNOT_RADIOLOGICAL )
+  {
+    TRY_PARAM( radiostr, "radio", "You did not specify a 'radio' (radiological index)" );
+    radio = trie_strdup( radiostr, metadata );
+  }
+  else
+    radio = NULL;
+
+  lyphs = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+
+  if ( !lyphs )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs was unrecognized" );
+  }
+
+  pbmd = pubmed_by_id_or_create( pubmedstr, &savepubs );
+
+  if ( !pbmd )
+  {
+    free( lyphs );
+    HND_ERR( "The indicated pubmed was unrecognized and could not be created" );
+  }
+
+  if ( savepubs )
+    save_pubmeds();
+
+  CREATE( b, bulk_annot, 1 );
+  b->type = type;
+  b->lyphs = lyphs;
+  b->ci = ci;
+  b->pbmd = pbmd;
+  b->radio_index = radio;
+  b->id = assign_bulk_annot_id();
+printf( "Debug3: %s\n", trie_to_static( b->id ) );
+  LINK( b, first_bulk_annot, last_bulk_annot, next );
+
+  save_bulk_annots();
+
+  send_200_response( req, bulk_annot_to_json( b ) );
+}
 
 char *lyph_annot_obj_to_json( lyph_annot *a )
 {
@@ -599,6 +797,21 @@ void load_clinical_indices_deprecated( void )
   fclose( fp );
 }
 
+void load_bulk_annots( void )
+{
+  char *js = load_file( BULK_ANNOTS_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading --- no bulk annots will be loaded", BULK_ANNOTS_FILE );
+    return;
+  }
+
+  bulk_annots_from_js( js );
+
+  free( js );
+}
+
 void load_pubmeds( void )
 {
   char *js = load_file( PUBMED_FILE );
@@ -755,7 +968,7 @@ char *clinical_index_to_json_brief( clinical_index *ci )
   return trie_to_json( ci->index );
 }
 
-clinical_index *clinical_index_by_index( char *ind )
+clinical_index *clinical_index_by_index( const char *ind )
 {
   clinical_index *ci;
   trie *ind_tr;

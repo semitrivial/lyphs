@@ -10,7 +10,6 @@ lyphnode *lyphnode_by_id_or_new( char *id );
 trie *parse_lyph_name_field( char *namebuf, lyph *e );
 lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr );
 lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name );
-void maybe_update_top_id( int *top, char *idstr );
 trie *new_lyphnode_id(lyphnode *n);
 lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );

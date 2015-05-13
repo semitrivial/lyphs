@@ -445,7 +445,7 @@ void **parse_list_r( char *list, void * (*fnc) (char *, void *), void *data, cha
 }
 
 
-void maybe_update_top_id( int *top, char *idstr )
+void maybe_update_top_id( int *top, const char *idstr )
 {
   int id = strtol( idstr, NULL, 10 );
 

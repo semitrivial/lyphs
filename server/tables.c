@@ -14,6 +14,7 @@ void init_command_table(void)
   add_handler( "all_pubmeds", handle_all_pubmeds_request, CMD_READONLY );
   add_handler( "all_clinical_indices", handle_all_clinical_indices_request, CMD_READONLY );
   add_handler( "all_radiological_indices", handle_radiological_indices_request, CMD_READONLY );
+  add_handler( "all_bulk_annots", handle_all_bulk_annots_request, CMD_READONLY );
   add_handler( "clinical_index", handle_clinical_index_request, CMD_READONLY );
   add_handler( "pubmed", handle_pubmed_request, CMD_READONLY );
   add_handler( "template_hierarchy", handle_template_hierarchy_request, CMD_READONLY );
@@ -54,6 +55,7 @@ void init_command_table(void)
   add_handler( "has_clinical_index", handle_has_clinical_index_request, CMD_READONLY );
   add_handler( "unused_indices", handle_unused_indices_request, CMD_READONLY );
   add_handler( "annotate", handle_annotate_request, CMD_READWRITE );
+  add_handler( "bulk_annot", handle_bulk_annot_request, CMD_READWRITE );
   add_handler( "remove_annotations", handle_remove_annotation_request, CMD_READWRITE );
   add_handler( "editlyph", handle_editlyph_request, CMD_READWRITE );
   add_handler( "editlyphnode", handle_editlyphnode_request, CMD_READWRITE );

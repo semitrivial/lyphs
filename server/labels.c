@@ -28,6 +28,7 @@ void init_labels(FILE *fp)
   load_pubmeds();
   load_clinical_indices();
   load_lyph_annotations();
+  load_bulk_annots();
 
 #ifdef PRE_LAYER_CHANGE
   compute_lyphplate_hierarchy( lyphplate_ids );
