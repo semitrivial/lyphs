@@ -127,6 +127,9 @@ typedef enum
   LYPHPLATE_BASIC, LYPHPLATE_SHELL, LYPHPLATE_MIX, LYPHPLATE_MISSING
 } lyphplate_types;
 
+#define LYPHPLATE_DOES_INVOLVE 1
+#define LYPHPLATE_DOES_NOT_INVOLVE 2
+
 struct LYPHPLATE_WRAPPER
 {
   lyphplate_wrapper *next;
@@ -549,6 +552,11 @@ char *pubmed_to_json_brief( pubmed *p );
 char *pubmed_to_json_full( pubmed *p );
 char *clinical_index_to_json_brief( clinical_index *ci );
 char *clinical_index_to_json_full( clinical_index *ci );
+
+/*
+ * cmds.c
+ */
+int template_involves_any_of( lyphplate *L, lyphplate **parts );
 
 /*
  * fromjs.cpp

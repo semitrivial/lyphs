@@ -1133,11 +1133,8 @@ HANDLER( handle_lyphs_from_view_request )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
-int template_involves( lyphplate *L, lyphplate *part )
+int template_involves_any_of( lyphplate *L, lyphplate **parts )
 {
-  #define LYPHPLATE_DOES_INVOLVE 1
-  #define LYPHPLATE_DOES_NOT_INVOLVE 2
-
   if ( IS_SET( L->flags, LYPHPLATE_DOES_INVOLVE ) )
     return 1;
   else
@@ -1145,47 +1142,58 @@ int template_involves( lyphplate *L, lyphplate *part )
     return 0;
   else
   {
-    lyphplate **misc_mats;
+    lyphplate **misc_mats, **partptr;
     int answer;
 
-    if ( L == part )
+    for ( partptr = parts; *partptr; partptr++ )
     {
-      SET_BIT( L->flags, LYPHPLATE_DOES_INVOLVE );
-      return 1;
-    }
+      lyphplate *part = *partptr;
 
-    for ( misc_mats = L->misc_material; *misc_mats; misc_mats++ )
-      if ( template_involves( *misc_mats, part ) )
-        break;
-
-    if ( *misc_mats )
-      answer = 1;
-    else
-    switch( L->type )
-    {
-      case LYPHPLATE_BASIC:
-        answer = 0;
-        break;
-      case LYPHPLATE_SHELL:
-      case LYPHPLATE_MIX:
+      if ( L == part )
       {
-        layer **lyr;
-        lyphplate **materials;
+        SET_BIT( L->flags, LYPHPLATE_DOES_INVOLVE );
+        return 1;
+      }
 
-        for ( lyr = L->layers; *lyr; lyr++ )
-        for ( materials = (*lyr)->material; *materials; materials++ )
-          if ( template_involves( *materials, part ) )
-            goto template_involves_escape_tag;
+      for ( misc_mats = L->misc_material; *misc_mats; misc_mats++ )
+        if ( template_involves_any_of( *misc_mats, parts ) )
+          break;
 
-        template_involves_escape_tag:
-
-        if ( *lyr )
-          answer = 1;
-        else
+      if ( *misc_mats )
+      {
+        answer = 1;
+        goto template_involves_outer_escape_tag;
+      }
+      else
+      switch( L->type )
+      {
+        case LYPHPLATE_BASIC:
           answer = 0;
-        break;
+          break;
+        case LYPHPLATE_SHELL:
+        case LYPHPLATE_MIX:
+        {
+          layer **lyr;
+          lyphplate **materials;
+
+          for ( lyr = L->layers; *lyr; lyr++ )
+          for ( materials = (*lyr)->material; *materials; materials++ )
+            if ( template_involves_any_of( *materials, parts ) )
+              goto template_involves_escape_tag;
+
+          template_involves_escape_tag:
+
+          if ( *lyr )
+          {
+            answer = 1;
+            goto template_involves_outer_escape_tag;
+          }
+        }
       }
     }
+    answer = 0;
+
+    template_involves_outer_escape_tag:
 
     if ( answer )
       SET_BIT( L->flags, LYPHPLATE_DOES_INVOLVE );
@@ -1201,8 +1209,13 @@ void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **t
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
+    lyphplate **parts;
 
-    if ( e->lyphplt && template_involves( e->lyphplt, L ) )
+    CREATE( parts, lyphplate *, 2 );
+    parts[0] = L;
+    parts[1] = NULL;
+
+    if ( e->lyphplt && template_involves_any_of( e->lyphplt, parts ) )
     {
       lyph_wrapper *w;
 
@@ -1211,6 +1224,8 @@ void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **t
       LINK( w, *head, *tail, next );
       (*cnt)++;
     }
+
+    free( parts );
   }
 
   TRIE_RECURSE( calc_involves_template( L, head, tail, cnt, *child ) );
@@ -1235,7 +1250,7 @@ HANDLER( handle_involves_template_request )
 
   calc_involves_template( L, &head, &tail, &cnt, lyph_ids );
 
-  lyphs_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyph_ids );
+  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
 
   CREATE( buf, lyph *, cnt + 1 );
   bptr = buf;

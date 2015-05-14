@@ -197,6 +197,8 @@ while(0)
 /*
  * Misc. macros
  */
+#define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
+
 #define VOIDLEN(x) voidlen((void**)(x))
 
 #define EXIT() do exit(EXIT_SUCCESS); while(0)

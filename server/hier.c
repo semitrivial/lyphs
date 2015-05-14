@@ -1,4 +1,5 @@
 #include "lyph.h"
+#include "srv.h"
 
 #ifdef PRE_LAYER_CHANGE
 
@@ -514,3 +515,105 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
   lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH, lyph_ids );
   lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH, lyphnode_ids );
 }
+
+void populate_with_basic_lyphplates_subclass_of( trie *super, lyphplate ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate*)t->data;
+
+    if ( L->ont_term == super )
+    {
+      **bptr = L;
+      (*bptr)++;
+    }
+    else
+    if ( L->ont_term )
+    {
+      trie **tptr;
+
+      for ( tptr = L->ont_term->data; *tptr; tptr++ )
+      {
+        if ( *tptr == super )
+        {
+          **bptr = L;
+          (*bptr)++;
+          break;
+        }
+      }
+    }
+  }
+
+  TRIE_RECURSE( populate_with_basic_lyphplates_subclass_of( super, bptr, *child ) );
+}
+
+void populate_with_lyphplates_involving_any_of( lyphplate **basics, lyphplate ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate *)t->data;
+
+    if ( template_involves_any_of( L, basics ) )
+    {
+      **bptr = L;
+      (*bptr)++;
+    }
+  }
+
+  TRIE_RECURSE( populate_with_lyphplates_involving_any_of( basics, bptr, *child ) );
+}
+
+HANDLER( handle_templates_involving_request )
+{
+  lyphplate **basics, **bscptr, **buf, **bptr, *L;
+  trie *ont;
+  char *ontstr;
+  int cnt;
+
+  TRY_PARAM( ontstr, "ont", "You did not specify an ontology term ('ont')" );
+
+  ont = trie_search( ontstr, superclasses );
+  L = lyphplate_by_id( ontstr );
+
+  if ( !ont && !L )
+    HND_ERR( "The indicated ontology term was not recognized" );
+
+  cnt = count_nontrivial_members( lyphplate_ids );
+  CREATE( basics, lyphplate *, cnt + 1 );
+  bscptr = basics;
+
+  if ( ont )
+    populate_with_basic_lyphplates_subclass_of( ont, &bscptr, lyphplate_ids );
+
+  if ( L )
+  {
+    if ( ont )
+    {
+      lyphplate **dupe;
+      for ( dupe = basics; dupe < bscptr; dupe++ )
+        if ( *dupe == L )
+          break;
+
+      if ( dupe == bscptr )
+        *bscptr++ = L;
+    }
+    else
+      *bscptr++ = L;
+  }
+
+  *bscptr = NULL;
+
+  CREATE( buf, lyphplate *, cnt + 1 );
+  bptr = buf;
+
+  populate_with_lyphplates_involving_any_of( basics, &bptr, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
+  *bptr = NULL;
+
+  free( basics );
+
+  send_200_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
+
+  free( buf );
+}
+

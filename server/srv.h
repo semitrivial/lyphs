@@ -109,8 +109,6 @@ do\
 }\
 while(0)
 
-#define HANDLER(fnc) void fnc( char *request, http_request *req, url_param **params )
-
 #define GET_NUMBERED_ARGS( params, base, fnc, err, size )\
         get_numbered_args( (params), (base), (char * (*) (void*))(fnc), (err), (size) )
 
@@ -275,6 +273,7 @@ HANDLER( handle_all_ont_terms_request );
 HANDLER( handle_subtemplates_request );
 HANDLER( handle_instances_of_request );
 HANDLER( handle_involves_template_request );
+HANDLER( handle_templates_involving_request );
 HANDLER( handle_has_template_request );
 HANDLER( handle_has_clinical_index_request );
 HANDLER( handle_unused_indices_request );
