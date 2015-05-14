@@ -1634,13 +1634,9 @@ HANDLER( handle_layer_from_template_request )
   else
     pos = 1;
 
-  for ( n = 0, cnt = 0, lyrptr = L->layers; *lyrptr; lyrptr++ )
-  {
-    cnt++;
-
+  for ( n = 0, lyrptr = L->layers; *lyrptr; lyrptr++ )
     if ( *lyrptr == lyr && ++n == pos )
       break;
-  }
 
   if ( !*lyrptr )
   {
@@ -1649,6 +1645,8 @@ HANDLER( handle_layer_from_template_request )
     else
       HND_ERR( "The indicated layer does not occur in the indicated template" );
   }
+
+  cnt = VOIDLEN( L->layers );
 
   CREATE( buf, layer *, cnt );
   bptr = buf;
