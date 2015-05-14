@@ -516,13 +516,18 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
   lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH, lyphnode_ids );
 }
 
-void populate_with_basic_lyphplates_subclass_of( trie *super, lyphplate ***bptr, trie *t )
+void populate_with_basic_lyphplates_subclass_of( trie **supers, lyphplate ***bptr, trie *t )
 {
   if ( t->data )
   {
     lyphplate *L = (lyphplate*)t->data;
+    trie **super;
 
-    if ( L->ont_term == super )
+    for ( super = supers; *super; super++ )
+      if ( L->ont_term == *super )
+        break;
+
+    if ( *super )
     {
       **bptr = L;
       (*bptr)++;
@@ -533,18 +538,21 @@ void populate_with_basic_lyphplates_subclass_of( trie *super, lyphplate ***bptr,
       trie **tptr;
 
       for ( tptr = L->ont_term->data; *tptr; tptr++ )
+      for ( super = supers; *super; super++ )
       {
-        if ( *tptr == super )
+        if ( *tptr == *super )
         {
           **bptr = L;
           (*bptr)++;
-          break;
+          goto populate_with_basic_lyphplates_subclass_of_escape;
         }
       }
     }
   }
 
-  TRIE_RECURSE( populate_with_basic_lyphplates_subclass_of( super, bptr, *child ) );
+  populate_with_basic_lyphplates_subclass_of_escape:
+
+  TRIE_RECURSE( populate_with_basic_lyphplates_subclass_of( supers, bptr, *child ) );
 }
 
 void populate_with_lyphplates_involving_any_of( lyphplate **basics, lyphplate ***bptr, trie *t )
@@ -563,31 +571,84 @@ void populate_with_lyphplates_involving_any_of( lyphplate **basics, lyphplate **
   TRIE_RECURSE( populate_with_lyphplates_involving_any_of( basics, bptr, *child ) );
 }
 
+trie **translate_full_iris_to_superclasses( trie **data )
+{
+  trie **ptr, **buf, **bptr;
+
+  CREATE( buf, trie *, VOIDLEN( data ) + 1 );
+  bptr = buf;
+
+  for ( ptr = data; *ptr; ptr++ )
+  {
+    char *full_iri = trie_to_static( *ptr );
+    char *short_iri = get_url_shortform( full_iri );
+    trie *in_superclasses;
+
+    if ( !short_iri )
+      continue;
+
+    in_superclasses = trie_search( short_iri, superclasses );
+
+    if ( in_superclasses )
+      *bptr++ = in_superclasses;
+  }
+
+  *bptr = NULL;
+
+  return buf;
+}
+
 HANDLER( handle_templates_involving_request )
 {
   lyphplate **basics, **bscptr, **buf, **bptr, *L;
-  trie *ont;
+  trie **onts, *ont;
   char *ontstr;
   int cnt;
 
   TRY_PARAM( ontstr, "ont", "You did not specify an ontology term ('ont')" );
 
   ont = trie_search( ontstr, superclasses );
+
+  if ( !ont )
+  {
+    trie *label = trie_search( ontstr, label_to_iris );
+
+    if ( label && *label->data )
+      onts = translate_full_iris_to_superclasses( label->data );
+    else
+    {
+      char *lower = lowercaserize( ontstr );
+
+      label = trie_search( lower, label_to_iris_lowercase );
+
+      if ( label && *label->data )
+        onts = translate_full_iris_to_superclasses( label->data );
+      else
+        onts = NULL;
+    }
+  }
+  else
+  {
+    CREATE( onts, trie *, 2 );
+    onts[0] = ont;
+    onts[1] = NULL;
+  }
+
   L = lyphplate_by_id( ontstr );
 
-  if ( !ont && !L )
+  if ( !onts && !L )
     HND_ERR( "The indicated ontology term was not recognized" );
 
   cnt = count_nontrivial_members( lyphplate_ids );
   CREATE( basics, lyphplate *, cnt + 1 );
   bscptr = basics;
 
-  if ( ont )
-    populate_with_basic_lyphplates_subclass_of( ont, &bscptr, lyphplate_ids );
+  if ( onts )
+    populate_with_basic_lyphplates_subclass_of( onts, &bscptr, lyphplate_ids );
 
   if ( L )
   {
-    if ( ont )
+    if ( onts )
     {
       lyphplate **dupe;
       for ( dupe = basics; dupe < bscptr; dupe++ )
@@ -612,8 +673,10 @@ HANDLER( handle_templates_involving_request )
 
   free( basics );
 
+  if ( onts )
+    free( onts );
+
   send_200_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
 
   free( buf );
 }
-
