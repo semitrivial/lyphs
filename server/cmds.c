@@ -292,14 +292,19 @@ HANDLER( handle_edit_template_request )
   {
     char *err;
 
-    misc_mats = (lyphplate **)PARSE_LIST( miscstr, lyphplate_by_id, "template", &err );
-
-    if ( !misc_mats )
+    if ( strcmp( miscstr, "none" ) )
+      misc_mats = (lyphplate **)blank_void_array();
+    else
     {
-      if ( err )
-        HND_ERR_FREE( err );
-      else
-        HND_ERR( "One of the indicated templates was not recognized" );
+      misc_mats = (lyphplate **)PARSE_LIST( miscstr, lyphplate_by_id, "template", &err );
+
+      if ( !misc_mats )
+      {
+        if ( err )
+          HND_ERR_FREE( err );
+        else
+          HND_ERR( "One of the indicated templates was not recognized" );
+      }
     }
 
     free( L->misc_material );
