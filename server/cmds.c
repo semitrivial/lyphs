@@ -1619,9 +1619,6 @@ HANDLER( handle_layer_from_template_request )
   if ( !lyr )
     HND_ERR( "The indicated layer was not recognized" );
 
-  if ( !*L->layers || !L->layers[1] )
-    HND_ERR( "The template ought to have at least two layers, before you delete more layers from it." );
-
   posstr = get_param( params, "pos" );
 
   if ( posstr )
