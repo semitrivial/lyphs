@@ -1249,7 +1249,7 @@ HANDLER( handle_involves_template_request )
   L = lyphplate_by_id( tmpidstr );
 
   if ( !L )
-    HND_ERR( "The indicated lyphplate was not found in the database" );
+    HND_ERR( "The indicated template was not found in the database" );
 
   cnt = 0;
 

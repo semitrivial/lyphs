@@ -1,4 +1,5 @@
 #include "lyph.h"
+#include "srv.h"
 #include "nt_parse.h"
 
 char *lyphplate_type_as_char( lyphplate *L );
@@ -224,6 +225,81 @@ void unmark_houses( lyph_wrapper **head, lyph_wrapper **tail )
 
   *head = NULL;
   *tail = NULL;
+}
+
+int is_lyphnode_located_in_lyph( lyphnode *n, lyph *e )
+{
+  if ( !n->location )
+    return 0;
+
+  if ( n->location == e )
+    return 1;
+
+  if ( n->location->from->location == n->location->to->location )
+    return is_lyphnode_located_in_lyph( n->location->from, e );
+
+  if ( is_lyphnode_located_in_lyph( n->location->from, e )
+  || ( is_lyphnode_located_in_lyph( n->location->to, e ) ) )
+    return 1;
+
+  return 0;
+}
+
+void get_lyphs_partly_located_in_recursive( lyph *e, lyph_wrapper **head, lyph_wrapper **tail, trie *t, int *cnt )
+{
+  if ( t->data )
+  {
+    lyph *in = (lyph*)t->data;
+
+    if ( in->from->location || in->to->location )
+    {
+      int answer;
+
+      if ( in->from->location == in->to->location )
+        answer = is_lyphnode_located_in_lyph( in->from, e );
+      else
+      {
+        answer = (in->from->location && is_lyphnode_located_in_lyph( in->from, e ) );
+        answer = answer || (in->to->location && is_lyphnode_located_in_lyph( in->to, e ) );
+      }
+
+      if ( answer )
+      {
+        lyph_wrapper *w;
+
+        CREATE( w, lyph_wrapper, 1 );
+        w->e = e;
+        LINK( w, *head, *tail, next );
+        (*cnt)++;
+      }
+    }
+  }
+
+  TRIE_RECURSE( get_lyphs_partly_located_in_recursive( e, head, tail, *child, cnt ) );
+}
+
+lyph **get_lyphs_partly_located_in( lyph *e )
+{
+  lyph **buf, **bptr;
+  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
+  int cnt = 0;
+
+  get_lyphs_partly_located_in_recursive( e, &head, &tail, lyph_ids, &cnt );
+
+  CREATE( buf, lyph *, cnt + 2 );
+  bptr = buf;
+
+  *bptr++ = e;
+
+  for ( w = head; w; w = w_next )
+  {
+    w_next = w->next;
+
+    *bptr++ = w->e;
+    free( w );
+  }
+
+  return buf;
 }
 
 lyph *get_lyph_location( lyph *e )
@@ -2821,4 +2897,23 @@ layer *clone_layer( layer *lyr )
   dest->id = assign_new_layer_id( dest );
 
   return dest;
+}
+
+HANDLER( handle_lyphs_located_in_lyph_request )
+{
+  lyph *e, **buf;
+  char *lyphstr;
+
+  TRY_PARAM( lyphstr, "lyph", "You did not indicate a 'lyph' inside which to search for lyphs" );
+
+  e = lyph_by_id( lyphstr );
+
+  if ( !e )
+    HND_ERR( "The indicated lyph was not recognized" );
+
+  buf = get_lyphs_partly_located_in( e );
+
+  send_200_response( req, JS_ARRAY( lyph_to_json, buf ) );
+
+  free( buf );
 }

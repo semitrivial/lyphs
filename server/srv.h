@@ -302,3 +302,4 @@ HANDLER( handle_radiological_indices_request );
 HANDLER( handle_layer_from_template_request );
 HANDLER( handle_layer_to_template_request );
 HANDLER( handle_parse_csv_request );
+HANDLER( handle_lyphs_located_in_lyph_request );
