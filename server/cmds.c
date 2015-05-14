@@ -292,7 +292,7 @@ HANDLER( handle_edit_template_request )
   {
     char *err;
 
-    if ( strcmp( miscstr, "none" ) )
+    if ( !strcmp( miscstr, "none" ) )
       misc_mats = (lyphplate **)blank_void_array();
     else
     {
