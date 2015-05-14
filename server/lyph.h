@@ -444,6 +444,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
  */
 lyphplate *lyphplate_by_name( char *name );
 lyphplate *lyphplate_by_id( const char *id );
+lyphplate **lyphplates_by_term( const char *ontstr );
 char *lyphplate_to_json( lyphplate *L );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );

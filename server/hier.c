@@ -600,12 +600,26 @@ trie **translate_full_iris_to_superclasses( trie **data )
 
 HANDLER( handle_templates_involving_request )
 {
-  lyphplate **basics, **bscptr, **buf, **bptr, *L;
-  trie **onts, *ont;
+  lyphplate **buf;
   char *ontstr;
-  int cnt;
 
   TRY_PARAM( ontstr, "ont", "You did not specify an ontology term ('ont')" );
+
+  buf = lyphplates_by_term( ontstr );
+
+  if ( !buf )
+    HND_ERR( "No lyphplates matched the term in question" );
+
+  send_200_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
+
+  free( buf );
+}
+
+lyphplate **lyphplates_by_term( const char *ontstr )
+{
+  lyphplate *L, **basics, **bscptr, **buf, **bptr;
+  trie *ont, **onts;
+  int cnt;
 
   ont = trie_search( ontstr, superclasses );
 
@@ -637,7 +651,7 @@ HANDLER( handle_templates_involving_request )
   L = lyphplate_by_id( ontstr );
 
   if ( !onts && !L )
-    HND_ERR( "The indicated ontology term was not recognized" );
+    return NULL;
 
   cnt = count_nontrivial_members( lyphplate_ids );
   CREATE( basics, lyphplate *, cnt + 1 );
@@ -676,7 +690,5 @@ HANDLER( handle_templates_involving_request )
   if ( onts )
     free( onts );
 
-  send_200_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
-
-  free( buf );
+  return buf;
 }

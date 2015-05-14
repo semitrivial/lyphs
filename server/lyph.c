@@ -227,25 +227,28 @@ void unmark_houses( lyph_wrapper **head, lyph_wrapper **tail )
   *tail = NULL;
 }
 
-int is_lyphnode_located_in_lyph( lyphnode *n, lyph *e )
+int is_lyphnode_located_in_lyphs( lyphnode *n, lyph **ebuf )
 {
+  lyph **ptr;
+
   if ( !n->location )
     return 0;
 
-  if ( n->location == e )
-    return 1;
+  for ( ptr = ebuf; *ptr; ptr++ )
+    if ( n->location == *ptr )
+      return 1;
 
   if ( n->location->from->location == n->location->to->location )
-    return is_lyphnode_located_in_lyph( n->location->from, e );
+    return is_lyphnode_located_in_lyphs( n->location->from, ebuf );
 
-  if ( is_lyphnode_located_in_lyph( n->location->from, e )
-  || ( is_lyphnode_located_in_lyph( n->location->to, e ) ) )
+  if ( is_lyphnode_located_in_lyphs( n->location->from, ebuf )
+  || ( is_lyphnode_located_in_lyphs( n->location->to, ebuf ) ) )
     return 1;
 
   return 0;
 }
 
-void get_lyphs_partly_located_in_recursive( lyph *e, lyph_wrapper **head, lyph_wrapper **tail, trie *t, int *cnt )
+void get_lyphs_partly_located_in_recursive( lyph **ebuf, lyph_wrapper **head, lyph_wrapper **tail, trie *t, int *cnt )
 {
   if ( t->data )
   {
@@ -256,11 +259,11 @@ void get_lyphs_partly_located_in_recursive( lyph *e, lyph_wrapper **head, lyph_w
       int answer;
 
       if ( in->from->location == in->to->location )
-        answer = is_lyphnode_located_in_lyph( in->from, e );
+        answer = is_lyphnode_located_in_lyphs( in->from, ebuf );
       else
       {
-        answer = (in->from->location && is_lyphnode_located_in_lyph( in->from, e ) );
-        answer = answer || (in->to->location && is_lyphnode_located_in_lyph( in->to, e ) );
+        answer = (in->from->location && is_lyphnode_located_in_lyphs( in->from, ebuf ) );
+        answer = answer || (in->to->location && is_lyphnode_located_in_lyphs( in->to, ebuf ) );
       }
 
       if ( answer )
@@ -268,28 +271,29 @@ void get_lyphs_partly_located_in_recursive( lyph *e, lyph_wrapper **head, lyph_w
         lyph_wrapper *w;
 
         CREATE( w, lyph_wrapper, 1 );
-        w->e = e;
+        w->e = in;
         LINK( w, *head, *tail, next );
         (*cnt)++;
       }
     }
   }
 
-  TRIE_RECURSE( get_lyphs_partly_located_in_recursive( e, head, tail, *child, cnt ) );
+  TRIE_RECURSE( get_lyphs_partly_located_in_recursive( ebuf, head, tail, *child, cnt ) );
 }
 
-lyph **get_lyphs_partly_located_in( lyph *e )
+lyph **get_lyphs_partly_located_in( lyph **ebuf )
 {
-  lyph **buf, **bptr;
+  lyph **buf, **bptr, **ebptr;
   lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
   int cnt = 0;
 
-  get_lyphs_partly_located_in_recursive( e, &head, &tail, lyph_ids, &cnt );
+  get_lyphs_partly_located_in_recursive( ebuf, &head, &tail, lyph_ids, &cnt );
 
-  CREATE( buf, lyph *, cnt + 2 );
+  CREATE( buf, lyph *, cnt + VOIDLEN( ebuf ) + 1 );
   bptr = buf;
 
-  *bptr++ = e;
+  for ( ebptr = ebuf; *ebptr; ebptr++ )
+    *bptr++ = *ebptr;
 
   for ( w = head; w; w = w_next )
   {
@@ -2899,19 +2903,75 @@ layer *clone_layer( layer *lyr )
   return dest;
 }
 
-HANDLER( handle_lyphs_located_in_lyph_request )
+void populate_lyphs_by_templates( lyph ***bptr, lyphplate **Lbuf, trie *t )
 {
-  lyph *e, **buf;
-  char *lyphstr;
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
 
-  TRY_PARAM( lyphstr, "lyph", "You did not indicate a 'lyph' inside which to search for lyphs" );
+    if ( e->lyphplt )
+    {
+      lyphplate **Lbptr;
 
-  e = lyph_by_id( lyphstr );
+      for ( Lbptr = Lbuf; *Lbptr; Lbptr++ )
+        if ( *Lbptr == e->lyphplt )
+          break;
 
-  if ( !e )
-    HND_ERR( "The indicated lyph was not recognized" );
+      if ( *Lbptr )
+      {
+        **bptr = e;
+        (*bptr)++;
+      }
+    }
+  }
 
-  buf = get_lyphs_partly_located_in( e );
+  TRIE_RECURSE( populate_lyphs_by_templates( bptr, Lbuf, *child ) );
+}
+
+lyph **lyphs_by_term( const char *term )
+{
+  lyph *e, **buf, **bptr;
+  lyphplate **Lbuf;
+
+  e = lyph_by_id( term );
+
+  if ( e )
+  {
+    CREATE( buf, lyph *, 2 );
+    buf[0] = e;
+    buf[1] = NULL;
+    return buf;
+  }
+
+  Lbuf = lyphplates_by_term( term );
+
+  if ( !Lbuf )
+    return NULL;
+
+  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) );
+  bptr = buf;
+
+  populate_lyphs_by_templates( &bptr, Lbuf, lyph_ids );
+  free( Lbuf );
+
+  *bptr = NULL;
+  return buf;
+}
+
+HANDLER( handle_lyphs_located_in_term_request )
+{
+  lyph **ebuf, **buf;
+  char *termstr;
+
+  TRY_PARAM( termstr, "term", "You did not indicate a 'term' inside which to search for lyphs" );
+
+  ebuf = lyphs_by_term( termstr );
+
+  if ( !ebuf )
+    HND_ERR( "No lyphs matched the term in question" );
+
+  buf = get_lyphs_partly_located_in( ebuf );
+  free( ebuf );
 
   send_200_response( req, JS_ARRAY( lyph_to_json, buf ) );
 
