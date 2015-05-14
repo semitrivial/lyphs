@@ -613,7 +613,7 @@ HANDLER( handle_templates_involving_request )
   {
     trie *label = trie_search( ontstr, label_to_iris );
 
-    if ( label && *label->data )
+    if ( label && label->data && *label->data )
       onts = translate_full_iris_to_superclasses( label->data );
     else
     {
@@ -621,7 +621,7 @@ HANDLER( handle_templates_involving_request )
 
       label = trie_search( lower, label_to_iris_lowercase );
 
-      if ( label && *label->data )
+      if ( label && label->data && *label->data )
         onts = translate_full_iris_to_superclasses( label->data );
       else
         onts = NULL;
