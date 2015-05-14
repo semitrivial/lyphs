@@ -692,3 +692,44 @@ lyphplate **lyphplates_by_term( const char *ontstr )
 
   return buf;
 }
+
+lyphplate **common_materials_of_layers( lyphplate *L )
+{
+  lyphplate **buf, **bptr, **mptr;
+
+  if ( L->type != LYPHPLATE_SHELL && L->type != LYPHPLATE_MIX )
+    return (lyphplate**)blank_void_array();
+
+  if ( !L->layers || !*L->layers )
+    return (lyphplate**)blank_void_array();
+
+  if ( !L->layers[1] )
+    return (lyphplate**)COPY_VOID_ARRAY( L->layers[1]->material );
+
+  CREATE( buf, lyphplate *, VOIDLEN(L->layers[0]->material) + 1 );
+  bptr = buf;
+
+  for ( mptr = L->layers[0]->material; *mptr; mptr++ )
+  {
+    layer **lyr;
+
+    for ( lyr = &L->layers[1]; *lyr; lyr++ )
+    {
+      lyphplate **mptr2;
+
+      for ( mptr2 = (*lyr)->material; *mptr2; mptr2++ )
+        if ( *mptr2 == *mptr )
+          break;
+
+      if ( !*mptr2 )
+        break;
+    }
+
+    if ( !*lyr )
+      *bptr++ = *mptr;
+  }
+
+  *bptr = NULL;
+
+  return buf;
+}

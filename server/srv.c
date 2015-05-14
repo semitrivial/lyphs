@@ -1678,13 +1678,26 @@ HANDLER( handle_maketemplate_request )
 HANDLER( handle_template_request )
 {
   lyphplate *L;
+  char *commonsstr, *output;
 
   L = lyphplate_by_id( request );
 
   if ( !L )
     HND_ERR( "No template with that id" );
 
-  send_200_response( req, lyphplate_to_json( L ) );
+  commonsstr = get_param( params, "commons" );
+
+  if ( commonsstr && !strcmp( commonsstr, "yes" ) )
+  {
+    lyphplate_to_json_details det;
+
+    det.show_common_mats = 1;
+    output = lyphplate_to_json_r( L, &det );
+  }
+  else
+    output = lyphplate_to_json( L );
+
+  send_200_response( req, output );
 }
 
 HANDLER( handle_lyph_request )
@@ -1816,8 +1829,21 @@ HANDLER( handle_all_lyphs_request )
 HANDLER( handle_all_templates_request )
 {
   lyphplate **tmps = get_all_lyphplates();
+  char *commonsstr, *output;
 
-  send_200_response( req, JS_ARRAY( lyphplate_to_json, tmps ) );
+  commonsstr = get_param( params, "commons" );
+
+  if ( commonsstr && !strcmp( commonsstr, "yes" ) )
+  {
+    lyphplate_to_json_details det;
+
+    det.show_common_mats = 1;
+    output = JS_ARRAY_R( lyphplate_to_json_r, tmps, &det );
+  }
+  else
+    output = JS_ARRAY( lyphplate_to_json, tmps );
+
+  send_200_response( req, output );
 
   free( tmps );
 }

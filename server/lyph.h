@@ -38,6 +38,7 @@ typedef struct TRIE_WRAPPER trie_wrapper;
 typedef struct UCL_SYNTAX ucl_syntax;
 typedef struct AMBIG ambig;
 typedef struct LYPHPLATE lyphplate;
+typedef struct LYPHPLATE_TO_JSON_DETAILS lyphplate_to_json_details;
 typedef struct LAYER layer;
 typedef struct LAYER_LOADING layer_loading;
 typedef struct LOAD_LAYERS_DATA load_layers_data;
@@ -126,6 +127,11 @@ typedef enum
 {
   LYPHPLATE_BASIC, LYPHPLATE_SHELL, LYPHPLATE_MIX, LYPHPLATE_MISSING
 } lyphplate_types;
+
+struct LYPHPLATE_TO_JSON_DETAILS
+{
+  int show_common_mats;
+};
 
 #define LYPHPLATE_DOES_INVOLVE 1
 #define LYPHPLATE_DOES_NOT_INVOLVE 2
@@ -425,6 +431,7 @@ char *loctype_to_str( int loctype );
 void multifree( void *first, ... );
 int req_cmp( char *req, char *match );
 void **blank_void_array( void );
+void **copy_void_array( void **arr );
 void maybe_update_top_id( int *top, const char *idstr );
 
 /*
@@ -446,6 +453,7 @@ lyphplate *lyphplate_by_name( char *name );
 lyphplate *lyphplate_by_id( const char *id );
 lyphplate **lyphplates_by_term( const char *ontstr );
 char *lyphplate_to_json( lyphplate *L );
+char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
 char *lyph_annot_to_json( lyph_annot *a );
@@ -526,6 +534,7 @@ layer *clone_layer( layer *lyr );
  * hier.c
  */
 void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
+lyphplate **common_materials_of_layers( lyphplate *L );
 
 /*
  * meta.c

@@ -2087,6 +2087,22 @@ char *lyphplate_to_json_brief( lyphplate *L )
 
 char *lyphplate_to_json( lyphplate *L )
 {
+  return lyphplate_to_json_r( L, NULL );
+}
+
+char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
+{
+  char *common_mats;
+
+  if ( !det || !det->show_common_mats )
+    common_mats = json_suppressed;
+  else
+  {
+    lyphplate **buf = common_materials_of_layers( L );
+    common_mats = JS_ARRAY( lyphplate_to_json_brief, buf );
+    free( buf );
+  }
+
   return JSON
   (
     "id": trie_to_json( L->id ),
@@ -2094,7 +2110,8 @@ char *lyphplate_to_json( lyphplate *L )
     "type": lyphplate_type_as_char( L ),
     "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
     "layers": JS_ARRAY( layer_to_json, L->layers ),
-    "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material )
+    "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material ),
+    "common_materials": common_mats
   );
 }
 

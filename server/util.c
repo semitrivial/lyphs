@@ -519,3 +519,14 @@ void **blank_void_array( void )
 
   return buf;
 }
+
+void **copy_void_array( void **arr )
+{
+  void **buf;
+  int size = VOIDLEN( arr );
+
+  CREATE( buf, void *, size + 1 );
+  memcpy( buf, arr, (size+1)*sizeof(void*) );
+
+  return buf;
+}

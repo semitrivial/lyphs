@@ -201,6 +201,8 @@ while(0)
 
 #define VOIDLEN(x) voidlen((void**)(x))
 
+#define COPY_VOID_ARRAY(x) copy_void_array((void**)x)
+
 #define EXIT() do exit(EXIT_SUCCESS); while(0)
 
 #define PARSE_LIST( list, fnc, name, err ) parse_list( (list), (void * (*) (char*))(fnc), (name), (err) )
