@@ -704,7 +704,7 @@ lyphplate **common_materials_of_layers( lyphplate *L )
     return (lyphplate**)blank_void_array();
 
   if ( !L->layers[1] )
-    return (lyphplate**)COPY_VOID_ARRAY( L->layers[1]->material );
+    return (lyphplate**)COPY_VOID_ARRAY( L->layers[0]->material );
 
   CREATE( buf, lyphplate *, VOIDLEN(L->layers[0]->material) + 1 );
   bptr = buf;
