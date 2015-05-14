@@ -533,7 +533,7 @@ void populate_with_basic_lyphplates_subclass_of( trie **supers, lyphplate ***bpt
       (*bptr)++;
     }
     else
-    if ( L->ont_term )
+    if ( L->ont_term && L->ont_term->data )
     {
       trie **tptr;
 
