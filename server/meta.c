@@ -27,7 +27,7 @@ HANDLER( do_all_bulk_annots )
 
   *bptr = NULL;
 
-  send_200_response( req, JS_ARRAY( bulk_annot_to_json, buf ) );
+  send_response( req, JS_ARRAY( bulk_annot_to_json, buf ) );
 
   free( buf );
 }
@@ -240,7 +240,7 @@ HANDLER( do_bulk_annot )
 
   save_bulk_annots();
 
-  send_200_response( req, bulk_annot_to_json( b ) );
+  send_response( req, bulk_annot_to_json( b ) );
 }
 
 char *lyph_annot_obj_to_json( lyph_annot *a )
@@ -469,7 +469,7 @@ HANDLER( do_radiological_indices )
   }
   *bptr = NULL;
 
-  send_200_response( req, JS_ARRAY( lyph_annot_obj_to_json, buf ) );
+  send_response( req, JS_ARRAY( lyph_annot_obj_to_json, buf ) );
 
   free( buf );
 }
@@ -517,7 +517,7 @@ HANDLER( do_annotate )
     save_bulk_annots();
   }
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 void save_lyph_annotations_recurse( FILE *fp, trie *t )
@@ -961,7 +961,7 @@ HANDLER( do_make_pubmed )
       HND_ERR( "There is already a pubmed entry with that ID or title." );
     else
     {
-      send_200_response( req, pubmed_to_json_full( p ) );
+      send_response( req, pubmed_to_json_full( p ) );
       return;
     }
   }
@@ -973,7 +973,7 @@ HANDLER( do_make_pubmed )
 
   save_pubmeds();
 
-  send_200_response( req, pubmed_to_json_full( p ) );
+  send_response( req, pubmed_to_json_full( p ) );
 }
 
 char *pubmed_to_json_full( pubmed *p )
@@ -1008,7 +1008,7 @@ HANDLER( do_make_clinical_index )
   {
     if ( !strcmp( label, trie_to_static( ci->label ) ) )
     {
-      send_200_response( req, clinical_index_to_json_full( ci ) );
+      send_response( req, clinical_index_to_json_full( ci ) );
       return;
     }
     else
@@ -1047,7 +1047,7 @@ HANDLER( do_make_clinical_index )
 
   save_clinical_indices();
 
-  send_200_response( req, clinical_index_to_json_full( ci ) );
+  send_response( req, clinical_index_to_json_full( ci ) );
 }
 
 char *clinical_index_to_json_full( clinical_index *ci )
@@ -1141,7 +1141,7 @@ HANDLER( do_edit_clinical_index )
 
   save_clinical_indices();
 
-  send_200_response( req, clinical_index_to_json_full( ci ) );
+  send_response( req, clinical_index_to_json_full( ci ) );
 }
 
 HANDLER( do_edit_pubmed )
@@ -1163,7 +1163,7 @@ HANDLER( do_edit_pubmed )
 
   save_pubmeds();
 
-  send_200_response( req, pubmed_to_json_full( pubmed ) );
+  send_response( req, pubmed_to_json_full( pubmed ) );
 }
 
 HANDLER( do_pubmed )
@@ -1178,7 +1178,7 @@ HANDLER( do_pubmed )
   if ( !pubmed )
     HND_ERR( "The indicated pubmed was not recognized" );
 
-  send_200_response( req, pubmed_to_json_full( pubmed ) );
+  send_response( req, pubmed_to_json_full( pubmed ) );
 }
 
 HANDLER( do_clinical_index )
@@ -1193,7 +1193,7 @@ HANDLER( do_clinical_index )
   if ( !ci )
     HND_ERR( "The indicated clinical index was not recognized" );
 
-  send_200_response( req, clinical_index_to_json_full( ci ) );
+  send_response( req, clinical_index_to_json_full( ci ) );
 }
 
 HANDLER( do_all_clinical_indices )
@@ -1211,7 +1211,7 @@ HANDLER( do_all_clinical_indices )
 
   *bptr = NULL;
 
-  send_200_response( req, JSON1
+  send_response( req, JSON1
   (
     "results": JS_ARRAY( clinical_index_to_json_full, buf )
   ) );
@@ -1242,7 +1242,7 @@ HANDLER( do_all_pubmeds )
 
   free( buf );
 
-  send_200_response( req, retval );
+  send_response( req, retval );
 }
 
 int has_some_clinical_index( lyph *e, clinical_index **cis )
@@ -1345,7 +1345,7 @@ HANDLER( do_has_clinical_index )
   details.show_annots = 1;
   details.buf = buf;
 
-  send_200_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
+  send_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
 
   free( buf );
 }
@@ -1435,7 +1435,7 @@ HANDLER( do_remove_annotation )
     }
 
     save_lyph_annotations();
-    send_200_response( req, JSON1( "Response": "OK" ) );
+    send_response( req, JSON1( "Response": "OK" ) );
     return;
   }
 
@@ -1488,5 +1488,5 @@ HANDLER( do_remove_annotation )
     save_bulk_annots();
   }
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }

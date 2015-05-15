@@ -465,7 +465,7 @@ HANDLER( do_parse_csv )
   else
   {
     response = run_api_cmds( head );
-    send_200_response( req, response );
+    send_response( req, response );
     free( response );
   }
 

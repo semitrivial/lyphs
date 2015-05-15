@@ -610,7 +610,7 @@ HANDLER( do_templates_involving )
   if ( !buf )
     HND_ERR( "No lyphplates matched the term in question" );
 
-  send_200_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
+  send_response( req, JS_ARRAY( lyphplate_to_json, buf ) );
 
   free( buf );
 }

@@ -51,7 +51,7 @@
 do\
 {\
   char *jsonerr = JSON1( "Error": x );\
-  send_200_response( req, jsonerr );\
+  send_response( req, jsonerr );\
 }\
 while(0)
 
@@ -208,7 +208,7 @@ void http_write( http_request *req, char *txt );
 void http_send( http_request *req, char *txt, int len );
 void handle_request( http_request *req, char *query );
 void send_400_response( http_request *req );
-void send_200_response( http_request *req, char *txt );
+void send_response( http_request *req, char *txt );
 void send_200_with_type( http_request *req, char *txt, char *type );
 char *nocache_headers(void);
 char *current_date(void);

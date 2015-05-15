@@ -180,7 +180,7 @@ void handle_request( http_request *req, char *query )
   if ( entry )
   {
     if ( entry->read_write_state == CMD_READWRITE && configs.readonly )
-      send_200_response( req, "{\"error\": \"This instance of the LYPH system is read-only\"}" );
+      send_response( req, "{\"error\": \"This instance of the LYPH system is read-only\"}" );
     else
       (*(entry->f))( request, req, params );
 
@@ -540,7 +540,7 @@ void send_400_response( http_request *req )
   http_write( req, buf );
 }
 
-void send_200_response( http_request *req, char *txt )
+void send_response( http_request *req, char *txt )
 {
   send_200_with_type( req, txt, "application/json" );
 }
@@ -982,12 +982,12 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   if ( along_path_type == ALONG_PATH_COMPUTE )
   {
     if ( !numpathsstr )
-      send_200_response( req, lyphpath_to_json( *paths ) );
+      send_response( req, lyphpath_to_json( *paths ) );
     else
-      send_200_response( req, JS_ARRAY( lyphpath_to_json, paths ) );
+      send_response( req, JS_ARRAY( lyphpath_to_json, paths ) );
   }
   else
-    send_200_response( req, JSON1( "Response": "OK" ) );
+    send_response( req, JSON1( "Response": "OK" ) );
 
   for ( pathsptr = paths; *pathsptr; pathsptr++ )
     free( *pathsptr );
@@ -1035,7 +1035,7 @@ HANDLER( do_makelyphnode )
 
   lyphnode_to_json_flags = LTJ_EXITS;
 
-  send_200_response( req, lyphnode_to_json( n ) );
+  send_response( req, lyphnode_to_json( n ) );
 
   lyphnode_to_json_flags = 0;
 
@@ -1100,7 +1100,7 @@ HANDLER( do_makelyph )
   if ( !e )
     HND_ERR( "The lyph could not be created (out of memory?)" );
 
-  send_200_response( req, lyph_to_json( e ) );
+  send_response( req, lyph_to_json( e ) );
 }
 
 HANDLER( do_makeview )
@@ -1243,7 +1243,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
       HND_ERR_NORETURN( "Could not create the view (out of memory?)" );
     }
     else
-      send_200_response( req, lyphview_to_json( v ) );
+      send_response( req, lyphview_to_json( v ) );
 
     if ( nodect )
       MULTIFREE( xs, ys );
@@ -1454,7 +1454,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   if ( fChange )
     save_lyphviews();
 
-  send_200_response( req, lyphview_to_json( v ) );
+  send_response( req, lyphview_to_json( v ) );
 }
 
 HANDLER( do_makelayer )
@@ -1491,7 +1491,7 @@ HANDLER( do_makelayer )
   if ( !lyr )
     HND_ERR( "Invalid layer" );
 
-  send_200_response( req, layer_to_json( lyr ) );
+  send_response( req, layer_to_json( lyr ) );
 }
 
 HANDLER( do_lyphconstrain )
@@ -1535,9 +1535,9 @@ HANDLER( do_lyphconstrain )
 
   save_lyphs();
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 #else
-  send_200_response( req, JSON1( "Response": "Temporarily disabled" ) );
+  send_response( req, JSON1( "Response": "Temporarily disabled" ) );
 #endif
 }
 
@@ -1588,7 +1588,7 @@ HANDLER( do_assign_template )
 
   save_lyphs();
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 HANDLER( do_maketemplate )
@@ -1672,7 +1672,7 @@ HANDLER( do_maketemplate )
     HND_ERR( "Could not create the desired template" );
   }
 
-  send_200_response( req, lyphplate_to_json( L ) );
+  send_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( do_template )
@@ -1697,7 +1697,7 @@ HANDLER( do_template )
   else
     output = lyphplate_to_json( L );
 
-  send_200_response( req, output );
+  send_response( req, output );
 }
 
 HANDLER( do_lyph )
@@ -1711,7 +1711,7 @@ HANDLER( do_lyph )
   details.show_annots = has_param( params, "annots" );
   details.buf = NULL;
 
-  send_200_response( req, lyph_to_json_r( e, &details ) );
+  send_response( req, lyph_to_json_r( e, &details ) );
 }
 
 HANDLER( do_lyphnode )
@@ -1723,7 +1723,7 @@ HANDLER( do_lyphnode )
 
   lyphnode_to_json_flags = LTJ_EXITS;
 
-  send_200_response( req, lyphnode_to_json( n ) );
+  send_response( req, lyphnode_to_json( n ) );
 
   lyphnode_to_json_flags = 0;
 }
@@ -1735,7 +1735,7 @@ HANDLER( do_lyphview )
   if ( !v )
     HND_ERR( "No lyphview by that id" );
 
-  send_200_response( req, lyphview_to_json( v ) );
+  send_response( req, lyphview_to_json( v ) );
 }
 
 HANDLER( do_layer )
@@ -1745,7 +1745,7 @@ HANDLER( do_layer )
   if ( !lyr )
     HND_ERR( "No layer by that id" );
 
-  send_200_response( req, layer_to_json( lyr ) );
+  send_response( req, layer_to_json( lyr ) );
 }
 
 HANDLER( do_ucl_syntax )
@@ -1771,7 +1771,7 @@ HANDLER( do_ucl_syntax )
 
   output = ucl_syntax_output( s, head, tail, maybe_err );
 
-  send_200_response( req, output );
+  send_response( req, output );
 
   free( output );
 
@@ -1821,7 +1821,7 @@ HANDLER( do_all_lyphs )
 {
   lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
 
-  send_200_response( req, JS_ARRAY( lyph_to_json, lyphs ) );
+  send_response( req, JS_ARRAY( lyph_to_json, lyphs ) );
 
   free( lyphs );
 }
@@ -1843,7 +1843,7 @@ HANDLER( do_all_templates )
   else
     output = JS_ARRAY( lyphplate_to_json, tmps );
 
-  send_200_response( req, output );
+  send_response( req, output );
 
   free( tmps );
 }
@@ -1851,15 +1851,15 @@ HANDLER( do_all_templates )
 HANDLER( do_template_hierarchy )
 {
 #ifdef PRE_LAYER_CHANGE
-  send_200_response( req, lyphplate_hierarchy_to_json() );
+  send_response( req, lyphplate_hierarchy_to_json() );
 #else
-  send_200_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
+  send_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
 #endif
 }
 
 HANDLER( do_all_ont_terms )
 {
-  send_200_response( req, all_ont_terms_as_json() );
+  send_response( req, all_ont_terms_as_json() );
 }
 
 HANDLER( do_all_lyphviews )
@@ -1877,7 +1877,7 @@ HANDLER( do_all_lyphviews )
 
   *vptr = NULL;
 
-  send_200_response( req, JS_ARRAY( lyphview_to_json, v ) );
+  send_response( req, JS_ARRAY( lyphview_to_json, v ) );
 
   free( v );
 }
@@ -1912,11 +1912,11 @@ HANDLER( do_subtemplates )
 
   subs = get_sublyphplates( L, direct );
 
-  send_200_response( req, JS_ARRAY( lyphplate_to_json, subs ) );
+  send_response( req, JS_ARRAY( lyphplate_to_json, subs ) );
 
   free( subs );
 #else
-  send_200_response( req, JSON1( "Response": "Temporarily disabled" ) );
+  send_response( req, JSON1( "Response": "Temporarily disabled" ) );
 #endif
 }
 
@@ -1927,7 +1927,7 @@ HANDLER( do_all_lyphnodes )
 
   lyphnode_to_json_flags = LTJ_EXITS;
 
-  send_200_response( req, JS_ARRAY( lyphnode_to_json, n ) );
+  send_response( req, JS_ARRAY( lyphnode_to_json, n ) );
 
   lyphnode_to_json_flags = 0;
 
@@ -1969,9 +1969,9 @@ HANDLER( do_reset_db )
     HND_ERR( "You did not specify anything to delete (options are 'views', 'templates', and 'graph')" );
 
   if ( fWarning )
-    send_200_response( req, JSON1( "Response": "Warning: Could not copy 'lyphs.dat.bak' to 'lyphs.dat'" ) );
+    send_response( req, JSON1( "Response": "Warning: Could not copy 'lyphs.dat.bak' to 'lyphs.dat'" ) );
   else
-    send_200_response( req, JSON1( "Response": "OK" ) );
+    send_response( req, JSON1( "Response": "OK" ) );
 }
 
 void default_config_values( void )

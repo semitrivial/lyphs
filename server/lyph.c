@@ -2990,7 +2990,7 @@ HANDLER( do_lyphs_located_in_term )
   buf = get_lyphs_partly_located_in( ebuf );
   free( ebuf );
 
-  send_200_response( req, JS_ARRAY( lyph_to_json, buf ) );
+  send_response( req, JS_ARRAY( lyph_to_json, buf ) );
 
   free( buf );
 }

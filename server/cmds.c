@@ -52,7 +52,7 @@ HANDLER( do_editlyphnode )
 
   save_lyphs();
 
-  send_200_response( req, lyphnode_to_json( n ) );
+  send_response( req, lyphnode_to_json( n ) );
 }
 
 HANDLER( do_editlyph )
@@ -219,7 +219,7 @@ HANDLER( do_editlyph )
 
   save_lyphs();
 
-  send_200_response( req, lyph_to_json( e ) );
+  send_response( req, lyph_to_json( e ) );
 }
 
 HANDLER( do_edit_template )
@@ -351,7 +351,7 @@ HANDLER( do_edit_template )
 
   save_lyphplates();
 
-  send_200_response( req, lyphplate_to_json( L ) );
+  send_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( do_editview )
@@ -378,7 +378,7 @@ HANDLER( do_editview )
 
   save_lyphviews();
 
-  send_200_response( req, lyphview_to_json( v ) );
+  send_response( req, lyphview_to_json( v ) );
 }
 
 HANDLER( do_editlayer )
@@ -467,7 +467,7 @@ HANDLER( do_editlayer )
 
   save_lyphplates();
 
-  send_200_response( req, layer_to_json( lyr ) );
+  send_response( req, layer_to_json( lyr ) );
 }
 
 void remove_exit_data( lyphnode *n, lyph *e )
@@ -707,7 +707,7 @@ HANDLER( do_delete_lyphs )
   if ( fAnnot )
     save_lyph_annotations();
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 int remove_lyphs_with_doomed_nodes( trie *t )
@@ -773,7 +773,7 @@ HANDLER( do_delete_nodes )
 
   free( n );
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 #undef LYPHNODE_BEING_DELETED
@@ -956,7 +956,7 @@ HANDLER( do_delete_templates )
   recalculate_lyphplate_hierarchy();
 #endif
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 void delete_lyphview( lyphview *v )
@@ -1021,7 +1021,7 @@ HANDLER( do_delete_views )
 
   save_lyphviews();
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 void spread_lyphplate_doom_from_layers( trie *t )
@@ -1086,7 +1086,7 @@ HANDLER( do_delete_layers )
   recalculate_lyphplate_hierarchy();
 #endif
 
-  send_200_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 HANDLER( do_lyphs_from_view )
@@ -1147,7 +1147,7 @@ HANDLER( do_lyphs_from_view )
 
   #undef LYPH_TO_BE_REMOVED
 
-  send_200_response( req, lyphview_to_json( v ) );
+  send_response( req, lyphview_to_json( v ) );
 }
 
 int template_involves_any_of( lyphplate *L, lyphplate **parts )
@@ -1281,7 +1281,7 @@ HANDLER( do_involves_template )
   }
   *bptr = NULL;
 
-  send_200_response( req, JSON1
+  send_response( req, JSON1
   (
     "lyphs": JS_ARRAY( lyph_to_json, buf )
   ) );
@@ -1344,14 +1344,14 @@ HANDLER( do_instances_of )
   }
   *bptr = NULL;
 
-  send_200_response( req, JSON1
+  send_response( req, JSON1
   (
     "instances": JS_ARRAY( lyph_to_json, buf )
   ) );
 
   free( buf );
 #else
-  send_200_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
+  send_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
 #endif
 }
 
@@ -1396,7 +1396,7 @@ HANDLER( do_nodes_from_view )
 
   if ( !fMatch )
   {
-    send_200_response( req, lyphview_to_json( v ) );
+    send_response( req, lyphview_to_json( v ) );
     goto nodes_from_view_cleanup;
   }
 
@@ -1433,7 +1433,7 @@ HANDLER( do_nodes_from_view )
   v->nodes = newn;
   v->coords = newc;
 
-  send_200_response( req, lyphview_to_json( v ) );
+  send_response( req, lyphview_to_json( v ) );
 
   nodes_from_view_cleanup:
 
@@ -1563,7 +1563,7 @@ HANDLER( do_has_template )
   find_lyphs_with_template( L, &bptr, lyph_ids );
   *bptr = NULL;
 
-  send_200_response( req, JS_ARRAY( lyph_to_json, buf ) );
+  send_response( req, JS_ARRAY( lyph_to_json, buf ) );
 
   free( buf );
 }
@@ -1606,7 +1606,7 @@ HANDLER( do_unused_indices )
 
   *bptr = NULL;
 
-  send_200_response( req, JS_ARRAY( clinical_index_to_json_full, buf ) );
+  send_response( req, JS_ARRAY( clinical_index_to_json_full, buf ) );
 
   free( buf );
 }
@@ -1671,7 +1671,7 @@ HANDLER( do_layer_from_template )
 
   save_lyphplates();
 
-  send_200_response( req, lyphplate_to_json( L ) );
+  send_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( do_layer_to_template )
@@ -1741,7 +1741,7 @@ HANDLER( do_layer_to_template )
 
   save_lyphplates();
 
-  send_200_response( req, lyphplate_to_json( L ) );
+  send_response( req, lyphplate_to_json( L ) );
 }
 
 HANDLER( do_material_to_layer )
@@ -1793,7 +1793,7 @@ HANDLER( do_material_to_layer )
 
   save_lyphplates();
 
-  send_200_response( req, layer_to_json( lyr ) );
+  send_response( req, layer_to_json( lyr ) );
 }
 
 HANDLER( do_material_from_layer )
@@ -1846,5 +1846,5 @@ HANDLER( do_material_from_layer )
 
   save_lyphplates();
 
-  send_200_response( req, layer_to_json( lyr ) );
+  send_response( req, layer_to_json( lyr ) );
 }
