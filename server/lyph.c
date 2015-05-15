@@ -2095,7 +2095,7 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
   char *common_mats;
 
   if ( !det || !det->show_common_mats )
-    common_mats = json_suppressed;
+    common_mats = js_suppress;
   else
   {
     lyphplate **buf = common_materials_of_layers( L );
@@ -2221,13 +2221,13 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
 
   if ( details )
   {
-    annots = details->show_annots ? JS_ARRAY( lyph_annot_to_json, e->annots ) : json_suppressed;
-    house = details->buf ? lyph_relative_loc_to_json_buf( e, details->buf ) : json_suppressed;
+    annots = details->show_annots ? JS_ARRAY( lyph_annot_to_json, e->annots ) : js_suppress;
+    house = details->buf ? lyph_relative_loc_to_json_buf( e, details->buf ) : js_suppress;
   }
   else
   {
-    annots = json_suppressed;
-    house = json_suppressed;
+    annots = js_suppress;
+    house = js_suppress;
   }
 
   retval = JSON
@@ -2242,7 +2242,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "annots": annots,
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
     "house": house,
-    "species": e->species ? trie_to_json( e->species ) : json_suppressed
+    "species": e->species ? trie_to_json( e->species ) : js_suppress
   );
 
   lyphnode_to_json_flags = old_LTJ_flags;

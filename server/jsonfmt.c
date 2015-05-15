@@ -15,18 +15,18 @@
 #include "jsonfmt_internal.h"
 
 /*
- * char *json_suppressed is a special value which causes the corresponding
+ * char *js_suppress is a special value which causes the corresponding
  * key-value pair to be suppressed.  Thus, the result of
  * JSON
  * (
  *   "hello": "world",
- *   "I am invisible": json_suppressed
+ *   "I am invisible": js_suppress
  * )
  * is:
  * "{\"hello\": \"world\"}"
  */
-char json_suppressed_target = '\0';
-char *json_suppressed = &json_suppressed_target;
+char js_suppress_target = '\0';
+char *js_suppress = &js_suppress_target;
 
 /*
  * Main function: given a string of json, prettify it with
@@ -570,7 +570,7 @@ char *json_c_adapter( int paircnt, ... )
       continue;
     }
 
-    if ( ch == json_suppressed )
+    if ( ch == js_suppress )
       args[i] = ch;
     else
     if ( is_json( ch ) )
@@ -603,7 +603,7 @@ char *json_c_adapter( int paircnt, ... )
 
   for ( argspt = args; *argspt; argspt += 2 )
   {
-    if ( argspt[1] == json_suppressed )
+    if ( argspt[1] == js_suppress )
       continue;
 
     ++bptr;

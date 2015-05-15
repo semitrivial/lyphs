@@ -63,8 +63,8 @@ char *bulk_annot_to_json( bulk_annot *a )
     "id": trie_to_json( a->id ),
     "type": bulk_annot_type_to_str( a->type ),
     "lyphs": JS_ARRAY( lyph_to_json_id, a->lyphs ),
-    "clinical index": a->ci ? clinical_index_to_json_full( a->ci ) : json_suppressed,
-    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : json_suppressed,
+    "clinical index": a->ci ? clinical_index_to_json_full( a->ci ) : js_suppress,
+    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : js_suppress,
     "pubmed": pubmed_to_json_brief( a->pbmd )
   );
 }
@@ -81,8 +81,8 @@ char *bulk_annot_to_json_save( bulk_annot *a )
     "id": trie_to_json( a->id ),
     "type": int_to_json( a->type ),
     "lyphs": JS_ARRAY( lyph_to_json_id, a->lyphs ),
-    "clinical index": a->ci ? clinical_index_to_json_brief( a->ci ) : json_suppressed,
-    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : json_suppressed,
+    "clinical index": a->ci ? clinical_index_to_json_brief( a->ci ) : js_suppress,
+    "radiological index": a->radio_index ? trie_to_json( a->radio_index ) : js_suppress,
     "pubmed": pubmed_to_json_brief( a->pbmd )
   );
 }
@@ -1057,7 +1057,7 @@ char *clinical_index_to_json_full( clinical_index *ci )
     "index": trie_to_json( ci->index ),
     "label": trie_to_json( ci->label ),
     "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds ),
-    "claimed": ci->claimed ? ci->claimed : json_suppressed
+    "claimed": ci->claimed ? ci->claimed : js_suppress
   );
 }
 

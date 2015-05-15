@@ -12,7 +12,7 @@
 #ifndef JSONFMT_INCLUDE_GUARD
 #define JSONFMT_INCLUDE_GUARD
 
-extern char *json_suppressed;
+extern char *js_suppress;
 
 char *json_format( const char *json, int indents, char **errptr );
 char *json_escape( const char *txt );
