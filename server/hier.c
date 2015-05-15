@@ -598,7 +598,7 @@ trie **translate_full_iris_to_superclasses( trie **data )
   return buf;
 }
 
-HANDLER( handle_templates_involving_request )
+HANDLER( do_templates_involving )
 {
   lyphplate **buf;
   char *ontstr;

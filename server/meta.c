@@ -11,7 +11,7 @@ bulk_annot *last_bulk_annot;
 int top_bulk_annot_id;
 trie *radiological_index_predicate;
 
-HANDLER( handle_all_bulk_annots_request )
+HANDLER( do_all_bulk_annots )
 {
   bulk_annot *b, **buf, **bptr;
   int cnt = 0;
@@ -159,7 +159,7 @@ void bulk_annot_to_lyph_annots( bulk_annot *b, int *save )
   *save = fChange;
 }
 
-HANDLER( handle_bulk_annot_request )
+HANDLER( do_bulk_annot )
 {
   bulk_annot *b;
   lyph **lyphs;
@@ -448,7 +448,7 @@ void populate_lyph_annot_list_by_pred( trie *pred, lyph_annot_wrapper **head, ly
   TRIE_RECURSE( populate_lyph_annot_list_by_pred( pred, head, tail, cnt, *child ) );
 }
 
-HANDLER( handle_radiological_indices_request )
+HANDLER( do_radiological_indices )
 {
   lyph_annot **buf, **bptr;
   lyph_annot_wrapper *head = NULL, *tail = NULL, *w, *w_next;
@@ -474,7 +474,7 @@ HANDLER( handle_radiological_indices_request )
   free( buf );
 }
 
-HANDLER( handle_annotate_request )
+HANDLER( do_annotate )
 {
   lyph **lyphs, **lptr;
   trie *pred, *obj;
@@ -942,7 +942,7 @@ void load_clinical_indices( void )
   free( js );
 }
 
-HANDLER( handle_make_pubmed_request )
+HANDLER( do_make_pubmed )
 {
   pubmed *p;
   char *id, *title;
@@ -993,7 +993,7 @@ char *pubmed_to_json_brief( pubmed *p )
     return NULL;
 }
 
-HANDLER( handle_make_clinical_index_request )
+HANDLER( do_make_clinical_index )
 {
   clinical_index *ci;
   pubmed **pubmeds;
@@ -1089,7 +1089,7 @@ clinical_index *clinical_index_by_trie( trie *ind_tr )
   return NULL;
 }
 
-HANDLER( handle_edit_clinical_index_request )
+HANDLER( do_edit_clinical_index )
 {
   clinical_index *ci;
   pubmed **pubmeds;
@@ -1144,7 +1144,7 @@ HANDLER( handle_edit_clinical_index_request )
   send_200_response( req, clinical_index_to_json_full( ci ) );
 }
 
-HANDLER( handle_edit_pubmed_request )
+HANDLER( do_edit_pubmed )
 {
   pubmed *pubmed;
   char *pubmedstr, *title;
@@ -1166,7 +1166,7 @@ HANDLER( handle_edit_pubmed_request )
   send_200_response( req, pubmed_to_json_full( pubmed ) );
 }
 
-HANDLER( handle_pubmed_request )
+HANDLER( do_pubmed )
 {
   pubmed *pubmed;
   char *pubmedstr;
@@ -1181,7 +1181,7 @@ HANDLER( handle_pubmed_request )
   send_200_response( req, pubmed_to_json_full( pubmed ) );
 }
 
-HANDLER( handle_clinical_index_request )
+HANDLER( do_clinical_index )
 {
   clinical_index *ci;
   char *cistr;
@@ -1196,7 +1196,7 @@ HANDLER( handle_clinical_index_request )
   send_200_response( req, clinical_index_to_json_full( ci ) );
 }
 
-HANDLER( handle_all_clinical_indices_request )
+HANDLER( do_all_clinical_indices )
 {
   clinical_index **buf, **bptr, *ci;
   int cnt = 0;
@@ -1219,7 +1219,7 @@ HANDLER( handle_all_clinical_indices_request )
   free( buf );
 }
 
-HANDLER( handle_all_pubmeds_request )
+HANDLER( do_all_pubmeds )
 {
   pubmed **buf, **bptr, *p;
   char *retval;
@@ -1297,7 +1297,7 @@ void calc_lyphs_with_indices( trie *t, lyph ***bptr, clinical_index **cis, int t
   TRIE_RECURSE( calc_lyphs_with_indices( *child, bptr, cis, type ) );
 }
 
-HANDLER( handle_has_clinical_index_request )
+HANDLER( do_has_clinical_index )
 {
   clinical_index **cis;
   lyph **buf, **bptr;
@@ -1398,7 +1398,7 @@ void lyph_annot_from_bulk_annots( lyph_annot *a, lyph *e )
   }
 }
 
-HANDLER( handle_remove_annotation_request )
+HANDLER( do_remove_annotation )
 {
   lyph **lyphs, **eptr;
   trie *obj;

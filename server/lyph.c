@@ -2975,7 +2975,7 @@ lyph **lyphs_by_term( const char *term )
   return buf;
 }
 
-HANDLER( handle_lyphs_located_in_term_request )
+HANDLER( do_lyphs_located_in_term )
 {
   lyph **ebuf, **buf;
   char *termstr;

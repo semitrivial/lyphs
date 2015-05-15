@@ -1,7 +1,7 @@
 #include "lyph.h"
 #include "srv.h"
 
-HANDLER( handle_editlyphnode_request )
+HANDLER( do_editlyphnode )
 {
   lyphnode *n;
   lyph *loc;
@@ -55,7 +55,7 @@ HANDLER( handle_editlyphnode_request )
   send_200_response( req, lyphnode_to_json( n ) );
 }
 
-HANDLER( handle_editlyph_request )
+HANDLER( do_editlyph )
 {
   char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr, *speciesstr;
   char *err = NULL;
@@ -222,7 +222,7 @@ HANDLER( handle_editlyph_request )
   send_200_response( req, lyph_to_json( e ) );
 }
 
-HANDLER( handle_edit_template_request )
+HANDLER( do_edit_template )
 {
   lyphplate *L, **misc_mats;
   trie *ont;
@@ -354,7 +354,7 @@ HANDLER( handle_edit_template_request )
   send_200_response( req, lyphplate_to_json( L ) );
 }
 
-HANDLER( handle_editview_request )
+HANDLER( do_editview )
 {
   char *viewstr, *namestr;
   lyphview *v;
@@ -381,7 +381,7 @@ HANDLER( handle_editview_request )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
-HANDLER( handle_editlayer_request )
+HANDLER( do_editlayer )
 {
   layer *lyr;
   lyphplate **mat;
@@ -662,7 +662,7 @@ int remove_doomed_lyphs_from_bulk_annots( void )
   return fMatch;
 }
 
-HANDLER( handle_delete_lyphs_request )
+HANDLER( do_delete_lyphs )
 {
   char *lyphstr, *err;
   lyph **e, **eptr, dupe;
@@ -735,7 +735,7 @@ void delete_lyphnode( lyphnode *n )
   free( n );
 }
 
-HANDLER( handle_delete_nodes_request )
+HANDLER( do_delete_nodes )
 {
   lyphnode **n, **nptr, dupe;
   char *nodestr, *err;
@@ -911,7 +911,7 @@ void delete_doomed_lyphplates( trie *t )
   TRIE_RECURSE( delete_doomed_lyphplates( *child ) );
 }
 
-HANDLER( handle_delete_templates_request )
+HANDLER( do_delete_templates )
 {
   char *tmpltstr, *err;
   lyphplate **L, **Lptr, dupe;
@@ -983,7 +983,7 @@ void delete_lyphview( lyphview *v )
   free( v );
 }
 
-HANDLER( handle_delete_views_request )
+HANDLER( do_delete_views )
 {
   char *viewstr, *err;
   lyphview **v, **vptr;
@@ -1047,7 +1047,7 @@ void spread_lyphplate_doom_from_layers( trie *t )
   TRIE_RECURSE( spread_lyphplate_doom_from_layers( *child ) );
 }
 
-HANDLER( handle_delete_layers_request )
+HANDLER( do_delete_layers )
 {
   char *layerstr, *err;
   layer **lyr, **lyrptr;
@@ -1089,7 +1089,7 @@ HANDLER( handle_delete_layers_request )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-HANDLER( handle_lyphs_from_view_request )
+HANDLER( do_lyphs_from_view )
 {
   lyphview *v;
   lyph **lyphs, **lptr;
@@ -1248,7 +1248,7 @@ void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **t
   TRIE_RECURSE( calc_involves_template( L, head, tail, cnt, *child ) );
 }
 
-HANDLER( handle_involves_template_request )
+HANDLER( do_involves_template )
 {
   lyphplate *L;
   lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
@@ -1312,7 +1312,7 @@ void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, 
 #endif
 }
 
-HANDLER( handle_instances_of_request )
+HANDLER( do_instances_of )
 {
 #ifdef PRE_LAYER_CHANGE
   lyphplate *L;
@@ -1355,7 +1355,7 @@ HANDLER( handle_instances_of_request )
 #endif
 }
 
-HANDLER( handle_nodes_from_view_request )
+HANDLER( do_nodes_from_view )
 {
   char *viewstr, *nodestr, *err = NULL, **newc, **newcptr, **cptr;
   lyphview *v;
@@ -1541,7 +1541,7 @@ void find_lyphs_with_template( lyphplate *L, lyph ***bptr, trie *t )
   TRIE_RECURSE( find_lyphs_with_template( L, bptr, *child ) );
 }
 
-HANDLER( handle_has_template_request )
+HANDLER( do_has_template )
 {
   lyphplate *L;
   lyph **buf, **bptr;
@@ -1589,7 +1589,7 @@ int index_is_used( clinical_index *ci, trie *t )
   return 0;
 }
 
-HANDLER( handle_unused_indices_request )
+HANDLER( do_unused_indices )
 {
   clinical_index *ci, **buf, **bptr;
   int cnt = 0;
@@ -1611,7 +1611,7 @@ HANDLER( handle_unused_indices_request )
   free( buf );
 }
 
-HANDLER( handle_layer_from_template_request )
+HANDLER( do_layer_from_template )
 {
   lyphplate *L;
   layer *lyr, **lyrptr, **buf, **bptr;
@@ -1674,7 +1674,7 @@ HANDLER( handle_layer_from_template_request )
   send_200_response( req, lyphplate_to_json( L ) );
 }
 
-HANDLER( handle_layer_to_template_request )
+HANDLER( do_layer_to_template )
 {
   lyphplate *L;
   layer *lyr, **lyrptr, **buf, **bptr;
@@ -1744,7 +1744,7 @@ HANDLER( handle_layer_to_template_request )
   send_200_response( req, lyphplate_to_json( L ) );
 }
 
-HANDLER( handle_material_to_layer_request )
+HANDLER( do_material_to_layer )
 {
   layer *lyr;
   lyphplate *material, **mptr, **buf;
@@ -1796,7 +1796,7 @@ HANDLER( handle_material_to_layer_request )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-HANDLER( handle_material_from_layer_request )
+HANDLER( do_material_from_layer )
 {
   layer *lyr;
   lyphplate *material, **mptr, **buf, **bptr;

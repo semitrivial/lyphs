@@ -348,7 +348,7 @@ char *run_api_cmds( str_wrapper *head )
   return strdup( JSON1( "Response": "OK" ) );
 }
 
-HANDLER( handle_parse_csv_request )
+HANDLER( do_parse_csv )
 {
   str_wrapper *head = NULL, *tail = NULL, *w;
   char *filename, *with_dir, *csv, *csvptr, *tmplt, *line, **fields, *modline, *response;

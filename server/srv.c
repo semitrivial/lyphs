@@ -737,17 +737,17 @@ const char *parse_params( char *buf, http_request *req, url_param **params )
   }
 }
 
-HANDLER( handle_lyphpath_request )
+HANDLER( do_lyphpath )
 {
   along_path_abstractor( req, params, ALONG_PATH_COMPUTE );
 }
 
-HANDLER( handle_template_along_path_request )
+HANDLER( do_template_along_path )
 {
   along_path_abstractor( req, params, ALONG_PATH_TEMPLATE );
 }
 
-HANDLER( handle_constrain_along_path_request )
+HANDLER( do_constrain_along_path )
 {
   along_path_abstractor( req, params, ALONG_PATH_CONSTRAIN );
 }
@@ -994,7 +994,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   free( paths );
 }
 
-HANDLER( handle_makelyphnode_request )
+HANDLER( do_makelyphnode )
 {
   lyphnode *n;
   lyph *loc;
@@ -1043,7 +1043,7 @@ HANDLER( handle_makelyphnode_request )
     save_lyphs();
 }
 
-HANDLER( handle_makelyph_request )
+HANDLER( do_makelyph )
 {
   lyphnode *from, *to;
   lyph *e;
@@ -1103,17 +1103,17 @@ HANDLER( handle_makelyph_request )
   send_200_response( req, lyph_to_json( e ) );
 }
 
-HANDLER( handle_makeview_request )
+HANDLER( do_makeview )
 {
   makeview_worker( request, req, params, 0 );
 }
 
-HANDLER( handle_nodes_to_view_request )
+HANDLER( do_nodes_to_view )
 {
   makeview_worker( request, req, params, 1 );
 }
 
-HANDLER( handle_change_coords_request )
+HANDLER( do_change_coords )
 {
   makeview_worker( request, req, params, 2 );
 }
@@ -1457,7 +1457,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   send_200_response( req, lyphview_to_json( v ) );
 }
 
-HANDLER( handle_makelayer_request )
+HANDLER( do_makelayer )
 {
   layer *lyr;
   lyphplate **materials;
@@ -1494,7 +1494,7 @@ HANDLER( handle_makelayer_request )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-HANDLER( handle_lyphconstrain_request )
+HANDLER( do_lyphconstrain )
 {
 #ifdef PRE_LAYER_CHANGE
   lyph *e;
@@ -1541,7 +1541,7 @@ HANDLER( handle_lyphconstrain_request )
 #endif
 }
 
-HANDLER( handle_assign_template_request )
+HANDLER( do_assign_template )
 {
   lyph **lyphs, **e;
   lyphplate *L;
@@ -1591,7 +1591,7 @@ HANDLER( handle_assign_template_request )
   send_200_response( req, JSON1( "Response": "OK" ) );
 }
 
-HANDLER( handle_maketemplate_request )
+HANDLER( do_maketemplate )
 {
   lyphplate *L, **misc_mats;
   static layer **lyrs;
@@ -1675,7 +1675,7 @@ HANDLER( handle_maketemplate_request )
   send_200_response( req, lyphplate_to_json( L ) );
 }
 
-HANDLER( handle_template_request )
+HANDLER( do_template )
 {
   lyphplate *L;
   char *commonsstr, *output;
@@ -1700,7 +1700,7 @@ HANDLER( handle_template_request )
   send_200_response( req, output );
 }
 
-HANDLER( handle_lyph_request )
+HANDLER( do_lyph )
 {
   lyph *e = lyph_by_id( request );
   lyph_to_json_details details;
@@ -1714,7 +1714,7 @@ HANDLER( handle_lyph_request )
   send_200_response( req, lyph_to_json_r( e, &details ) );
 }
 
-HANDLER( handle_lyphnode_request )
+HANDLER( do_lyphnode )
 {
   lyphnode *n = lyphnode_by_id( request );
 
@@ -1728,7 +1728,7 @@ HANDLER( handle_lyphnode_request )
   lyphnode_to_json_flags = 0;
 }
 
-HANDLER( handle_lyphview_request )
+HANDLER( do_lyphview )
 {
   lyphview *v = lyphview_by_id( request );
 
@@ -1738,7 +1738,7 @@ HANDLER( handle_lyphview_request )
   send_200_response( req, lyphview_to_json( v ) );
 }
 
-HANDLER( handle_layer_request )
+HANDLER( do_layer )
 {
   layer *lyr = layer_by_id( request );
 
@@ -1748,7 +1748,7 @@ HANDLER( handle_layer_request )
   send_200_response( req, layer_to_json( lyr ) );
 }
 
-HANDLER( handle_ucl_syntax_request )
+HANDLER( do_ucl_syntax )
 {
   ucl_syntax *s;
   char *err = NULL, *maybe_err = NULL, *output;
@@ -1817,7 +1817,7 @@ int has_param( url_param **params, char *key )
   return 0;
 }
 
-HANDLER( handle_all_lyphs_request )
+HANDLER( do_all_lyphs )
 {
   lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
 
@@ -1826,7 +1826,7 @@ HANDLER( handle_all_lyphs_request )
   free( lyphs );
 }
 
-HANDLER( handle_all_templates_request )
+HANDLER( do_all_templates )
 {
   lyphplate **tmps = get_all_lyphplates();
   char *commonsstr, *output;
@@ -1848,7 +1848,7 @@ HANDLER( handle_all_templates_request )
   free( tmps );
 }
 
-HANDLER( handle_template_hierarchy_request )
+HANDLER( do_template_hierarchy )
 {
 #ifdef PRE_LAYER_CHANGE
   send_200_response( req, lyphplate_hierarchy_to_json() );
@@ -1857,12 +1857,12 @@ HANDLER( handle_template_hierarchy_request )
 #endif
 }
 
-HANDLER( handle_all_ont_terms_request )
+HANDLER( do_all_ont_terms )
 {
   send_200_response( req, all_ont_terms_as_json() );
 }
 
-HANDLER( handle_all_lyphviews_request )
+HANDLER( do_all_lyphviews )
 {
   lyphview **v, **vptr, **viewsptr;
   extern lyphview obsolete_lyphview;
@@ -1882,7 +1882,7 @@ HANDLER( handle_all_lyphviews_request )
   free( v );
 }
 
-HANDLER( handle_subtemplates_request )
+HANDLER( do_subtemplates )
 {
 #ifdef PRE_LAYER_CHANGE
   lyphplate *L, **subs;
@@ -1920,7 +1920,7 @@ HANDLER( handle_subtemplates_request )
 #endif
 }
 
-HANDLER( handle_all_lyphnodes_request )
+HANDLER( do_all_lyphnodes )
 {
   lyphnode **n = (lyphnode **)datas_to_array( lyphnode_ids );
   extern int lyphnode_to_json_flags;
@@ -1934,7 +1934,7 @@ HANDLER( handle_all_lyphnodes_request )
   free ( n );
 }
 
-HANDLER( handle_reset_db_request )
+HANDLER( do_reset_db )
 {
   int fMatch = 0, fWarning = 0;
 
