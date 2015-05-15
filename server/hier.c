@@ -733,3 +733,71 @@ lyphplate **common_materials_of_layers( lyphplate *L )
 
   return buf;
 }
+
+#define LYPHPLATE_NOT_BUILT_FROM_Y 1
+
+int is_X_built_from_Y_core( lyphplate *x, void *y )
+{
+  lyphplate **mats;
+  layer **lyrs;
+
+  if ( x == y )
+    return 1;
+
+  if ( IS_SET( x->flags, LYPHPLATE_NOT_BUILT_FROM_Y ) )
+    return 0;
+
+  for ( mats = x->misc_material; *mats; mats++ )
+    if ( *mats == y )
+      return 1;
+
+  if ( x->layers )
+  {
+    for ( lyrs = x->layers; *lyrs; lyrs++ )
+    {
+      if ( *lyrs == y )
+        return 1;
+
+      for ( mats = (*lyrs)->material; *mats; mats++ )
+        if ( *mats == y )
+          return 1;
+    }
+  }
+
+  for ( mats = x->misc_material; *mats; mats++ )
+    if ( is_X_built_from_Y_core( *mats, y ) )
+      return 1;
+
+  if ( x->layers )
+  {
+    for ( lyrs = x->layers; *lyrs; lyrs++ )
+    for ( mats = (*lyrs)->material; *mats; mats++ )
+      if ( is_X_built_from_Y_core( *mats, y ) )
+        return 1;
+  }
+
+  SET_BIT( x->flags, LYPHPLATE_NOT_BUILT_FROM_Y );
+  return 0;
+}
+
+int is_X_built_from_Y( lyphplate *x, void *y )
+{
+  int result = is_X_built_from_Y_core( x, y );
+
+  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y, lyphplate_ids );
+
+  return result;
+}
+
+int is_Xs_built_from_Y( lyphplate **xs, void *y )
+{
+  lyphplate **x;
+
+  for ( x = xs; *x; x++ )
+    if ( is_X_built_from_Y_core( *x, y ) )
+      break;
+
+  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y, lyphplate_ids );
+
+  return *x ? 1 : 0;
+}

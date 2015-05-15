@@ -535,6 +535,8 @@ layer *clone_layer( layer *lyr );
  */
 void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
 lyphplate **common_materials_of_layers( lyphplate *L );
+int is_X_built_from_Y( lyphplate *x, void *y );
+int is_Xs_built_from_Y( lyphplate **xs, void *y );
 
 /*
  * meta.c

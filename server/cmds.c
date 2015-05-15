@@ -305,6 +305,12 @@ HANDLER( handle_edit_template_request )
         else
           HND_ERR( "One of the indicated templates was not recognized" );
       }
+
+      if ( is_Xs_built_from_Y( misc_mats, L ) )
+      {
+        free( misc_mats );
+        HND_ERR( "One of the indicated miscelaneous materials is already built up from the template in question" );
+      }
     }
 
     free( L->misc_material );
@@ -419,6 +425,12 @@ HANDLER( handle_editlayer_request )
           HND_ERR_FREE( err );
         else
           HND_ERR( "One of the indicated templates was not recognized" );
+      }
+
+      if ( is_Xs_built_from_Y( mat, lyr ) )
+      {
+        free( mat );
+        HND_ERR( "The layer in question is already part of the construction of one of the materials in question" );
       }
     }
   }
@@ -1685,6 +1697,9 @@ HANDLER( handle_layer_to_template_request )
   if ( L->type != LYPHPLATE_SHELL && L->type != LYPHPLATE_MIX )
     HND_ERR( "Layers can only be added to a template if that template has type 'shell' or 'mix'" );
 
+  if ( is_Xs_built_from_Y( lyr->material, L ) )
+    HND_ERR( "The template in question already occurs in the construction of the layer in question" );
+
   posstr = get_param( params, "pos" );
 
   if ( !posstr && L->type == LYPHPLATE_SHELL )
@@ -1748,6 +1763,9 @@ HANDLER( handle_material_to_layer_request )
 
   if ( !material )
     HND_ERR( "The indicated material was not recognized" );
+
+  if ( is_X_built_from_Y( material, lyr ) )
+    HND_ERR( "The layer in question already occurs in the construction of the material in question" );
 
   repeatstr = get_param( params, "repeat" );
 
