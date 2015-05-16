@@ -580,9 +580,14 @@ trie **translate_full_iris_to_superclasses( trie **data )
 
   for ( ptr = data; *ptr; ptr++ )
   {
-    char *full_iri = trie_to_static( *ptr );
-    char *short_iri = get_url_shortform( full_iri );
+    char *full_iri, *short_iri;
     trie *in_superclasses;
+
+    if ( !(*ptr)->data || !(*ptr)->data[0] )
+      continue;
+
+    full_iri = trie_to_static( (*ptr)->data[0] );
+    short_iri = get_url_shortform( full_iri );
 
     if ( !short_iri )
       continue;
@@ -618,51 +623,39 @@ HANDLER( do_templates_involving )
 lyphplate **lyphplates_by_term( const char *ontstr )
 {
   lyphplate *L, **basics, **bscptr, **buf, **bptr;
-  trie *ont, **onts;
+  trie **onts, **translated;
+  char *lower;
   int cnt;
 
-  ont = trie_search( ontstr, superclasses );
+  lower = lowercaserize( ontstr );
 
-  if ( !ont )
-  {
-    trie *label = trie_search( ontstr, label_to_iris );
+  CREATE( onts, trie *, MAX_AUTOCOMPLETE_RESULTS_PRESORT + 1 );
 
-    if ( label && label->data && *label->data )
-      onts = translate_full_iris_to_superclasses( label->data );
-    else
-    {
-      char *lower = lowercaserize( ontstr );
+  trie_search_autocomplete( lower, onts, label_to_iris_lowercase );
+  translated = translate_full_iris_to_superclasses( onts );
 
-      label = trie_search( lower, label_to_iris_lowercase );
-
-      if ( label && label->data && *label->data )
-        onts = translate_full_iris_to_superclasses( label->data );
-      else
-        onts = NULL;
-    }
-  }
-  else
-  {
-    CREATE( onts, trie *, 2 );
-    onts[0] = ont;
-    onts[1] = NULL;
-  }
+  free( onts );
 
   L = lyphplate_by_id( ontstr );
 
-  if ( !onts && !L )
+  if ( (!translated || !*translated) && !L )
+  {
+    if ( translated )
+      free( translated );
+
     return NULL;
+  }
 
   cnt = count_nontrivial_members( lyphplate_ids );
   CREATE( basics, lyphplate *, cnt + 1 );
   bscptr = basics;
 
-  if ( onts )
-    populate_with_basic_lyphplates_subclass_of( onts, &bscptr, lyphplate_ids );
+  if ( translated )
+    populate_with_basic_lyphplates_subclass_of( translated, &bscptr, lyphplate_ids );
 
   if ( L )
   {
-    if ( onts )
+    if ( translated && *translated )
     {
       lyphplate **dupe;
       for ( dupe = basics; dupe < bscptr; dupe++ )
@@ -687,8 +680,8 @@ lyphplate **lyphplates_by_term( const char *ontstr )
 
   free( basics );
 
-  if ( onts )
-    free( onts );
+  if ( translated )
+    free( translated );
 
   return buf;
 }

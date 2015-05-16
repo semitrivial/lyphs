@@ -5,6 +5,7 @@ system_configs configs;
 
 char *html;
 char *js;
+char *bulk;
 
 extern int lyphnode_to_json_flags;
 
@@ -55,6 +56,7 @@ void init_lyph_http_server( int port )
 
   html = load_file( "lyphgui.html" );
   js = load_file( "lyphgui.js" );
+  bulk = load_file( "lyphbulk.html" );
 
   if ( !html || !js )
   {
