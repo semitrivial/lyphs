@@ -387,7 +387,7 @@ void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int trans
       {
         if ( translate_to_superclasses )
         {
-          char *full_iri = trie_to_static( t->data[0] );
+          char *full_iri = trie_to_static( wptr->t->data[0] );
           char *short_iri = get_url_shortform( full_iri );
 
           if ( short_iri )
