@@ -278,7 +278,7 @@ char *trie_to_static( trie *t )
   return &bptr[1];
 }
 
-void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int translate_to_superclasses )
+void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int translate_to_superclasses, int unlimited )
 {
   char *chptr = label_ch;
   trie *t = base;
@@ -410,7 +410,7 @@ void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int trans
           finds++;
         }
 
-        if ( finds >= MAX_AUTOCOMPLETE_RESULTS_PRESORT )
+        if ( finds >= MAX_AUTOCOMPLETE_RESULTS_PRESORT && !unlimited )
           break;
       }
 
@@ -434,7 +434,7 @@ void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int trans
 
     qsort(buf, finds, sizeof(trie*), cmp_trie_data);
 
-    if ( finds > MAX_AUTOCOMPLETE_RESULTS_POSTSORT )
+    if ( finds > MAX_AUTOCOMPLETE_RESULTS_POSTSORT && !unlimited )
       buf[MAX_AUTOCOMPLETE_RESULTS_POSTSORT] = NULL;
   }
 

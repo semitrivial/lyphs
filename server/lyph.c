@@ -2982,6 +2982,9 @@ HANDLER( do_lyphs_located_in_term )
 
   TRY_PARAM( termstr, "term", "You did not indicate a 'term' inside which to search for lyphs" );
 
+  if ( strlen(termstr) < 3 )
+    HND_ERR( "The 'term' you entered was too short (min length: 3)" );
+
   ebuf = lyphs_by_term( termstr );
 
   if ( !ebuf )

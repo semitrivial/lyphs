@@ -578,6 +578,12 @@ HANDLER( do_templates_involving )
 
   TRY_PARAM( ontstr, "ont", "You did not specify an ontology term ('ont')" );
 
+  if ( strlen( ontstr ) < 3 )
+    HND_ERR( "The 'ont' term you entered was too short (min length: 3)" );
+
+  if ( !*ontstr )
+    HND_ERR( "The 'templates_involving' command cannot be called with a blank 'ont' term" );
+
   buf = lyphplates_by_term( ontstr );
 
   if ( !buf )
@@ -597,9 +603,11 @@ lyphplate **lyphplates_by_term( const char *ontstr )
 
   lower = lowercaserize( ontstr );
 
-  CREATE( onts, trie *, MAX_AUTOCOMPLETE_RESULTS_PRESORT + 1 );
+  cnt = count_nontrivial_members( label_to_iris_lowercase );
 
-  trie_search_autocomplete( lower, onts, label_to_iris_lowercase, 1 );
+  CREATE( onts, trie *, cnt + 1 );
+
+  trie_search_autocomplete( lower, onts, label_to_iris_lowercase, 1, 1 );
 
   L = lyphplate_by_id( ontstr );
 
