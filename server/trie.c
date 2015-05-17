@@ -278,7 +278,7 @@ char *trie_to_static( trie *t )
   return &bptr[1];
 }
 
-void trie_search_autocomplete( char *label_ch, trie **buf, trie *base )
+void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int translate_to_superclasses )
 {
   char *chptr = label_ch;
   trie *t = base;
@@ -342,13 +342,33 @@ void trie_search_autocomplete( char *label_ch, trie **buf, trie *base )
     trie **bptr = buf, **children;
     trie_wrapper *head=NULL, *tail=NULL, *wrap, *wptr, *wptr_next;
 
-    if ( t->data )
+    if ( t->data && t->data[0] )
     {
-      if ( base == label_to_iris )
-        *bptr++ = t;
+      if ( translate_to_superclasses )
+      {
+        char *full_iri = trie_to_static( t->data[0] );
+        char *short_iri = get_url_shortform( full_iri );
+
+        if ( short_iri )
+        {
+          trie *in_superclasses = trie_search( short_iri, superclasses );
+
+          if ( in_superclasses )
+          {
+            *bptr++ = in_superclasses;
+            finds++;
+          }
+        }
+      }
       else
-        *bptr++ = t->data[0]->data[0];
-      finds++;
+      {
+        if ( base == label_to_iris )
+          *bptr++ = t;
+        else
+        if ( base == superclasses )
+          *bptr++ = t->data[0]->data[0];
+        finds++;
+      }
     }
 
     if ( t->children )
@@ -363,13 +383,33 @@ void trie_search_autocomplete( char *label_ch, trie **buf, trie *base )
 
     for ( wptr = head; wptr; wptr = wptr->next )
     {
-      if ( wptr->t->data )
+      if ( wptr->t->data && wptr->t->data[0] )
       {
-        if ( base == label_to_iris )
-          *bptr++ = wptr->t;
+        if ( translate_to_superclasses )
+        {
+          char *full_iri = trie_to_static( t->data[0] );
+          char *short_iri = get_url_shortform( full_iri );
+
+          if ( short_iri )
+          {
+            trie *in_superclasses = trie_search( short_iri, superclasses );
+
+            if ( in_superclasses )
+            {
+              *bptr++ = in_superclasses;
+              finds++;
+            }
+          }
+        }
         else
-          *bptr++ = wptr->t->data[0]->data[0];
-        finds++;
+        {
+          if ( base == label_to_iris )
+            *bptr++ = wptr->t;
+          else
+            *bptr++ = wptr->t->data[0]->data[0];
+          finds++;
+        }
+
         if ( finds >= MAX_AUTOCOMPLETE_RESULTS_PRESORT )
           break;
       }

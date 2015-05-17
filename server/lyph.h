@@ -398,7 +398,7 @@ trie *trie_strdup( const char *buf, trie *base );
 trie *trie_search( const char *buf, trie *base );
 char *trie_to_static( trie *t );
 char *trie_to_json( trie *t );
-void trie_search_autocomplete( char *label_ch, trie **buf, trie *base );
+void trie_search_autocomplete( char *label_ch, trie **buf, trie *base, int translate_to_superclasses );
 int cmp_trie_data (const void * a, const void * b);
 void **datas_to_array( trie *t );
 int count_nontrivial_members( trie *t );

@@ -571,38 +571,6 @@ void populate_with_lyphplates_involving_any_of( lyphplate **basics, lyphplate **
   TRIE_RECURSE( populate_with_lyphplates_involving_any_of( basics, bptr, *child ) );
 }
 
-trie **translate_full_iris_to_superclasses( trie **data )
-{
-  trie **ptr, **buf, **bptr;
-
-  CREATE( buf, trie *, VOIDLEN( data ) + 1 );
-  bptr = buf;
-
-  for ( ptr = data; *ptr; ptr++ )
-  {
-    char *full_iri, *short_iri;
-    trie *in_superclasses;
-
-    if ( !(*ptr)->data || !(*ptr)->data[0] )
-      continue;
-
-    full_iri = trie_to_static( (*ptr)->data[0] );
-    short_iri = get_url_shortform( full_iri );
-
-    if ( !short_iri )
-      continue;
-
-    in_superclasses = trie_search( short_iri, superclasses );
-
-    if ( in_superclasses )
-      *bptr++ = in_superclasses;
-  }
-
-  *bptr = NULL;
-
-  return buf;
-}
-
 HANDLER( do_templates_involving )
 {
   lyphplate **buf;
@@ -623,7 +591,7 @@ HANDLER( do_templates_involving )
 lyphplate **lyphplates_by_term( const char *ontstr )
 {
   lyphplate *L, **basics, **bscptr, **buf, **bptr;
-  trie **onts, **translated;
+  trie **onts;
   char *lower;
   int cnt;
 
@@ -631,18 +599,13 @@ lyphplate **lyphplates_by_term( const char *ontstr )
 
   CREATE( onts, trie *, MAX_AUTOCOMPLETE_RESULTS_PRESORT + 1 );
 
-  trie_search_autocomplete( lower, onts, label_to_iris_lowercase );
-  translated = translate_full_iris_to_superclasses( onts );
-
-  free( onts );
+  trie_search_autocomplete( lower, onts, label_to_iris_lowercase, 1 );
 
   L = lyphplate_by_id( ontstr );
 
-  if ( (!translated || !*translated) && !L )
+  if ( !*onts && !L )
   {
-    if ( translated )
-      free( translated );
-
+    free( onts );
     return NULL;
   }
 
@@ -650,12 +613,11 @@ lyphplate **lyphplates_by_term( const char *ontstr )
   CREATE( basics, lyphplate *, cnt + 1 );
   bscptr = basics;
 
-  if ( translated )
-    populate_with_basic_lyphplates_subclass_of( translated, &bscptr, lyphplate_ids );
+  populate_with_basic_lyphplates_subclass_of( onts, &bscptr, lyphplate_ids );
 
   if ( L )
   {
-    if ( translated && *translated )
+    if ( *onts )
     {
       lyphplate **dupe;
       for ( dupe = basics; dupe < bscptr; dupe++ )
@@ -678,10 +640,7 @@ lyphplate **lyphplates_by_term( const char *ontstr )
   lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
   *bptr = NULL;
 
-  free( basics );
-
-  if ( translated )
-    free( translated );
+  MULTIFREE( basics, onts );
 
   return buf;
 }
