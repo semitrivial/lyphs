@@ -2116,7 +2116,7 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
     "id": trie_to_json( L->id ),
     "name": trie_to_json( L->name ),
     "type": lyphplate_type_as_char( L ),
-    "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : "null",
+    "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : NULL,
     "layers": JS_ARRAY( layer_to_json, L->layers ),
     "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material ),
     "common_materials": common_mats
