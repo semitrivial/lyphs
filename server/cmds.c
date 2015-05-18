@@ -1679,7 +1679,7 @@ HANDLER( do_layer_to_template )
   lyphplate *L;
   layer *lyr, **lyrptr, **buf, **bptr;
   char *lyrstr, *tmpltstr, *posstr;
-  int pos, n, size;
+  int pos, n, size, fPos = 0;
 
   TRY_PARAM( tmpltstr, "template", "You did not indicate which template you want to add the layer to" );
   TRY_PARAM( lyrstr, "layer", "You did not indicate which layer you want to add to the template" );
@@ -1726,12 +1726,15 @@ HANDLER( do_layer_to_template )
   for ( n = 0, lyrptr = L->layers; *lyrptr; lyrptr++ )
   {
     if ( ++n == pos )
+    {
+      fPos = 1;
       *bptr++ = lyr;
+    }
 
     *bptr++ = *lyrptr;
   }
 
-  if ( pos == size + 1 )
+  if ( !fPos )
     *bptr++ = lyr;
 
   *bptr = NULL;

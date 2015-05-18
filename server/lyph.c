@@ -1543,7 +1543,10 @@ void load_layer_material( char *subj_full, char *obj_full )
   if ( !lyr )
     return;
 
-  lyr->material = (lyphplate **)PARSE_LIST( obj, create_or_find_lyphplate, "template", NULL );
+  if ( !strcmp( obj, "nomaterial" ) )
+    lyr->material = (lyphplate**)blank_void_array();
+  else
+    lyr->material = (lyphplate **)PARSE_LIST( obj, create_or_find_lyphplate, "template", NULL );
 }
 
 void load_layer_thickness( char *subj_full, char *obj )
@@ -1788,14 +1791,19 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
 
   fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> <http://open-physiology.org/lyphs/", lid );
 
-  for ( fFirst = 0, materials = lyr->material; *materials; materials++ )
+  if ( !lyr->material || !*lyr->material )
+    fprintf( fp, "nomaterial>" );
+  else
   {
-    if ( fFirst )
-      fprintf( fp, "," );
-    else
-      fFirst = 1;
+    for ( fFirst = 0, materials = lyr->material; *materials; materials++ )
+    {
+      if ( fFirst )
+        fprintf( fp, "," );
+      else
+        fFirst = 1;
 
-    fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
+      fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
+    }
   }
   fprintf( fp, "> .\n" );
 
