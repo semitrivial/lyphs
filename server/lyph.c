@@ -1792,7 +1792,7 @@ void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes
   fprintf( fp, "%s <http://open-physiology.org/lyph#has_material> <http://open-physiology.org/lyphs/", lid );
 
   if ( !lyr->material || !*lyr->material )
-    fprintf( fp, "nomaterial>" );
+    fprintf( fp, "nomaterial" );
   else
   {
     for ( fFirst = 0, materials = lyr->material; *materials; materials++ )
@@ -1955,28 +1955,57 @@ lyphplate *lyphplate_by_name( char *name )
 lyphplate *lyphplate_by_id( const char *id )
 {
   trie *t = trie_search( id, lyphplate_ids );
+  char *trieloc;
 
   if ( t && t->data )
     return (lyphplate *) t->data;
 
+  trieloc = "terms";
   t = trie_search( id, superclasses );
+
+  if ( !t || !t->data )
+  {
+    trieloc = "labels";
+    t = trie_search( id, label_to_iris );
+  }
+
+  if ( !t || !t->data )
+  {
+    trieloc = "lowerlabels";
+    t = trie_search( id, label_to_iris_lowercase );
+  }
 
   if ( t && t->data )
   {
     lyphplate *L;
     trie *label;
 
-    if ( (L = lyphplate_by_ont_term( t )) != NULL )
-      return L;
+    if ( !strcmp( trieloc, "terms" ) )
+    {
+      if ( (L = lyphplate_by_ont_term( t )) != NULL )
+        return L;
 
-    label = trie_search( id, iri_to_labels );
+      label = trie_search( id, iri_to_labels );
+    }
 
     CREATE( L, lyphplate, 1 );
 
     L->type = LYPHPLATE_BASIC;
     L->id = assign_new_lyphplate_id( L );
-    L->ont_term = t;
-    L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyphplate_names );
+
+    if ( !strcmp( trieloc, "terms" ) )
+    {
+      L->ont_term = t;
+      L->name = trie_strdup( label ? trie_to_static( *label->data ) : id, lyphplate_names );
+    }
+    else
+    {
+      L->ont_term = *t->data;
+      if ( !strcmp( trieloc, "labels" ) )
+        L->name = trie_strdup( trie_to_static(t), lyphplate_names );
+      else
+        L->name = trie_strdup( trie_to_static(t->data[0]->data[0]), lyphplate_names );
+    }
     L->layers = NULL;
     L->supers = NULL;
     L->misc_material = (lyphplate**)blank_void_array();
