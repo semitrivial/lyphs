@@ -151,8 +151,9 @@ struct LYPHPLATES_WRAPPER
 struct LAYER
 {
   lyphplate **material;
-  int thickness;
   trie *id;
+  char *name;
+  int thickness;
 };
 
 struct LYPHNODE
@@ -465,7 +466,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details );
 char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
-layer *layer_by_description( lyphplate **materials, int thickness );
+layer *layer_by_description( char *name, lyphplate **materials, int thickness );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( const char *id );
@@ -478,6 +479,8 @@ void sort_layers( layer **layers );
 trie *assign_new_lyphplate_id( lyphplate *L );
 void free_lyphplate_dupe_trie( trie *t );
 void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes );
+void save_layer_names( void );
+void load_layer_names( void );
 char *id_as_iri( trie *id, char *prefix );
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes );
 void load_lyphplates( void );

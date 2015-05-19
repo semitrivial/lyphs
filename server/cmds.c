@@ -385,7 +385,7 @@ HANDLER( do_editlayer )
 {
   layer *lyr;
   lyphplate **mat;
-  char *lyrstr, *matstr, *thkstr, *mutablestr;
+  char *lyrstr, *matstr, *thkstr, *namestr, *mutablestr;
   int thk, fQualitativeChange = 0;
 
   TRY_PARAM( lyrstr, "layer", "You did not indicate which layer to edit" );
@@ -442,6 +442,16 @@ HANDLER( do_editlayer )
   if ( !mutablestr || strcmp( mutablestr, "yes" ) )
     lyr = clone_layer( lyr );
 
+  namestr = get_param( params, "name" );
+  
+  if ( namestr )
+  {
+    if ( lyr->name )
+      free( lyr->name );
+    
+    lyr->name = !strcmp( namestr, "none" ) ? NULL : strdup( namestr );
+  }
+    
   if ( mat )
   {
     fQualitativeChange = 1;

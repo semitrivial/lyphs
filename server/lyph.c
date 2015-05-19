@@ -1500,6 +1500,7 @@ void load_layer_to_lld( char *bnode, char *obj_full )
     lyr->id = trie_strdup( obj, layer_ids );
     lyr->id->data = (trie **)lyr;
     lyr->thickness = -1;
+    lyr->name = NULL;
     maybe_update_top_id( &top_layer_id, obj + strlen( "LAYER_" ) );
   }
 
@@ -1622,6 +1623,8 @@ void load_lyphplates(void)
   }
 
   fclose( fp );
+  
+  load_layer_names();
 }
 
 lyphplate *missing_layers( trie *t )
@@ -1703,6 +1706,8 @@ void save_lyphplates(void)
 
   free_lyphplate_dupe_trie( avoid_dupe_layers );
 
+  save_layer_names();
+  
   return;
 }
 
@@ -1869,7 +1874,7 @@ int same_layers( layer **x, layer **y )
   }
 }
 
-layer *layer_by_description( lyphplate **materials, int thickness )
+layer *layer_by_description( char *name, lyphplate **materials, int thickness )
 {
   layer *lyr;
 
@@ -1881,6 +1886,7 @@ layer *layer_by_description( lyphplate **materials, int thickness )
   lyr->material = materials;
   lyr->id = assign_new_layer_id( lyr );
   lyr->thickness = thickness;
+  lyr->name = name;
 
   save_lyphplates();
 
@@ -2157,6 +2163,7 @@ char *layer_to_json( layer *lyr )
   return JSON
   (
     "id": trie_to_json( lyr->id ),
+    "name": str_to_json( lyr->name ),
     "materials": JS_ARRAY( lyphplate_to_json_brief, lyr->material ),
     "thickness": lyr->thickness == -1 ? "unspecified" : int_to_json( lyr->thickness )
   );
@@ -2945,6 +2952,11 @@ layer *clone_layer( layer *lyr )
   CREATE( materials, lyphplate *, VOIDLEN( lyr->material ) + 1 );
   mptr = materials;
 
+  if ( lyr->name )
+    dest->name = strdup( lyr->name );
+  else
+    dest->name = NULL;
+
   for ( lptr = lyr->material; *lptr; lptr++ )
     *mptr++ = *lptr;
 
@@ -3033,4 +3045,76 @@ HANDLER( do_lyphs_located_in_term )
   send_response( req, JS_ARRAY( lyph_to_json, buf ) );
 
   free( buf );
+}
+
+void load_layer_names( void )
+{
+  char *full = load_file( "layernames.dat" ), *id, *name, *ptr;
+  int fSpace = 0;
+  
+  if ( !full )
+  {
+    to_logfile( "Could not open layernames.dat for reading" );
+    return;
+  }
+  
+  for ( id = full, ptr = full; *ptr; ptr++ )
+  {
+    if ( *ptr == ' ' && !fSpace )
+    {
+      fSpace = 1;
+      *ptr = '\0';
+      name = &ptr[1];
+      continue;
+    }
+    
+    if ( *ptr == '\n' )
+    {
+      layer *lyr = layer_by_id( id );
+      
+      id = &ptr[1];
+      fSpace = 0;
+      
+      if ( !lyr )
+      {
+        log_stringf( "layernames.dat refers to nonexistent layer [%s]", id );
+        continue;
+      }
+      *ptr = '\0';
+      if ( lyr->name )
+        free( lyr->name );
+      lyr->name = strdup( name );
+    }
+  }
+  
+  free( full );
+}
+
+void save_layer_names_recurse( trie *t, FILE *fp )
+{
+  if ( t->data )
+  {
+    layer *lyr = (layer*)t->data;
+    
+    if ( lyr->name )
+      fprintf( fp, "%s %s\n", trie_to_static( t ), lyr->name );
+  }
+
+  TRIE_RECURSE( save_layer_names_recurse( *child, fp ) );
+}
+
+void save_layer_names(void)
+{
+  FILE *fp = fopen( "layernames.dat", "w" );
+
+  if ( !fp )
+  {
+    to_logfile( "Couldn't open layernames.dat for writing" );
+    return;
+  }
+
+  save_layer_names_recurse( layer_ids, fp );
+
+  fprintf( fp, "\n" );
+  fclose( fp );
 }

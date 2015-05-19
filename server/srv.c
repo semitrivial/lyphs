@@ -1463,7 +1463,7 @@ HANDLER( do_makelayer )
 {
   layer *lyr;
   lyphplate **materials;
-  char *mtid, *thickstr, *err;
+  char *mtid, *thickstr, *namestr, *name, *err;
   int thickness;
 
   TRY_TWO_PARAMS( mtid, "material", "materials", "No material specified for layer" );
@@ -1488,7 +1488,14 @@ HANDLER( do_makelayer )
       HND_ERR( "One of the indicated templates was unrecognized" );
   }
 
-  lyr = layer_by_description( materials, thickness );
+  namestr = get_param( params, "name" );
+
+  if ( namestr )
+    name = strdup( namestr );
+  else
+    name = NULL;
+
+  lyr = layer_by_description( name, materials, thickness );
 
   if ( !lyr )
     HND_ERR( "Invalid layer" );
