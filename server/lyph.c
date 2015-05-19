@@ -2163,7 +2163,7 @@ char *layer_to_json( layer *lyr )
   return JSON
   (
     "id": trie_to_json( lyr->id ),
-    "name": str_to_json( lyr->name ),
+    "name": lyr->name ? str_to_json( lyr->name ) : NULL,
     "materials": JS_ARRAY( lyphplate_to_json_brief, lyr->material ),
     "thickness": lyr->thickness == -1 ? "unspecified" : int_to_json( lyr->thickness )
   );
