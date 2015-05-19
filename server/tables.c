@@ -51,6 +51,7 @@ void init_command_table(void)
   add_handler( "subtemplates", do_subtemplates, CMD_READONLY );
   add_handler( "instances_of", do_instances_of, CMD_READONLY );
   add_handler( "involves_template", do_involves_template, CMD_READONLY );
+  add_handler( "is_built_from_template", do_is_built_from_template, CMD_READONLY );
   add_handler( "has_template", do_has_template, CMD_READONLY );
   add_handler( "has_clinical_index", do_has_clinical_index, CMD_READONLY );
   add_handler( "templates_involving", do_templates_involving, CMD_READONLY );

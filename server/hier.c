@@ -761,3 +761,53 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y )
 
   return *x ? 1 : 0;
 }
+
+HANDLER( do_is_built_from_template )
+{
+  lyphplate *part, **wholes;
+  char *partstr, *tmpltstr, *lyrstr, *err;
+  int result;
+  
+  TRY_PARAM( partstr, "part", "You did not indicate the 'part' whose usage you wanted to check for" );
+  
+  part = lyphplate_by_id( partstr );
+  
+  if ( !part )
+    HND_ERR( "The indicated 'part' was not recognized" );
+  
+  lyrstr = get_param( params, "layer" );
+  tmpltstr = get_param( params, "template" );
+  
+  if ( !tmpltstr )
+    tmpltstr = get_param( params, "templates" );
+    
+  if ( !lyrstr && !tmpltstr )
+    HND_ERR( "You did not specify either a 'layer', nor a 'template', nor a list of 'templates', which you want me to check for construction from the indicated part" );
+    
+  if ( lyrstr )
+  {
+    layer *lyr = layer_by_id( lyrstr );
+    
+    if ( !lyr )
+      HND_ERR( "The indicated layer was not recognized" );
+
+    send_response( req, JSON1( "response": is_Xs_built_from_Y( lyr->material, part ) ? "yes" : "no" ) );
+    return;
+  }
+  
+  wholes = (lyphplate**)PARSE_LIST( tmpltstr, lyphplate_by_id, "template", &err );
+  
+  if ( !wholes )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated templates was not recognized" );
+  }
+  
+  result = is_Xs_built_from_Y( wholes, part );
+  
+  free( wholes );
+  
+  send_response( req, JSON1( "response": result ? "yes" : "no" ) );  
+}
