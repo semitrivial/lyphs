@@ -226,8 +226,8 @@ HANDLER( do_edit_template )
 {
   lyphplate *L, **misc_mats;
   trie *ont;
-  char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr;
-  int type, fQualitativeChange = 0;
+  char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr, *movelayerstr, *toposstr;
+  int type, fQualitativeChange = 0, newpos, oldpos;
 
   TRY_PARAM( tmpltstr, "template", "You did not specify which template to edit" );
 
@@ -239,7 +239,9 @@ HANDLER( do_edit_template )
   namestr = get_param( params, "name" );
   typestr = get_param( params, "type" );
   miscstr = get_param( params, "misc_materials" );
-
+  movelayerstr = get_param( params, "movelayer" );
+  toposstr = get_param( params, "topos" );
+  
   if ( typestr )
   {
     if ( !strcmp( typestr, "basic" ) )
@@ -269,6 +271,15 @@ HANDLER( do_edit_template )
   else
     type = -1;
 
+  if ( movelayerstr && !toposstr )
+    HND_ERR( "If you want to 'movelayer' you must also specify (with 'topos') which position to move it to" );
+
+  if ( toposstr && !movelayerstr )
+    HND_ERR( "If you want to move a layer to a new position ('topos'), you must specify which layer ('movelayer')" );
+
+  if ( movelayerstr && L->type != LYPHPLATE_SHELL && L->type != LYPHPLATE_MIX )
+    HND_ERR( "You cannot move layers in this template because its type is neither shell nor mix" );
+            
   ontstr = get_param( params, "ont" );
 
   if ( ontstr )
@@ -288,6 +299,28 @@ HANDLER( do_edit_template )
   else
     ont = NULL;
 
+  if ( movelayerstr )
+  {
+    layer *lyr = layer_by_id( movelayerstr ), **lyrptr;
+    
+    if ( !lyr )
+      HND_ERR( "The layer ('movelayer') you asked us to move, could not be recognized" );
+      
+    for ( lyrptr = L->layers; *lyrptr; lyrptr++ )
+      if ( *lyrptr == lyr )
+        break;
+    
+    if ( !*lyrptr )
+      HND_ERR( "The indicated layer ('movelayer') is not present in this template" );
+      
+    oldpos = lyrptr - L->layers;
+    
+    newpos = strtoul( toposstr, NULL, 10 );
+    
+    if ( newpos > VOIDLEN( L->layers ) - 1 )
+      HND_ERRF( "You asked to move a layer to position %d, but the template only has %d layers in total", newpos, VOIDLEN( L->layers ) );
+  }
+    
   if ( miscstr )
   {
     char *err;
@@ -319,6 +352,41 @@ HANDLER( do_edit_template )
     fQualitativeChange = 1;
   }
 
+  if ( movelayerstr && newpos != oldpos )
+  {
+    layer **oldpospt = &L->layers[oldpos], **newpospt = &L->layers[newpos], **buf, **bptr, **Lptr;
+    
+    CREATE( buf, layer *, VOIDLEN( L->layers ) + 1 );
+    bptr = buf;
+    
+    for ( Lptr = L->layers; *Lptr; Lptr++ )
+    {
+      if ( oldpospt < newpospt )
+      {
+        if ( Lptr < oldpospt || Lptr > newpospt )
+          *bptr++ = *Lptr;
+        else if ( Lptr == newpospt )
+          *bptr++ = *oldpospt;
+        else
+          *bptr++ = Lptr[1];
+      }
+      else      
+      {
+        if ( Lptr < newpospt || Lptr > oldpospt )
+          *bptr++ = *Lptr;
+        else if ( Lptr == newpospt )
+          *bptr++ = *oldpospt;
+        else
+          *bptr++ = Lptr[-1];
+      }
+    }
+    
+    *bptr = NULL;
+    free( L->layers );
+    L->layers = buf;
+    fQualitativeChange = 1;
+  }
+  
   if ( namestr )
   {
     L->name->data = NULL;
