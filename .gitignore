@@ -1,0 +1,14 @@
+*.o
+*.opp
+*.json
+*.dat
+*.class
+*/META-INF/
+*/de/
+log4j.properties
+*/org/
+*/rationals/
+*/uk/
+*.nt
+*.dSYM/
+*/rapidjson/

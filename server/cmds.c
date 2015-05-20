@@ -315,7 +315,10 @@ HANDLER( do_edit_template )
       
     oldpos = lyrptr - L->layers;
     
-    newpos = strtoul( toposstr, NULL, 10 );
+    newpos = strtoul( toposstr, NULL, 10 ) - 1;
+    
+    if ( newpos < 0 )
+      HND_ERR( "'topos' should be a positive integer" );
     
     if ( newpos > VOIDLEN( L->layers ) - 1 )
       HND_ERRF( "You asked to move a layer to position %d, but the template only has %d layers in total", newpos, VOIDLEN( L->layers ) );
