@@ -1830,9 +1830,6 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
 {
   lyphplate *L;
 
-  if ( type == LYPHPLATE_MIX )
-    sort_layers( layers );
-
   if ( !name )
     return NULL;
 

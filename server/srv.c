@@ -1619,12 +1619,12 @@ HANDLER( do_maketemplate )
   if ( type == -1 )
     HND_ERR( "Invalid type specified for template" );
 
-  if ( type == LYPHPLATE_BASIC )
-    HND_ERR( "Only template types 'mix' and 'shell' are created by maketemplate" );
-
   lcnt = 1;
   lptr = lyrs;
 
+  if ( type == LYPHPLATE_BASIC && get_param( params, "layer1" ) )
+    HND_ERR( "Basic templates cannot be given layers" );
+  
   for(;;)
   {
     char pmname[MAX_URL_PARAM_LEN+128];
@@ -1657,6 +1657,9 @@ HANDLER( do_maketemplate )
   if ( miscstr )
   {
     char *err;
+    
+    if ( type == LYPHPLATE_BASIC )
+      HND_ERR( "Basic templates can't be given misc. materials" );
 
     misc_mats = (lyphplate **)PARSE_LIST( miscstr, lyphplate_by_id, "template", &err );
 
