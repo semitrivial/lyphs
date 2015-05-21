@@ -2003,7 +2003,7 @@ lyphplate *lyphplate_by_id( const char *id )
     }
     else
     {
-      L->ont_term = *t->data;
+      L->ont_term = trie_strdup( trie_to_static( *t->data ), superclasses );
       if ( !strcmp( trieloc, "labels" ) )
         L->name = trie_strdup( trie_to_static(t), lyphplate_names );
       else
