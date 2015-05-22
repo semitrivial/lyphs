@@ -1681,7 +1681,7 @@ HANDLER( do_maketemplate )
   else
     length = NULL;
     
-  L = lyphplate_by_layers( type, lyrs, misc_mats, name, get_param( params, "length" ) );
+  L = lyphplate_by_layers( type, lyrs, misc_mats, name, length );
 
   if ( !L )
   {
