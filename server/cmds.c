@@ -226,7 +226,7 @@ HANDLER( do_edit_template )
 {
   lyphplate *L, **misc_mats;
   trie *ont;
-  char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr, *movelayerstr, *toposstr;
+  char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr, *movelayerstr, *toposstr, *lengthstr;
   int type, fQualitativeChange = 0, newpos, oldpos;
 
   TRY_PARAM( tmpltstr, "template", "You did not specify which template to edit" );
@@ -397,6 +397,15 @@ HANDLER( do_edit_template )
     L->name->data = (trie **)L;
   }
 
+  lengthstr = get_param( params, "length" );
+  
+  if ( lengthstr )
+  {
+    if ( L->length )
+      free( L->length );
+    L->length = strdup( lengthstr );
+  }
+  
   if ( type != -1 )
   {
     fQualitativeChange = 1;

@@ -15,6 +15,7 @@ trie *new_lyphnode_id(lyphnode *n);
 lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
 int lyph_passes_filter( lyph *e, lyph_filter *f );
+void load_lyphplate_length( char *subj_full, char *length_str );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -1351,6 +1352,8 @@ void got_lyphplate_triple( char *subj, char *pred, char *obj )
     load_lyphplate_label( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#lyph_type" ) )
     load_lyphplate_type( s, o );
+  else if ( !strcmp( p, "http://open-physiology.org/lyph#has_length" ) )
+    load_lyphplate_length( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#misc_materials" ) )
     load_misc_materials( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#ont_term" ) )
@@ -1407,6 +1410,23 @@ void load_misc_materials( char *subj_full, char *misc_materials_str )
   L->misc_material = (lyphplate **) strdup( misc_materials_str );
 }
 
+void load_lyphplate_length( char *subj_full, char *length_str )
+{
+  lyphplate *L;
+  char *subj = get_url_shortform( subj_full );
+  trie *iri = trie_search( subj, lyphplate_ids );
+  
+  if ( !iri || !iri->data )
+    return;
+    
+  L = (lyphplate*)iri->data;
+  
+  if ( L->length )
+    free( L->length );
+    
+  L->length = strdup( length_str );
+}
+
 void load_lyphplate_type( char *subj_full, char *type_str )
 {
   char *subj = get_url_shortform( subj_full );
@@ -1439,6 +1459,7 @@ void load_lyphplate_label( char *subj_full, char *label )
     {
       CREATE( L, lyphplate, 1 );
       L->id = iri;
+      L->length = strdup("unspecified");
       L->type = LYPHPLATE_MISSING;
       L->misc_material = NULL;
       L->layers = NULL;
@@ -1523,6 +1544,7 @@ lyphplate *create_or_find_lyphplate( char *id )
   CREATE( L, lyphplate, 1 );
 
   L->id = trie_strdup( id, lyphplate_ids );
+  L->length = strdup("unspecified");
   L->id->data = (void *)L;
   L->type = LYPHPLATE_MISSING;
   L->misc_material = NULL;
@@ -1752,6 +1774,9 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
       fprintf( fp, "\" .\n" );
     }
 
+    if ( L->length && strcmp( L->length, "unspecified" ) )
+      fprintf( fp, "%s <http://open-physiology.org/lyph#has_length> \"%s\" .\n", id, L->length );
+        
     fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyphplate_type_as_char( L ) );
 
     if ( L->ont_term )
@@ -1826,7 +1851,7 @@ char *id_as_iri( trie *id, char *prefix )
     return strdupf( "<http://open-physiology.org/lyphs/#%s>", trie_to_static(id) );
 }
 
-lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name )
+lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name, char *length )
 {
   lyphplate *L;
 
@@ -1837,6 +1862,7 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
   L->name = trie_strdup( name, lyphplate_names );
   L->id = assign_new_lyphplate_id( L );
   L->type = type;
+  L->length = length;
   L->layers = copy_layers( layers );
   L->ont_term = NULL;
   L->supers = NULL;
@@ -1994,6 +2020,7 @@ lyphplate *lyphplate_by_id( const char *id )
     CREATE( L, lyphplate, 1 );
 
     L->type = LYPHPLATE_BASIC;
+    L->length = strdup( "unspecified" );
     L->id = assign_new_lyphplate_id( L );
 
     if ( !strcmp( trieloc, "terms" ) )
@@ -2151,7 +2178,8 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
     "ont_term": L->ont_term ? trie_to_json( L->ont_term ) : NULL,
     "layers": JS_ARRAY( layer_to_json, L->layers ),
     "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material ),
-    "common_materials": common_mats
+    "common_materials": common_mats,
+    "length": str_to_json( L->length )
   );
 }
 

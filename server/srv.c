@@ -1605,7 +1605,7 @@ HANDLER( do_maketemplate )
   lyphplate *L, **misc_mats;
   static layer **lyrs;
   layer **lptr;
-  char *name, *typestr, *miscstr;
+  char *name, *typestr, *miscstr, *lengthstr, *length;
   int type, lcnt;
 
   if ( !lyrs )
@@ -1674,7 +1674,14 @@ HANDLER( do_maketemplate )
   else
     misc_mats = NULL;
 
-  L = lyphplate_by_layers( type, lyrs, misc_mats, name );
+  lengthstr = get_param( params, "length" );
+  
+  if ( lengthstr )
+    length = strdup( lengthstr );
+  else
+    length = NULL;
+    
+  L = lyphplate_by_layers( type, lyrs, misc_mats, name, get_param( params, "length" ) );
 
   if ( !L )
   {

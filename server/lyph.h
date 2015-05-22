@@ -119,6 +119,7 @@ struct LYPHPLATE
   trie *ont_term;
   trie *name;
   trie *id;
+  char *length;
   int type;
   int flags;
 };
@@ -472,7 +473,7 @@ lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( const char *id );
 lyph *lyph_by_template_or_id( char *id, char *species );
 trie *assign_new_layer_id( layer *lyr );
-lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name );
+lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name, char *length );
 int same_layers( layer **x, layer **y );
 layer **copy_layers( layer **src );
 void sort_layers( layer **layers );
