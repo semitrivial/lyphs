@@ -2006,7 +2006,7 @@ lyphplate *lyphplate_by_id( const char *id )
 
   if ( t && t->data )
   {
-    lyphplate *L;
+    lyphplate *L, *L2;
     trie *label;
 
     if ( !strcmp( trieloc, "terms" ) )
@@ -2020,8 +2020,6 @@ lyphplate *lyphplate_by_id( const char *id )
     CREATE( L, lyphplate, 1 );
 
     L->type = LYPHPLATE_BASIC;
-    L->length = strdup( "unspecified" );
-    L->id = assign_new_lyphplate_id( L );
 
     if ( !strcmp( trieloc, "terms" ) )
     {
@@ -2030,12 +2028,22 @@ lyphplate *lyphplate_by_id( const char *id )
     }
     else
     {
-      L->ont_term = trie_strdup( trie_to_static( *t->data ), superclasses );
+      L->ont_term = trie_strdup( get_url_shortform(trie_to_static( *t->data )), superclasses );
+      
       if ( !strcmp( trieloc, "labels" ) )
         L->name = trie_strdup( trie_to_static(t), lyphplate_names );
       else
         L->name = trie_strdup( trie_to_static(t->data[0]->data[0]), lyphplate_names );
     }
+    
+    if ( (L2 = lyphplate_by_ont_term( L->ont_term )) != NULL )
+    {
+      free( L );
+      return L2;
+    }
+    
+    L->length = strdup( "unspecified" );
+    L->id = assign_new_lyphplate_id( L );
     L->layers = NULL;
     L->supers = NULL;
     L->misc_material = (lyphplate**)blank_void_array();
