@@ -16,6 +16,7 @@ void init_command_table(void)
   add_handler( "all_radiological_indices", do_radiological_indices, CMD_READONLY );
   add_handler( "all_bulk_annots", do_all_bulk_annots, CMD_READONLY );
   add_handler( "clinical_index", do_clinical_index, CMD_READONLY );
+  add_handler( "clone", do_clone, CMD_READWRITE );
   add_handler( "pubmed", do_pubmed, CMD_READONLY );
   add_handler( "template_hierarchy", do_template_hierarchy, CMD_READONLY );
   add_handler( "assign_template", do_assign_template, CMD_READWRITE );

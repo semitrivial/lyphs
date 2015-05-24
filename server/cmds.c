@@ -1,6 +1,72 @@
 #include "lyph.h"
 #include "srv.h"
 
+HANDLER( do_clone )
+{
+  char *templatestr, *lyphstr, *layerstr;
+  int matches=0;
+  
+  if ( (templatestr = get_param(params,"template")) != NULL )
+    matches++;
+    
+  if ( (lyphstr = get_param(params,"lyph")) != NULL )
+    matches++;
+    
+  if ( (layerstr = get_param(params,"layer")) != NULL )
+    matches++;
+    
+  if ( matches < 1 )
+    HND_ERR( "What do you want to clone?  Specify a 'lyph', 'template', or 'layer'." );
+  
+  if ( matches > 1 )
+    HND_ERR( "Please limit the clone command to one thing ('lyph', 'template', or 'layer') at a time" );
+    
+  if ( templatestr )
+  {
+    lyphplate *L = lyphplate_by_id( templatestr );
+    
+    if ( !L )
+      HND_ERR( "The indicated template was not recognized" );
+      
+    L = clone_template( L );
+    
+    save_lyphplates();
+    
+    send_response( req, lyphplate_to_json( L ) );
+    
+    return;
+  }
+  
+  if ( layerstr )
+  {
+    layer *lyr = layer_by_id( layerstr );
+    
+    if ( !lyr )
+      HND_ERR( "The indicated layer was not recognized" );
+    
+    lyr = clone_layer( lyr );
+    
+    save_lyphplates( );
+    
+    send_response( req, layer_to_json( lyr ) );
+    
+    return;
+  }
+  
+  if ( lyphstr )
+  {
+    lyph *e = lyph_by_id( lyphstr );
+    
+    if ( !e )
+      HND_ERR( "The indicated lyph was not recognized" );
+      
+    e = clone_lyph( e );
+    save_lyphs();
+    send_response( req, lyph_to_json( e ) );
+    return;
+  }
+}
+
 HANDLER( do_editlyphnode )
 {
   lyphnode *n;

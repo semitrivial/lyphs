@@ -2976,6 +2976,62 @@ lyphnode *blank_lyphnode( void )
   return n;
 }
 
+lyph *clone_lyph( lyph *e )
+{
+  lyph *d;
+  
+  CREATE( d, lyph, 1 );
+  d->id = new_lyph_id(d);
+  d->name = e->name;
+  d->species = e->species;
+  d->type = e->type;
+  d->flags = e->flags;
+  d->from = e->from;
+  d->to = e->to;
+  d->lyphplt = e->lyphplt;
+  d->constraints = e->constraints ? (lyphplate**)COPY_VOID_ARRAY(e->constraints) : NULL;
+  d->annots = (lyph_annot**)blank_void_array();  
+  d->fma = e->fma;
+  
+  return d;
+}
+
+lyphplate *clone_template( lyphplate *L )
+{
+  lyphplate *M;
+  layer **buf, **bptr, **oldptr;
+  
+  CREATE( M, lyphplate, 1 );
+  
+  M->misc_material = L->misc_material ? (lyphplate**)COPY_VOID_ARRAY( L->misc_material ) : NULL;
+  M->supers = L->supers ? (lyphplate**)COPY_VOID_ARRAY( L->supers ) : NULL;
+  M->subs = L->subs ? (lyphplate**)COPY_VOID_ARRAY( L->subs ) : NULL;
+
+  if ( L->layers )
+  {  
+    CREATE( buf, layer *, VOIDLEN( L->layers ) + 1 );
+    bptr = buf;
+  
+    for ( oldptr = L->layers; *oldptr; oldptr++ )
+      *bptr++ = clone_layer( *oldptr );
+    
+    *bptr = NULL;
+    M->layers = buf;
+  }
+  else
+    M->layers = NULL;
+  
+  M->ont_term = L->ont_term;
+  M->name = L->name;
+  M->id = assign_new_lyphplate_id( M );
+  
+  M->length = L->length ? strdup( L->length ) : NULL;
+  M->type = L->type;
+  M->flags = L->flags;
+  
+  return M;    
+}
+
 layer *clone_layer( layer *lyr )
 {
   layer *dest;

@@ -304,3 +304,4 @@ HANDLER( do_layer_to_template );
 HANDLER( do_parse_csv );
 HANDLER( do_lyphs_located_in_term );
 HANDLER( do_is_built_from_template );
+HANDLER( do_clone );
