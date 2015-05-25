@@ -3029,7 +3029,7 @@ lyphplate *clone_template( lyphplate *L )
   
   M->ont_term = L->ont_term;
   
-  name = strdupf( "Clone of %s\n", trie_to_static( L->id ) );
+  name = strdupf( "Clone of %s", trie_to_static( L->id ) );
   M->name = trie_strdup( name, lyphplate_names );
   free( name );
   
