@@ -2979,10 +2979,15 @@ lyphnode *blank_lyphnode( void )
 lyph *clone_lyph( lyph *e )
 {
   lyph *d;
+  char *name;
   
   CREATE( d, lyph, 1 );
   d->id = new_lyph_id(d);
-  d->name = e->name;
+  
+  name = strdupf( "Clone of %s", trie_to_static( e->id ) );
+  d->name = trie_strdup( name, lyph_names );
+  free( name );
+  
   d->species = e->species;
   d->type = e->type;
   d->flags = e->flags;
@@ -3000,6 +3005,7 @@ lyphplate *clone_template( lyphplate *L )
 {
   lyphplate *M;
   layer **buf, **bptr, **oldptr;
+  char *name;
   
   CREATE( M, lyphplate, 1 );
   
@@ -3022,7 +3028,11 @@ lyphplate *clone_template( lyphplate *L )
     M->layers = NULL;
   
   M->ont_term = L->ont_term;
-  M->name = L->name;
+  
+  name = strdupf( "Clone of %s\n", trie_to_static( L->id ) );
+  M->name = trie_strdup( name, lyphplate_names );
+  free( name );
+  
   M->id = assign_new_lyphplate_id( M );
   
   M->length = L->length ? strdup( L->length ) : NULL;
