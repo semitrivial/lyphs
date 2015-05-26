@@ -1067,9 +1067,97 @@ void delete_doomed_lyphplates( trie *t )
   TRIE_RECURSE( delete_doomed_lyphplates( *child ) );
 }
 
+int doomed_lyphplates_already_in_use_by_lyph( char **where, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+    
+    if ( e->lyphplt && e->lyphplt->flags == LYPHPLATE_BEING_DELETED )
+    {
+      *where = strdupf( "Lyph %s", trie_to_static( e->id ) );
+      return 1;
+    }
+  }
+  
+  TRIE_RECURSE
+  (
+    if ( doomed_lyphplates_already_in_use_by_lyph( where, *child ) )
+      return 1;
+  );
+  
+  return 0;
+}
+
+int doomed_lyphplates_already_in_use_by_lyphplate( char **where, trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate*)t->data;
+    
+    if ( L->flags != LYPHPLATE_BEING_DELETED && L->misc_material )
+    {
+      lyphplate **mats;
+      
+      for ( mats = L->misc_material; *mats; mats++ )
+        if ( (*mats)->flags == LYPHPLATE_BEING_DELETED )
+        {
+          *where = strdupf( "Template %s", trie_to_static( L->id ) );
+          return 1;
+        }
+    }
+  }
+  
+  TRIE_RECURSE
+  (
+    if ( doomed_lyphplates_already_in_use_by_lyphplate( where, *child ) )
+      return 1;
+  );
+  
+  return 0;
+}
+
+int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t )
+{
+  if ( t->data )
+  {
+    layer *lyr = (layer*)t->data;
+    lyphplate **mats;
+    
+    for ( mats = lyr->material; *mats; mats++ )
+      if ( (*mats)->flags == LYPHPLATE_BEING_DELETED )
+      {
+        *where = strdupf( "Layer %s", trie_to_static( lyr->id ) );
+        return 1;
+      }
+  }
+  
+  TRIE_RECURSE
+  (
+    if ( doomed_lyphplates_already_in_use_by_layer( where, *child ) )
+      return 1;
+  );
+  
+  return 0;
+}
+
+int doomed_lyphplates_already_in_use( char **where )
+{
+  if ( doomed_lyphplates_already_in_use_by_lyph( where, lyph_ids ) )
+    return 1;
+    
+  if ( doomed_lyphplates_already_in_use_by_lyphplate( where, lyphplate_ids ) )
+    return 1;
+    
+  if ( doomed_lyphplates_already_in_use_by_layer( where, layer_ids ) )
+    return 1;
+    
+  return 0;
+}
+
 HANDLER( do_delete_templates )
 {
-  char *tmpltstr, *err;
+  char *tmpltstr, *recursivestr, *err;
   lyphplate **L, **Lptr, dupe;
 
   TRY_TWO_PARAMS( tmpltstr, "templates", "template", "You did not indicate which templates to delete." );
@@ -1094,16 +1182,29 @@ HANDLER( do_delete_templates )
 
   free( L );
 
-  /*
-   * Any lyphplate/layer which refers to a doomed lyphplate/layer should also be doomed
-   */
-  while ( spread_lyphplate_doom( lyphplate_ids ) )
-    ;
+  recursivestr = get_param( params, "recursive" );
+  
+  if ( recursivestr && !strcmp( recursivestr, "yes" ) )
+  {
+    /*
+     * Any lyphplate/layer which refers to a doomed lyphplate/layer should also be doomed
+     */
+    while ( spread_lyphplate_doom( lyphplate_ids ) )
+      ;
 
-  if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
-    save_lyphs();
+    if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
+      save_lyphs();
 
-  delete_doomed_layers( layer_ids );
+    delete_doomed_layers( layer_ids );
+  }
+  else if ( doomed_lyphplates_already_in_use(&err) )
+  {
+    lyphplates_unset_bits( LYPHPLATE_BEING_DELETED, lyphplate_ids );
+    HND_ERRF_NORETURN( "One of the indicated lyphplates is already in use (in %s)", err );
+    free( err );
+    return;
+  }
+  
   delete_doomed_lyphplates( lyphplate_ids );
 
   save_lyphplates();
