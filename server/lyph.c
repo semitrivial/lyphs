@@ -2290,10 +2290,20 @@ char *lyph_to_json( lyph *e )
   return lyph_to_json_r( e, &details );
 }
 
+char *lyph_child_to_json( lyph *child )
+{
+  return JSON
+  (
+    "type": "located-in",
+    "child": JSON1( "id": trie_to_json( child->id ) )
+  );
+}
+
 char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
 {
   char *retval, *annots, *house;
   int old_LTJ_flags = lyphnode_to_json_flags;
+  lyph **children;
   lyphnode_to_json_flags = 0;
 
   if ( details )
@@ -2307,6 +2317,8 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     house = js_suppress;
   }
 
+  children = get_children( e );
+
   retval = JSON
   (
     "id": trie_to_json( e->id ),
@@ -2319,8 +2331,11 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "annots": annots,
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
     "house": house,
-    "species": e->species ? trie_to_json( e->species ) : js_suppress
+    "species": e->species ? trie_to_json( e->species ) : js_suppress,
+    "children": JS_ARRAY( lyph_child_to_json, children )
   );
+
+  free( children );
 
   lyphnode_to_json_flags = old_LTJ_flags;
   return retval;
@@ -3216,4 +3231,41 @@ void save_layer_names(void)
 
   fprintf( fp, "\n" );
   fclose( fp );
+}
+
+void get_children_recurse( lyph *e, trie *t, lyph ***bptr )
+{
+  if ( t->data )
+  {
+    lyph *child = (lyph*)t->data, *test;
+    lyph *buf[3];
+
+    if ( child != e )
+    {
+      buf[0] = e;
+      buf[1] = child;
+      buf[2] = NULL;
+      test = get_relative_lyph_loc_buf( child, buf );
+      if ( test == e )
+      {
+        **bptr = child;
+        (*bptr)++;
+      }
+    }
+  }
+
+  TRIE_RECURSE( get_children_recurse( e, *child, bptr ) );
+}
+
+lyph **get_children( lyph *e )
+{
+  lyph **buf, **bptr;
+
+  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) + 1 );
+  bptr = buf;
+
+  get_children_recurse( e, lyph_ids, &bptr );
+
+  *bptr = NULL;
+  return buf;
 }

@@ -458,6 +458,7 @@ char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible
 /*
  * lyph.c
  */
+lyph **get_children( lyph *e );
 lyph *clone_lyph( lyph *e );
 lyphplate *clone_template( lyphplate *L );
 lyphplate *lyphplate_by_name( char *name );
