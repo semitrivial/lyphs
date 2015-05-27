@@ -1721,16 +1721,27 @@ HANDLER( do_template )
 
 HANDLER( do_lyph )
 {
-  lyph *e = lyph_by_id( request );
+  lyph **e;
   lyph_to_json_details details;
+  char *err;
+
+  e = (lyph**) PARSE_LIST(request, lyph_by_id, "lyph", &err);
 
   if ( !e )
-    HND_ERR( "No lyph by that id" );
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs was unrecognized" );
+  }
 
   details.show_annots = has_param( params, "annots" );
   details.buf = NULL;
 
-  send_response( req, lyph_to_json_r( e, &details ) );
+  if ( *e && !e[1] && !has_param( params, "array" ) )
+    send_response( req, lyph_to_json_r( *e, &details ) );
+  else
+    send_response( req, JS_ARRAY_R( lyph_to_json_r, e, &details ) );
 }
 
 HANDLER( do_lyphnode )
