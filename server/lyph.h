@@ -40,6 +40,7 @@ typedef struct AMBIG ambig;
 typedef struct LYPHPLATE lyphplate;
 typedef struct LYPHPLATE_TO_JSON_DETAILS lyphplate_to_json_details;
 typedef struct LAYER layer;
+typedef struct LAYER_WRAPPER layer_wrapper;
 typedef struct LAYER_LOADING layer_loading;
 typedef struct LOAD_LAYERS_DATA load_layers_data;
 typedef struct LYPHNODE lyphnode;
@@ -155,6 +156,12 @@ struct LAYER
   trie *id;
   char *name;
   int thickness;
+};
+
+struct LAYER_WRAPPER
+{
+  layer_wrapper *next;
+  layer *lyr;
 };
 
 struct LYPHNODE

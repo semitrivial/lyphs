@@ -1117,7 +1117,32 @@ int doomed_lyphplates_already_in_use_by_lyphplate( char **where, trie *t )
   return 0;
 }
 
-int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t )
+int layer_used_by_non_doomed_lyphplate( layer *lyr, trie *t )
+{
+  if ( t->data )
+  {
+    lyphplate *L = (lyphplate*)t->data;
+
+    if ( L->flags != LYPHPLATE_BEING_DELETED && L->layers )
+    {
+      layer **lyrs;
+
+      for ( lyrs = L->layers; *lyrs; lyrs++ )
+        if ( *lyrs == lyr )
+          return 1;
+    }
+  }
+
+  TRIE_RECURSE
+  (
+    if ( layer_used_by_non_doomed_lyphplate( lyr, *child ) )
+      return 1;
+  );
+
+  return 0;
+}
+
+int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t, layer_wrapper **head, layer_wrapper **tail )
 {
   if ( t->data )
   {
@@ -1127,6 +1152,17 @@ int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t )
     for ( mats = lyr->material; *mats; mats++ )
       if ( (*mats)->flags == LYPHPLATE_BEING_DELETED )
       {
+        if ( !layer_used_by_non_doomed_lyphplate( lyr, lyphplate_ids ) )
+        {
+          layer_wrapper *w;
+
+          CREATE( w, layer_wrapper, 1 );
+          w->lyr = lyr;
+          LINK( w, *head, *tail, next );
+
+          continue;
+        }
+
         *where = strdupf( "Layer %s", trie_to_static( lyr->id ) );
         return 1;
       }
@@ -1134,14 +1170,14 @@ int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t )
   
   TRIE_RECURSE
   (
-    if ( doomed_lyphplates_already_in_use_by_layer( where, *child ) )
+    if ( doomed_lyphplates_already_in_use_by_layer( where, *child, head, tail ) )
       return 1;
   );
   
   return 0;
 }
 
-int doomed_lyphplates_already_in_use( char **where )
+int doomed_lyphplates_already_in_use( char **where, layer_wrapper **head, layer_wrapper **tail )
 {
   if ( doomed_lyphplates_already_in_use_by_lyph( where, lyph_ids ) )
     return 1;
@@ -1149,7 +1185,7 @@ int doomed_lyphplates_already_in_use( char **where )
   if ( doomed_lyphplates_already_in_use_by_lyphplate( where, lyphplate_ids ) )
     return 1;
     
-  if ( doomed_lyphplates_already_in_use_by_layer( where, layer_ids ) )
+  if ( doomed_lyphplates_already_in_use_by_layer( where, layer_ids, head, tail ) )
     return 1;
     
   return 0;
@@ -1183,7 +1219,7 @@ HANDLER( do_delete_templates )
   free( L );
 
   recursivestr = get_param( params, "recursive" );
-  
+
   if ( recursivestr && !strcmp( recursivestr, "yes" ) )
   {
     /*
@@ -1197,14 +1233,34 @@ HANDLER( do_delete_templates )
 
     delete_doomed_layers( layer_ids );
   }
-  else if ( doomed_lyphplates_already_in_use(&err) )
+  else
   {
-    lyphplates_unset_bits( LYPHPLATE_BEING_DELETED, lyphplate_ids );
-    HND_ERRF_NORETURN( "One of the indicated lyphplates is already in use (in %s)", err );
-    free( err );
-    return;
+    layer_wrapper *layers_head = NULL, *layers_tail = NULL, *w, *w_next;
+    int already_used = doomed_lyphplates_already_in_use(&err, &layers_head, &layers_tail);
+
+    for ( w = layers_head; w; w = w_next )
+    {
+      w_next = w->next;
+
+      /*
+       * Small intentional memory leak here because fixing it would be completely
+       * un-worth (in terms of added complexity to maintain) the rare uses of this command
+       */
+      if ( !already_used )
+        w->lyr->id->data = NULL;
+
+      free( w );
+    }
+
+    if ( already_used )
+    {
+      lyphplates_unset_bits( LYPHPLATE_BEING_DELETED, lyphplate_ids );
+      HND_ERRF_NORETURN( "One of the indicated lyphplates is already in use (in %s)", err );
+      free( err );
+      return;
+    }
   }
-  
+
   delete_doomed_lyphplates( lyphplate_ids );
 
   save_lyphplates();
