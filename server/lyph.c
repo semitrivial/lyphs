@@ -3353,13 +3353,9 @@ char *nodepath_to_json( nodepath *np )
 
   retval = JSON
   (
-    "start": trie_to_json( np->start->id ),
-    "pathdata": JSON
-    (
-      "type": "vascular",
-      "subtype": "arterial",
-      "path": JS_ARRAY( trie_to_json, nodepath_ids )
-    )
+    "type": "vascular",
+    "subtype": "arterial",
+    "path": JS_ARRAY( trie_to_json, nodepath_ids )
   );
 
   free( nodepath_ids );
