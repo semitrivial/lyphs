@@ -512,8 +512,8 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
 {
   calc_nodes_in_lyph_recurse( L, head, tail, lyphnode_ids );
 
-  lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH, lyph_ids );
-  lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH, lyphnode_ids );
+  lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH | LYPHNODE_CURRENTLY_CALCULATING, lyph_ids );
+  lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH | LYPHNODE_CURRENTLY_CALCULATING, lyphnode_ids );
 }
 
 void populate_with_basic_lyphplates_subclass_of( trie **supers, lyphplate ***bptr, trie *t )

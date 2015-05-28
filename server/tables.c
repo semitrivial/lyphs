@@ -40,6 +40,7 @@ void init_command_table(void)
   add_handler( "material_from_layer", do_material_from_layer, CMD_READWRITE );
   add_handler( "change_coords", do_change_coords, CMD_READWRITE );
   add_handler( "lyphpath", do_lyphpath, CMD_READONLY );
+  add_handler( "connections", do_connections, CMD_READONLY );
   add_handler( "reset_db", do_reset_db, CMD_READWRITE );
   add_handler( "uclsyntax", do_ucl_syntax, CMD_READONLY );
   add_handler( "ucl_syntax", do_ucl_syntax, CMD_READONLY );

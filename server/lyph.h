@@ -61,6 +61,7 @@ typedef struct LYPH_ANNOT_WRAPPER lyph_annot_wrapper;
 typedef struct BULK_ANNOT bulk_annot;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
+typedef struct NODEPATH nodepath;
 typedef struct SYSTEM_CONFIGS system_configs;
 
 /*
@@ -278,6 +279,13 @@ struct PUBMED
   pubmed *next;
   char *id;
   char *title;
+};
+
+struct NODEPATH
+{
+  lyph *start;
+  lyph *end;
+  lyphnode **steps;
 };
 
 struct EXIT_DATA
@@ -518,7 +526,7 @@ void add_to_exits( lyph *e, lyphnode *to, exit_data ***victim );
 void remove_from_exits( lyph *e, exit_data ***victim );
 void change_source_of_exit( lyph *via, lyphnode *new_src, exit_data **exits );
 void change_dest_of_exit( lyph *via, lyphnode *new_dest, exit_data **exits );
-lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths );
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses );
 void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );

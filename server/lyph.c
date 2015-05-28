@@ -365,6 +365,25 @@ lyph *get_relative_lyph_loc_buf( lyph *e, lyph **buf )
   return house;
 }
 
+lyph *get_relative_lyphnode_loc_buf( lyphnode *n, lyph **buf )
+{
+  lyph *e, **bptr;
+
+  if ( !n )
+    return NULL;
+
+  e = n->location;
+
+  if ( !e )
+    return NULL;
+
+  for ( bptr = buf; *bptr; bptr++ )
+    if ( *bptr == e )
+      return e;
+
+  return get_relative_lyph_loc_buf( e, buf );
+}
+
 lyph *get_relative_lyph_loc_v( lyph *e, lyphview *v )
 {
   lv_rect **rects;
@@ -2431,7 +2450,7 @@ int parse_lyphplate_type( char *str )
   return -1;
 }
 
-lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths )
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses )
 {
   lyphstep *head = NULL, *tail = NULL, *step, *curr;
   lyphnode_wrapper *w;
@@ -2441,6 +2460,7 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
   CREATE( paths, lyph **, numpaths + 1 );
   pathsptr = paths;
 
+  /*
   if ( from_head == to_head )
   {
     compute_lyphpath_trivial_path:
@@ -2451,12 +2471,14 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
 
     return paths;
   }
+  */
 
   for ( w = to_head; w; w = w->next )
     SET_BIT( w->n->flags, LYPHNODE_GOAL );
 
   for ( w = from_head; w; w = w->next )
   {
+    /*
     if ( IS_SET( w->n->flags, LYPHNODE_GOAL ) )
     {
       for ( w = to_head; w; w = w->next )
@@ -2465,13 +2487,16 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
 
       goto compute_lyphpath_trivial_path;
     }
+    */
 
     CREATE( step, lyphstep, 1 );
     step->depth = 0;
     step->backtrace = NULL;
     step->location = w->n;
     step->lyph = NULL;
-    SET_BIT( w->n->flags, LYPHNODE_SEEN );
+
+    if ( !dont_see_initials )
+      SET_BIT( w->n->flags, LYPHNODE_SEEN );
 
     LINK2( step, head, tail, next, prev );
   }
@@ -2493,7 +2518,7 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
       return paths;
     }
 
-    if ( IS_SET( curr->location->flags, LYPHNODE_GOAL ) )
+    if ( IS_SET( curr->location->flags, LYPHNODE_GOAL ) && curr->depth )
     {
       lyph **pptr;
       lyphstep *back;
@@ -2521,10 +2546,12 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
     /*
      * First traverse curr->location->exits, then traverse curr->location->incoming
      */
-    reversed = 0;
+    reversed = !include_reverses;
 
     for ( x = curr->location->exits; *x || (!reversed++ && (x=curr->location->incoming)); x++ )
     {
+      if ( !*x )
+        break;
       if ( IS_SET( (*x)->to->flags, LYPHNODE_SEEN ) )
         continue;
 
@@ -3268,4 +3295,174 @@ lyph **get_children( lyph *e )
 
   *bptr = NULL;
   return buf;
+}
+
+nodepath *lyphpath_to_nodepath( lyph **lyphpath, lyph **e )
+{
+  nodepath *np;
+  lyphnode **stepsptr;
+
+  CREATE( np, nodepath, 1 );
+
+  np->start = get_relative_lyphnode_loc_buf( (*lyphpath)->from, e );
+
+  CREATE( np->steps, lyphnode *, VOIDLEN( lyphpath ) + 1 );
+  stepsptr = np->steps;
+
+  for ( ; ; )
+  {
+    if ( lyphpath[1] )
+    {
+      *stepsptr++ = (*lyphpath)->to;
+      lyphpath++;
+    }
+    else
+    {
+      np->end = get_relative_lyphnode_loc_buf( (*lyphpath)->to, e );
+      break;
+    }
+  }
+
+  *stepsptr = NULL;
+
+  return np;
+}
+
+trie **get_nodepath_ids( nodepath *np )
+{
+  lyphnode **n;
+  trie **buf, **bptr;
+
+  CREATE( buf, trie *, VOIDLEN( np->steps ) + 3 );
+  buf[0] = np->start->id;
+  bptr = &buf[1];
+
+  for ( n = np->steps; *n; n++ )
+    *bptr++ = (*n)->id;
+
+  *bptr++ = np->end->id;
+  *bptr = NULL;
+
+  return buf;
+}
+
+char *nodepath_to_json( nodepath *np )
+{
+  trie **nodepath_ids = get_nodepath_ids( np );
+  char *retval;
+
+  retval = JSON
+  (
+    "start": trie_to_json( np->start->id ),
+    "pathdata": JSON
+    (
+      "type": "vascular",
+      "subtype": "arterial",
+      "path": JS_ARRAY( trie_to_json, nodepath_ids )
+    )
+  );
+
+  free( nodepath_ids );
+
+  return retval;
+}
+
+char *nodepathset_to_json( nodepath **nodepaths )
+{
+  return JSON1
+  (
+    "vascular": JS_ARRAY( nodepath_to_json, nodepaths )
+  );
+}
+
+HANDLER( do_connections )
+{
+  lyph **e, **eptr, ***paths, ***paths_ptr;
+  lyphnode_wrapper *from_head = NULL, *to_head = NULL, *from_tail = NULL, *to_tail = NULL, *w, *w_next;
+  nodepath **nodepaths, **nodepaths_ptr;
+  char *lyphsstr, *err;
+  int argc;
+
+  TRY_TWO_PARAMS( lyphsstr, "lyph", "lyphs", "You did not specify which lyphs to find connections among" );
+
+  e = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+
+  if ( !e )
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated lyphs was unrecognized" );
+  }
+
+  for ( eptr = e; *eptr; eptr++ )
+    calc_nodes_in_lyph( *eptr, &from_head, &from_tail );
+
+  for ( w = from_head; w; w = w_next )
+  {
+    lyphnode_wrapper *w_copy;
+    w_next = w->next;
+
+    if ( !IS_SET( w->n->flags, 1 ) )
+    {
+      SET_BIT( w->n->flags, 1 );
+      CREATE( w_copy, lyphnode_wrapper, 1 );
+      w_copy->n = w->n;
+      LINK( w_copy, to_head, to_tail, next );
+    }
+    free( w );
+  }
+
+  from_head = NULL;
+  from_tail = NULL;
+
+  for ( w = to_head; w; w = w->next )
+  {
+    lyphnode_wrapper *w_copy;
+
+    w->n->flags = 0;
+    CREATE( w_copy, lyphnode_wrapper, 1 );
+    w_copy->n = w->n;
+
+    LINK( w_copy, from_head, from_tail, next );
+  }
+
+  argc = VOIDLEN( e );
+
+  CREATE( nodepaths, nodepath *, argc + 1 );
+  nodepaths_ptr = nodepaths;
+
+  paths = compute_lyphpaths( from_head, to_head, NULL, argc * 128, 1, 0 );
+
+  for ( w = from_head; w; w = w_next )
+  {
+    w_next = w->next;
+    free( w );
+  }
+
+  for ( w = to_head; w; w = w_next )
+  {
+    w_next = w->next;
+    free( w );
+  }
+
+  for ( paths_ptr = paths; *paths_ptr; paths_ptr++ )
+  {
+    *nodepaths_ptr++ = lyphpath_to_nodepath( *paths_ptr, e );
+    free( *paths_ptr );
+  }
+
+  *nodepaths_ptr = NULL;
+  free( paths );
+
+  send_response( req, nodepathset_to_json( nodepaths ) );
+
+  for ( nodepaths_ptr = nodepaths; *nodepaths_ptr; nodepaths_ptr++ )
+  {
+    free( (*nodepaths_ptr)->steps );
+    free( *nodepaths_ptr );
+  }
+
+  free( nodepaths );
+  free( e );
 }
