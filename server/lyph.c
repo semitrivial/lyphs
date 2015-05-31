@@ -3306,16 +3306,16 @@ nodepath *lyphpath_to_nodepath( lyph **lyphpath, lyph **e )
 
   np->start = get_relative_lyphnode_loc_buf( (*lyphpath)->from, e );
 
-  CREATE( np->steps, lyphnode *, VOIDLEN( lyphpath ) + 1 );
-  stepsptr = np->steps;
+  CREATE( np->steps, lyphnode *, VOIDLEN( lyphpath ) + 3 );
+  np->steps[0] = lyphpath[0]->from;
+  stepsptr = &np->steps[1];
 
   for ( ; ; )
   {
+    *stepsptr++ = (*lyphpath)->to;
+
     if ( lyphpath[1] )
-    {
-      *stepsptr++ = (*lyphpath)->to;
       lyphpath++;
-    }
     else
     {
       np->end = get_relative_lyphnode_loc_buf( (*lyphpath)->to, e );
@@ -3333,14 +3333,12 @@ trie **get_nodepath_ids( nodepath *np )
   lyphnode **n;
   trie **buf, **bptr;
 
-  CREATE( buf, trie *, VOIDLEN( np->steps ) + 3 );
-  buf[0] = np->start->id;
-  bptr = &buf[1];
+  CREATE( buf, trie *, VOIDLEN( np->steps ) + 1 );
+  bptr = buf;
 
   for ( n = np->steps; *n; n++ )
     *bptr++ = (*n)->id;
 
-  *bptr++ = np->end->id;
   *bptr = NULL;
 
   return buf;
@@ -3355,7 +3353,9 @@ char *nodepath_to_json( nodepath *np )
   (
     "type": "vascular",
     "subtype": "arterial",
-    "path": JS_ARRAY( trie_to_json, nodepath_ids )
+    "path": JS_ARRAY( trie_to_json, nodepath_ids ),
+    "startlyph": trie_to_json( np->start->id ),
+    "endlyph": trie_to_json( np->end->id )
   );
 
   free( nodepath_ids );
