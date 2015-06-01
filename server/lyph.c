@@ -3339,15 +3339,15 @@ char *nodepathset_to_json( nodepath **nodepaths )
 
 HANDLER( do_connections )
 {
-  lyph **e, **eptr, ***paths, ***paths_ptr;
-  lyphnode_wrapper *from_head = NULL, *to_head = NULL, *from_tail = NULL, *to_tail = NULL, *w, *w_next;
-  nodepath **nodepaths, **nodepaths_ptr;
+  lyph **e, **eptr1, **eptr2;
+  lyph ****pathsets, ****pathsetsptr, ***dpathsetsptr;
+  nodepath **nodepaths, **nodepathsptr;
   char *lyphsstr, *err;
-  int argc;
+  int nlyphs, npaths = 0;
 
   TRY_TWO_PARAMS( lyphsstr, "lyph", "lyphs", "You did not specify which lyphs to find connections among" );
 
-  e = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+  e = (lyph **)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
 
   if ( !e )
   {
@@ -3357,74 +3357,69 @@ HANDLER( do_connections )
       HND_ERR( "One of the indicated lyphs was unrecognized" );
   }
 
-  for ( eptr = e; *eptr; eptr++ )
-    calc_nodes_in_lyph( *eptr, &from_head, &from_tail );
+  nlyphs = VOIDLEN( e );
 
-  for ( w = from_head; w; w = w_next )
+  if ( nlyphs > 100 )
   {
-    lyphnode_wrapper *w_copy;
-    w_next = w->next;
+    free( e );
+    HND_ERR( "The connections command is limited to 100 lyphs." );
+  }
 
-    if ( !IS_SET( w->n->flags, 1 ) )
+  CREATE( pathsets, lyph ***, nlyphs*nlyphs + 1 );
+  pathsetsptr = pathsets;
+
+  for ( eptr1 = e; *eptr1; eptr1++ )
+  for ( eptr2 = e; *eptr2; eptr2++ )
+  {
+    lyphnode_wrapper *from_head = NULL, *from_tail = NULL, *to_head = NULL, *to_tail = NULL;
+    lyphnode_wrapper *w, *w_next;
+
+    calc_nodes_in_lyph( *eptr1, &from_head, &from_tail );
+    calc_nodes_in_lyph( *eptr2, &to_head, &to_tail );
+
+    *pathsetsptr = compute_lyphpaths( from_head, to_head, NULL, 16, 1, 0 );
+    npaths += VOIDLEN( *pathsetsptr );
+    pathsetsptr++;
+
+    for ( w = from_head; w; w = w_next )
     {
-      SET_BIT( w->n->flags, 1 );
-      CREATE( w_copy, lyphnode_wrapper, 1 );
-      w_copy->n = w->n;
-      LINK( w_copy, to_head, to_tail, next );
+      w_next = w->next;
+      free( w );
     }
-    free( w );
+
+    for ( w = to_head; w; w = w_next )
+    {
+      w_next = w->next;
+      free( w );
+    }
   }
 
-  from_head = NULL;
-  from_tail = NULL;
+  *pathsetsptr = NULL;
 
-  for ( w = to_head; w; w = w->next )
+  CREATE( nodepaths, nodepath *, npaths + 1 );
+  nodepathsptr = nodepaths;
+
+  for ( pathsetsptr = pathsets; *pathsetsptr; pathsetsptr++ )
   {
-    lyphnode_wrapper *w_copy;
-
-    w->n->flags = 0;
-    CREATE( w_copy, lyphnode_wrapper, 1 );
-    w_copy->n = w->n;
-
-    LINK( w_copy, from_head, from_tail, next );
+    for ( dpathsetsptr = *pathsetsptr; *dpathsetsptr; dpathsetsptr++ )
+    {
+      *nodepathsptr++ = lyphpath_to_nodepath( *dpathsetsptr, e );
+      free( *dpathsetsptr );
+    }
+    free( *pathsetsptr );
   }
+  free( pathsets );
+  free( e );
 
-  argc = VOIDLEN( e );
-
-  CREATE( nodepaths, nodepath *, argc + 1 );
-  nodepaths_ptr = nodepaths;
-
-  paths = compute_lyphpaths( from_head, to_head, NULL, argc * 128, 1, 0 );
-
-  for ( w = from_head; w; w = w_next )
-  {
-    w_next = w->next;
-    free( w );
-  }
-
-  for ( w = to_head; w; w = w_next )
-  {
-    w_next = w->next;
-    free( w );
-  }
-
-  for ( paths_ptr = paths; *paths_ptr; paths_ptr++ )
-  {
-    *nodepaths_ptr++ = lyphpath_to_nodepath( *paths_ptr, e );
-    free( *paths_ptr );
-  }
-
-  *nodepaths_ptr = NULL;
-  free( paths );
+  *nodepathsptr = NULL;
 
   send_response( req, nodepathset_to_json( nodepaths ) );
 
-  for ( nodepaths_ptr = nodepaths; *nodepaths_ptr; nodepaths_ptr++ )
+  for ( nodepathsptr = nodepaths; *nodepathsptr; nodepathsptr++ )
   {
-    free( (*nodepaths_ptr)->steps );
-    free( *nodepaths_ptr );
+    free( (*nodepathsptr)->steps );
+    free( *nodepathsptr );
   }
 
-  free( nodepaths );
-  free( e );
+  free( nodepaths );  
 }
