@@ -3264,20 +3264,12 @@ void get_children_recurse( lyph *e, trie *t, lyph ***bptr )
 {
   if ( t->data )
   {
-    lyph *child = (lyph*)t->data, *test;
-    lyph *buf[3];
+    lyph *child = (lyph*)t->data;
 
-    if ( child != e )
+    if ( child != e && get_lyph_location( child ) == e )
     {
-      buf[0] = e;
-      buf[1] = child;
-      buf[2] = NULL;
-      test = get_relative_lyph_loc_buf( child, buf );
-      if ( test == e )
-      {
-        **bptr = child;
-        (*bptr)++;
-      }
+      **bptr = child;
+      (*bptr)++;
     }
   }
 

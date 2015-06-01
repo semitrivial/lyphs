@@ -67,6 +67,14 @@ HANDLER( do_clone )
   }
 }
 
+int can_put_node_in_lyph( lyphnode *n, lyph *e, char **reason )
+{
+  /*
+   * Under construction
+   */
+  return 1;
+}
+
 HANDLER( do_editlyphnode )
 {
   lyphnode *n;
@@ -85,10 +93,15 @@ HANDLER( do_editlyphnode )
 
   if ( locstr )
   {
+    char *reason;
+
     loc = lyph_by_id( locstr );
 
     if ( !loc )
       HND_ERR( "The indicated lyph was not found in the database." );
+
+    if ( !can_put_node_in_lyph( n, loc, &reason ) )
+      HND_ERR_FREE( reason );
   }
   else
     loc = NULL;
