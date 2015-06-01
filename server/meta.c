@@ -364,6 +364,11 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bu
   free( e->annots );
   e->annots = buf;
 
+/*
+ * debug: temporarily disable update_bulk_annots
+ */
+  update_bulk_annots = 0;
+
   if ( update_bulk_annots && ( !pred || pred == radiological_index_predicate ) )
   {
     bulk_annot *b;
