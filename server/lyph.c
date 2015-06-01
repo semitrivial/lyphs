@@ -2101,27 +2101,6 @@ lyphnode *lyphnode_by_id_or_new( char *id )
     return lyphnode_by_id( id );
 }
 
-lyph *lyph_by_template( trie *t, lyphplate *L )
-{
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
-
-    if ( e->lyphplt == L )
-      return e;
-  }
-
-  TRIE_RECURSE
-  (
-    lyph *e = lyph_by_template( *child, L );
-
-    if ( e )
-      return e;
-  );
-
-  return NULL;
-}
-
 lyph *lyph_by_template_or_id( char *id, char *species )
 {
   lyph *e = lyph_by_id( id );
@@ -2136,11 +2115,6 @@ lyph *lyph_by_template_or_id( char *id, char *species )
 
   if ( !L )
     return NULL;
-
-  e = lyph_by_template( lyph_ids, L );
-
-  if ( e )
-    return e;
 
   from = make_lyphnode();
   to = make_lyphnode();
