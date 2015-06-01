@@ -173,6 +173,9 @@ HANDLER( do_bulk_annot )
   TRY_PARAM( lyphsstr, "lyphs", "You did not indicate which 'lyphs' the annotation covers" );
   TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed' associated with the annotation" );
 
+  if ( !*pubmedstr )
+    HND_ERR( "The 'pubmed' field can't be left blank" );
+
   if ( *typestr == 'C' || *typestr == 'c' )
     type = BULK_ANNOT_CLINICAL;
   else if ( *typestr == 'R' || *typestr == 'r' )
@@ -197,6 +200,10 @@ HANDLER( do_bulk_annot )
   if ( type == BULK_ANNOT_RADIOLOGICAL )
   {
     TRY_PARAM( radiostr, "radio", "You did not specify a 'radio' (radiological index)" );
+
+    if ( !*radiostr )
+      HND_ERR( "The 'radio' field can't be left blank" );
+
     radio = trie_strdup( radiostr, metadata );
   }
   else
@@ -492,7 +499,16 @@ HANDLER( do_annotate )
   TRY_PARAM( annotstr, "annot", "You did not specify (using the 'annot' parameter) what to annotate the lyphs by" );
   TRY_PARAM( pubmedstr, "pubmed", "You did not specify (using the 'pubmed' parameter) which pubmed ID" );
 
+  if ( !*annotstr )
+    HND_ERR( "The 'annot' field cannot be left blank" );
+
+  if ( !*pubmedstr )
+    HND_ERR( "The 'pubmed' field cannot be left blank" );
+
   predstr = get_param( params, "pred" );
+
+  if ( predstr && !*predstr )
+    HND_ERR( "The 'pred' field cannot be blanked" );
 
   lyphs = (lyph**) PARSE_LIST( lyphstr, lyph_by_id, "lyph", &err );
 
