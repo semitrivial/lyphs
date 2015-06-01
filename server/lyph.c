@@ -16,6 +16,7 @@ lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
 int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
+char *lyphnode_to_json_brief( lyphnode *n );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -442,7 +443,9 @@ char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
     "width": rect->width,
     "height": rect->height,
     "annots": JS_ARRAY( lyph_annot_to_json, rect->L->annots ),
-    "location": lyph_relative_loc_to_json_v( rect->L, v )
+    "location": lyph_relative_loc_to_json_v( rect->L, v ),
+    "from": lyphnode_to_json_brief( rect->L->from ),
+    "to": lyphnode_to_json_brief( rect->L->to )
   );
 }
 
@@ -2193,6 +2196,11 @@ char *layer_to_json( layer *lyr )
     "materials": JS_ARRAY( lyphplate_to_json_brief, lyr->material ),
     "thickness": lyr->thickness == -1 ? "unspecified" : int_to_json( lyr->thickness )
   );
+}
+
+char *lyphnode_to_json_brief( lyphnode *n )
+{
+  return trie_to_json( n->id );
 }
 
 char *lyphnode_to_json( lyphnode *n )

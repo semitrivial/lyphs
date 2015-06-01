@@ -136,9 +136,10 @@ HANDLER( do_editlyphnode )
 
 HANDLER( do_editlyph )
 {
-  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *fromstr, *tostr, *speciesstr;
+  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr;
+  char *fromstr, *tostr, *speciesstr, *locstr;
   char *err = NULL;
-  lyph *e;
+  lyph *e, *loc;
   lyphnode *from, *to;
   lyphplate *L, *constraint;
   trie *fma;
@@ -223,6 +224,33 @@ HANDLER( do_editlyph )
   else
     to = NULL;
 
+  locstr = get_param( params, "loc" );
+
+  if ( !locstr )
+    locstr = get_param( params, "location" );
+
+  if ( locstr )
+  {
+    char *reason;
+
+    if ( from || to )
+      HND_ERR( "You can't change the lyph's 'from' or 'to' with the same command that you change its 'location'" );
+
+    loc = lyph_by_id( locstr );
+
+    if ( !loc )
+      HND_ERR( "The indicated location was not recognized" );
+
+    if ( !can_put_node_in_lyph( e->from, loc, &reason )
+    ||   !can_put_node_in_lyph( e->to, loc, &reason ) )
+      HND_ERR_FREE( reason );
+  }
+  else
+    loc = NULL;
+
+  if ( from && to )
+    HND_ERR( "Can't edit the edge's 'from' and 'to' with the same command" );
+
 #ifdef PRE_LAYER_CHANGE
   if ( L && constraint )
   {
@@ -272,9 +300,6 @@ HANDLER( do_editlyph )
   if ( fma )
     e->fma = fma;
 
-  if ( from && to )
-    HND_ERR( "Can't edit the edge's 'from' and 'to' with the same command" );
-
   if ( from )
   {
     remove_from_exits( e, &e->from->exits );
@@ -289,6 +314,14 @@ HANDLER( do_editlyph )
     add_to_exits( e, e->from, &to->incoming );
     change_dest_of_exit( e, to, e->from->exits );
     e->to = to;
+  }
+
+  if ( loc )
+  {
+    e->from->location = loc;
+    e->from->loctype = LOCTYPE_INTERIOR;
+    e->to->location = loc;
+    e->to->loctype = LOCTYPE_INTERIOR;
   }
 
   speciesstr = get_param( params, "species" );
