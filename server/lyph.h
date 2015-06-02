@@ -490,6 +490,7 @@ lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( const char *id );
 lyph *lyph_by_template_or_id( char *id, char *species );
+lyph *lyph_by_name( const char *name );
 trie *assign_new_layer_id( layer *lyr );
 lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_material, char *name, char *length );
 int same_layers( layer **x, layer **y );

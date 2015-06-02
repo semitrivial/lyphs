@@ -1046,7 +1046,11 @@ void save_lyphs_recurse( trie *t, FILE *fp )
       fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
 
     if ( e->species )
-      fprintf( fp, "species:%s ", trie_to_static( e->species ) );
+    {
+      char *encoded = url_encode( trie_to_static( e->species ) );
+      fprintf( fp, "species:%s ", encoded );
+      free( encoded );
+    }
 
     fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
   }
@@ -1189,12 +1193,6 @@ int load_lyphs_one_line( char *line, char **err )
 
   e->type = strtol( typebuf, NULL, 10 );
 
-  if ( e->type < 1 || e->type > 4 )
-  {
-    *err = "Invalid edge type";
-    return 0;
-  }
-
   e->fma = strcmp( fmabuf, "(nofma)" ) ? trie_strdup( fmabuf, lyph_fmas ) : NULL;
 
   fromtr = trie_strdup( frombuf, lyphnode_ids );
@@ -1281,7 +1279,11 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
     e->constraints = parse_lyph_constraints( preamble );
 
   if ( parse_name_preamble( &namebuf, "species:", &preamble ) )
-    e->species = trie_strdup( preamble, metadata );
+  {
+    char *decoded = url_decode( preamble );
+    e->species = trie_strdup( decoded, metadata );
+    free( decoded );
+  }
 
   if ( !strcmp( namebuf, "(noname)" ) )
     return NULL;
@@ -3469,4 +3471,30 @@ HANDLER( do_connections )
   }
 
   free( nodepaths );  
+}
+
+lyph *lyph_by_name_recurse( const char *name, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+
+    if ( !strcmp( name, trie_to_static( e->name ) ) )
+      return e;
+  }
+
+  TRIE_RECURSE
+  (
+    lyph *e = lyph_by_name_recurse( name, *child );
+
+    if ( e )
+      return e;
+  );
+
+  return NULL;
+}
+
+lyph *lyph_by_name( const char *name )
+{
+  return lyph_by_name_recurse( name, lyph_ids );
 }

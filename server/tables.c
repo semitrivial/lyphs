@@ -75,6 +75,9 @@ void init_command_table(void)
   add_handler( "delete_views", do_delete_views, CMD_READWRITE );
   add_handler( "delete_layers", do_delete_layers, CMD_READWRITE );
   add_handler( "parse_csv", do_parse_csv, CMD_READWRITE );
+
+  //add_handler( "niflyph", do_niflyph, CMD_READWRITE );
+  //add_handler( "nifconnection", do_nifconnection, CMD_READWRITE );
 }
 
 void add_handler( char *cmd, do_function *fnc, int read_write_state )

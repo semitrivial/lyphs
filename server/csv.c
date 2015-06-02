@@ -484,3 +484,96 @@ HANDLER( do_parse_csv )
     depth--;
   }
 }
+
+HANDLER( do_niflyph )
+{
+  lyph *e;
+  char *fmastr, *ptr, buf[1024], *speciesstr;
+
+  TRY_PARAM( fmastr, "fma", "You didn't specify an fma" );
+  TRY_PARAM( speciesstr, "species", "You didn't specify a species" );
+
+  for ( ptr = fmastr; *ptr; ptr++ )
+    if ( *ptr == ':' )
+      break;
+
+  if ( !*ptr )
+  {
+    printf( "niflyph: no colon found: %s\n", fmastr );
+    HND_ERR( "No colon found" );
+  }
+
+  sprintf( buf, "%s FMA_%s", speciesstr, &ptr[1] );
+
+  e = lyph_by_name( buf );
+
+  if ( e )
+  {
+    send_response( req, lyph_to_json( e ) );
+    return;
+  }
+
+  e = make_lyph( 0, make_lyphnode(), make_lyphnode(), NULL, &ptr[1], buf, speciesstr );
+
+  send_response( req, lyph_to_json( e ) );
+}
+
+HANDLER( do_nifconnection )
+{
+  lyph *fromlyph, *tolyph, *e;
+  lyphnode *from, *to;
+  char *fromstr, *tostr, *speciesstr, *ptr, frombuf[2048], tobuf[2048], buf[10000];
+
+  TRY_PARAM( fromstr, "from", "No 'from' specified" );
+  TRY_PARAM( tostr, "to", "No 'to' specified" );
+  TRY_PARAM( speciesstr, "species", "No 'species' specified" );
+
+  for ( ptr = fromstr; *ptr; ptr++ )
+    if ( *ptr == ':' )
+      break;
+
+  if ( !*ptr )
+  {
+    printf( "nifconnection: no colon: [%s]\n", fromstr );
+    HND_ERR( "An error occurred processing the 'from' parameter" );
+  }
+
+  sprintf( frombuf, "%s FMA_%s", speciesstr, &ptr[1] );
+
+  for ( ptr = tostr; *ptr; ptr++ )
+    if ( *ptr == ':' )
+      break;
+
+  if ( !*ptr )
+  {
+    printf( "nifconnection: no colon: [%s]\n", tostr );
+    HND_ERR( "An error occurred processing the 'to' parameter" );
+  }
+
+  sprintf( tobuf, "%s FMA_%s", speciesstr, &ptr[1] );
+
+  fromlyph = lyph_by_name( frombuf );
+  tolyph = lyph_by_name( tobuf );
+
+  if ( !fromlyph )
+    HND_ERRF( "'from' lyph [%s] unrecognized", frombuf );
+
+  if ( !tolyph )
+    HND_ERR( "'to' lyph unrecognized" );
+
+  from = make_lyphnode();
+  to = make_lyphnode();
+
+  from->location = fromlyph;
+  from->loctype = LOCTYPE_INTERIOR;
+
+  to->location = tolyph;
+  to->loctype = LOCTYPE_INTERIOR;
+
+  sprintf( buf, "Connection from [%s] ", trie_to_static(fromlyph->name) );
+  sprintf( buf + strlen(buf), "to [%s]", trie_to_static(tolyph->name) );
+
+  e = make_lyph( 0, from, to, NULL, NULL, buf, speciesstr );
+
+  send_response( req, lyph_to_json( e ) );
+}
