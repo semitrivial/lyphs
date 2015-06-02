@@ -286,6 +286,7 @@ struct NODEPATH
   lyph *start;
   lyph *end;
   lyphnode **steps;
+  lyph **edges;
 };
 
 struct EXIT_DATA
