@@ -10,6 +10,58 @@ void add_supers_by_layers( trie *t, lyphplate *sub, lyphplates_wrapper **head, l
 int is_superlayer( layer *sup, layer *sub );
 int should_add_super_by_layers( lyphplate *sup, lyphplate *sub );
 
+#endif
+
+int can_node_fit_in_lyph_recurse( lyphnode *n, lyph *e, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *d = (lyph*)t->data;
+    lyphnode_wrapper *head, *tail, *w, *w_next;
+    int fMatch;
+
+    if ( d->from == n || d->to == n )
+    {
+      if ( d == e )
+        return 0;
+
+      head = NULL;
+      tail = NULL;
+      fMatch = 0;
+
+      calc_nodes_in_lyph( d, &head, &tail );
+
+      for ( w = head; w; w = w_next )
+      {
+        w_next = w->next;
+
+        if ( w->n == e->from || w->n == e->to )
+          fMatch = 1;
+
+        free( w );
+      }
+
+      if ( fMatch )
+        return 0;
+    }
+  }
+
+  TRIE_RECURSE
+  (
+    if ( !can_node_fit_in_lyph_recurse( n, e, *child ) )
+      return 0;
+  );
+
+  return 1;
+}
+
+int can_node_fit_in_lyph( lyphnode *n, lyph *e )
+{
+  return can_node_fit_in_lyph_recurse( n, e, lyph_ids );
+}
+
+#ifdef PRE_LAYER_CHANGE
+
 void compute_lyphplate_hierarchy( trie *t )
 {
   if ( t->data )

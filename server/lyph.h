@@ -557,6 +557,7 @@ layer *clone_layer( layer *lyr );
 /*
  * hier.c
  */
+int can_node_fit_in_lyph( lyphnode *n, lyph *e );
 void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **tail );
 lyphplate **common_materials_of_layers( lyphplate *L );
 int is_X_built_from_Y( lyphplate *x, void *y );

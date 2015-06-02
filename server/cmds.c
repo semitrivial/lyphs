@@ -67,14 +67,6 @@ HANDLER( do_clone )
   }
 }
 
-int can_put_node_in_lyph( lyphnode *n, lyph *e, char **reason )
-{
-  /*
-   * Under construction
-   */
-  return 1;
-}
-
 HANDLER( do_editlyphnode )
 {
   lyphnode *n;
@@ -96,15 +88,13 @@ HANDLER( do_editlyphnode )
 
   if ( locstr )
   {
-    char *reason;
-
     loc = lyph_by_id( locstr );
 
     if ( !loc )
       HND_ERR( "The indicated lyph was not found in the database." );
 
-    if ( !can_put_node_in_lyph( n, loc, &reason ) )
-      HND_ERR_FREE( reason );
+    if ( !can_node_fit_in_lyph( n, loc ) )
+      HND_ERR( "The indicated node cannot be placed in the indicated location because that would place one of its incident edges inside itself" );
   }
   else
     loc = NULL;
@@ -234,8 +224,6 @@ HANDLER( do_editlyph )
 
   if ( locstr )
   {
-    char *reason;
-
     if ( from || to )
       HND_ERR( "You can't change the lyph's 'from' or 'to' with the same command that you change its 'location'" );
 
@@ -244,9 +232,9 @@ HANDLER( do_editlyph )
     if ( !loc )
       HND_ERR( "The indicated location was not recognized" );
 
-    if ( !can_put_node_in_lyph( e->from, loc, &reason )
-    ||   !can_put_node_in_lyph( e->to, loc, &reason ) )
-      HND_ERR_FREE( reason );
+    if ( !can_node_fit_in_lyph( e->from, loc )
+    ||   !can_node_fit_in_lyph( e->to, loc ) )
+      HND_ERR( "The indicated node cannot be placed in the indicated lyph or one of its incident edges would be self-contained" );
   }
   else
     loc = NULL;
