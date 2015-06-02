@@ -91,6 +91,9 @@ HANDLER( do_editlyphnode )
 
   locstr = get_param( params, "location" );
 
+  if ( !locstr )
+    locstr = get_param( params, "loc" );
+
   if ( locstr )
   {
     char *reason;

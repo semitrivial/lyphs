@@ -17,6 +17,7 @@ lyphplate **parse_lyph_constraints( char *str );
 int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
 char *lyphnode_to_json_brief( lyphnode *n );
+void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -3242,6 +3243,44 @@ void save_layer_names(void)
   fclose( fp );
 }
 
+void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t )
+{
+  if ( t->data )
+  {
+    lyph **bptr, *loc;
+    lyphnode *n = (lyphnode *)t->data;
+
+    if ( n->location == e )
+      goto calc_nodes_directly_in_lyph_buf_addnode;
+
+    if ( n->location )
+    {
+      loc = n->location;
+
+      for ( bptr = buf; *bptr; bptr++ )
+        if ( *bptr == loc )
+          break;
+
+      if ( !*bptr && e == get_relative_lyph_loc_buf( n->location, buf ) )
+      {
+        lyphnode_wrapper *w;
+
+        calc_nodes_directly_in_lyph_buf_addnode:
+        CREATE( w, lyphnode_wrapper, 1 );
+        w->n = n;
+        LINK( w, *head, *tail, next );
+      }
+    }
+  }
+
+  TRIE_RECURSE( calc_nodes_directly_in_lyph_buf_recurse( e, head, tail, buf, *child ) );
+}
+
+void calc_nodes_directly_in_lyph_buf( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf )
+{
+  calc_nodes_directly_in_lyph_buf_recurse( e, head, tail, buf, lyphnode_ids );
+}
+
 void get_children_recurse( lyph *e, trie *t, lyph ***bptr )
 {
   if ( t->data )
@@ -3382,8 +3421,8 @@ HANDLER( do_connections )
     lyphnode_wrapper *from_head = NULL, *from_tail = NULL, *to_head = NULL, *to_tail = NULL;
     lyphnode_wrapper *w, *w_next;
 
-    calc_nodes_in_lyph( *eptr1, &from_head, &from_tail );
-    calc_nodes_in_lyph( *eptr2, &to_head, &to_tail );
+    calc_nodes_directly_in_lyph_buf( *eptr1, &from_head, &from_tail, e );
+    calc_nodes_directly_in_lyph_buf( *eptr2, &to_head, &to_tail, e );
 
     *pathsetsptr = compute_lyphpaths( from_head, to_head, NULL, 16, 1, 0 );
     npaths += VOIDLEN( *pathsetsptr );
