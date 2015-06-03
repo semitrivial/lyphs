@@ -3289,7 +3289,7 @@ void get_children_recurse( lyph *e, trie *t, lyph ***bptr )
   {
     lyph *child = (lyph*)t->data;
 
-    if ( child != e && get_lyph_location( child ) == e )
+    if ( child->from->location == e && child->to->location == e )
     {
       **bptr = child;
       (*bptr)++;

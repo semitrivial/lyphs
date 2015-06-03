@@ -12,3 +12,5 @@ log4j.properties
 *.nt
 *.dSYM/
 */rapidjson/
+log.txt
+lyph
