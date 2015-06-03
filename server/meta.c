@@ -11,6 +11,8 @@ bulk_annot *last_bulk_annot;
 int top_bulk_annot_id;
 trie *radiological_index_predicate;
 
+clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
+
 HANDLER( do_all_bulk_annots )
 {
   bulk_annot *b, **buf, **bptr;
@@ -139,6 +141,9 @@ void bulk_annot_to_lyph_annots( bulk_annot *b, int *save )
     case BULK_ANNOT_FUNCTIONAL:
       return;
     case BULK_ANNOT_CLINICAL:
+      if ( !b->ci )
+        return;
+
       obj = b->ci->index;
       pred = NULL;
       break;
@@ -371,18 +376,13 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bu
   free( e->annots );
   e->annots = buf;
 
-/*
- * debug: temporarily disable update_bulk_annots
- */
-  update_bulk_annots = 0;
-
   if ( update_bulk_annots && ( !pred || pred == radiological_index_predicate ) )
   {
     bulk_annot *b;
 
     for ( b = first_bulk_annot; b; b = b->next )
     {
-      if ( !pred && ( b->type != BULK_ANNOT_CLINICAL || b->ci->index != obj ) )
+      if ( !pred && ( b->type != BULK_ANNOT_CLINICAL || !b->ci || b->ci->index != obj ) )
         continue;
 
       if ( pred == radiological_index_predicate
@@ -419,7 +419,7 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bu
       else
       {
         b->type = BULK_ANNOT_CLINICAL;
-        b->ci = clinical_index_by_trie( obj );
+        b->ci = clinical_index_by_trie_or_create( obj, pubmed );
         b->radio_index = NULL;
       }
       b->id = assign_bulk_annot_id();
@@ -1099,6 +1099,27 @@ clinical_index *clinical_index_by_index( const char *ind )
   return clinical_index_by_trie( ind_tr );
 }
 
+clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pbmd )
+{
+  clinical_index *ci = clinical_index_by_trie( ind_tr );
+
+  if ( ci )
+    return ci;
+
+  CREATE( ci, clinical_index, 1 );
+  ci->index = ind_tr;
+  ci->label = ind_tr;
+  CREATE( ci->pubmeds, pubmed *, 2 );
+  ci->pubmeds[0] = pbmd;
+  ci->pubmeds[1] = NULL;
+  ci->claimed = NULL;
+  LINK( ci, first_clinical_index, last_clinical_index, next );
+
+  save_clinical_indices();
+
+  return ci;
+}
+
 clinical_index *clinical_index_by_trie( trie *ind_tr )
 {
   clinical_index *ci;
@@ -1274,6 +1295,9 @@ int has_some_clinical_index( lyph *e, clinical_index **cis )
   {
     clinical_index **cptr;
 
+    if ( (*a)->pred )
+      continue;
+
     for ( cptr = cis; *cptr; cptr++ )
       if ( (*cptr)->index == (*a)->obj )
         return 1;
@@ -1291,7 +1315,7 @@ int has_all_clinical_indices( lyph *e, clinical_index **cis )
     lyph_annot **a;
 
     for ( a = e->annots; *a; a++ )
-      if ( (*a)->obj == (*cptr)->index )
+      if ( !(*a)->pred && (*a)->obj == (*cptr)->index )
         break;
 
     if ( !*a )
@@ -1375,11 +1399,6 @@ void lyph_annot_from_bulk_annots( lyph_annot *a, lyph *e )
 {
   bulk_annot *b;
 
-  /*
-   * Temporarily disabled 
-   */
-  return;
-
   if ( a->pred && a->pred != radiological_index_predicate )
     return;
 
@@ -1431,7 +1450,7 @@ HANDLER( do_remove_annotation )
   char *lyphsstr, *annotstr, *err;
   int fMatch;
 
-  TRY_PARAM( lyphsstr, "lyphs", "You did not specify which lyphs to remove the annotations from" );
+  TRY_TWO_PARAMS( lyphsstr, "lyphs", "lyph", "You did not specify which lyphs to remove the annotations from" );
   TRY_PARAM( annotstr, "annot", "You did not specify an annotation to remove" );
 
   lyphs = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
@@ -1461,6 +1480,7 @@ HANDLER( do_remove_annotation )
     }
 
     save_lyph_annotations();
+    save_bulk_annots();
     send_response( req, JSON1( "Response": "OK" ) );
     return;
   }
@@ -1485,7 +1505,7 @@ HANDLER( do_remove_annotation )
       lyph_annot **buf, **bptr;
 
       fMatch = 1;
-      CREATE( buf, lyph_annot *, VOIDLEN( e->annots ) - matches );
+      CREATE( buf, lyph_annot *, VOIDLEN( e->annots ) - matches + 1 );
       bptr = buf;
 
       for ( a = e->annots; *a; a++ )
