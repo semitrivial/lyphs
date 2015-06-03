@@ -1375,6 +1375,11 @@ void lyph_annot_from_bulk_annots( lyph_annot *a, lyph *e )
 {
   bulk_annot *b;
 
+  /*
+   * Temporarily disabled 
+   */
+  return;
+
   if ( a->pred && a->pred != radiological_index_predicate )
     return;
 
@@ -1385,7 +1390,7 @@ void lyph_annot_from_bulk_annots( lyph_annot *a, lyph *e )
     if ( b->pbmd != a->pubmed )
       continue;
 
-    if ( !a->pred && ( b->type != BULK_ANNOT_CLINICAL || b->ci->index != a->obj ) )
+    if ( !a->pred && ( b->type != BULK_ANNOT_CLINICAL || !b->ci || b->ci->index != a->obj ) )
       continue;
 
     if ( a->pred == radiological_index_predicate
