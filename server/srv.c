@@ -1050,7 +1050,7 @@ HANDLER( do_makelyph )
   lyphnode *from, *to;
   lyph *e;
   lyphplate *L;
-  char *fmastr, *fromstr, *tostr, *namestr, *tmpltstr, *typestr;
+  char *fmastr, *fromstr, *tostr, *namestr, *tmpltstr, *typestr, *pubmedstr, *projstr;
   int type;
 
   typestr = get_param( params, "type" );
@@ -1097,7 +1097,10 @@ HANDLER( do_makelyph )
   else
     L = NULL;
 
-  e = make_lyph( type, from, to, L, fmastr, namestr, get_param( params, "species" ) );
+  pubmedstr = get_param( params, "pubmed" );
+  projstr = get_param( params, "projection_strength" );
+
+  e = make_lyph( type, from, to, L, fmastr, namestr, pubmedstr, projstr, get_param( params, "species" ) );
 
   if ( !e )
     HND_ERR( "The lyph could not be created (out of memory?)" );

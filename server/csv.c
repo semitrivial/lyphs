@@ -513,7 +513,7 @@ HANDLER( do_niflyph )
     return;
   }
 
-  e = make_lyph( 0, make_lyphnode(), make_lyphnode(), NULL, &ptr[1], buf, speciesstr );
+  e = make_lyph( 0, make_lyphnode(), make_lyphnode(), NULL, &ptr[1], buf, NULL, NULL, speciesstr );
 
   send_response( req, lyph_to_json( e ) );
 }
@@ -523,10 +523,13 @@ HANDLER( do_nifconnection )
   lyph *fromlyph, *tolyph, *e;
   lyphnode *from, *to;
   char *fromstr, *tostr, *speciesstr, *ptr, frombuf[2048], tobuf[2048], buf[10000];
+  char *pubmedstr, *projstr;
 
   TRY_PARAM( fromstr, "from", "No 'from' specified" );
   TRY_PARAM( tostr, "to", "No 'to' specified" );
   TRY_PARAM( speciesstr, "species", "No 'species' specified" );
+  TRY_PARAM( pubmedstr, "pubmed", "No 'pubmed' specified" );
+  TRY_PARAM( projstr, "projstr", "No 'projstr' specified" );
 
   for ( ptr = fromstr; *ptr; ptr++ )
     if ( *ptr == ':' )
@@ -573,7 +576,7 @@ HANDLER( do_nifconnection )
   sprintf( buf, "Connection from [%s] ", trie_to_static(fromlyph->name) );
   sprintf( buf + strlen(buf), "to [%s]", trie_to_static(tolyph->name) );
 
-  e = make_lyph( 0, from, to, NULL, NULL, buf, speciesstr );
+  e = make_lyph( 0, from, to, NULL, NULL, buf, *pubmedstr ? pubmedstr : NULL, *projstr ? projstr : NULL, speciesstr );
 
   send_response( req, lyph_to_json( e ) );
 }

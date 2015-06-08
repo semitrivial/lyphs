@@ -9,8 +9,8 @@ int new_lyphview_id(void);
 trie *new_lyph_id(lyph *e);
 lyphnode *lyphnode_by_id_or_new( char *id );
 trie *parse_lyph_name_field( char *namebuf, lyph *e );
-lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr );
-lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name );
+lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
+lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr );
 trie *new_lyphnode_id(lyphnode *n);
 lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
@@ -799,6 +799,8 @@ void load_lyphviews( void )
               e->species = NULL;
               e->constraints = (lyphplate**)blank_void_array();
               e->annots = (lyph_annot**)blank_void_array();
+              e->pubmed = strdup("");
+              e->projection_strength = strdup("");
 
               maybe_update_top_id( &top_lyph_id, left );
             }
@@ -1030,6 +1032,8 @@ void save_lyphs( void )
 
 void save_lyphs_recurse( trie *t, FILE *fp )
 {
+  char *encoded;
+
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
@@ -1039,6 +1043,20 @@ void save_lyphs_recurse( trie *t, FILE *fp )
     fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
     fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
 
+    if ( e->pubmed && *e->pubmed )
+    {
+      encoded = url_encode( e->pubmed );
+      fprintf( fp, "pubmed:%s ", encoded );
+      free( encoded );
+    }
+
+    if ( e->projection_strength && *e->projection_strength )
+    {
+      encoded = url_encode( e->projection_strength );
+      fprintf( fp, "proj_str:%s ", encoded );
+      free( encoded );
+    }
+
     if ( e->lyphplt )
       fprintf( fp, "lyphplate:%s ", trie_to_static( e->lyphplt->id ) );
 
@@ -1047,7 +1065,7 @@ void save_lyphs_recurse( trie *t, FILE *fp )
 
     if ( e->species )
     {
-      char *encoded = url_encode( trie_to_static( e->species ) );
+      encoded = url_encode( trie_to_static( e->species ) );
       fprintf( fp, "species:%s ", encoded );
       free( encoded );
     }
@@ -1179,6 +1197,8 @@ int load_lyphs_one_line( char *line, char **err )
     e->flags = 0;
     e->species = NULL;
     etr->data = (trie **)e;
+    e->pubmed = strdup("");
+    e->projection_strength = strdup("");
 
     maybe_update_top_id( &top_lyph_id, lyphidbuf );
 
@@ -1261,6 +1281,22 @@ int parse_name_preamble( char **name, char *needle, char **dest )
 trie *parse_lyph_name_field( char *namebuf, lyph *e )
 {
   char *preamble;
+
+  if ( parse_name_preamble( &namebuf, "pubmed:", &preamble ) )
+  {
+    if ( e->pubmed )
+      free( e->pubmed );
+
+    e->pubmed = strdup( preamble );
+  }
+
+  if ( parse_name_preamble( &namebuf, "proj_str:", &preamble ) )
+  {
+    if ( e->projection_strength )
+      free( e->projection_strength );
+
+    e->projection_strength = strdup( preamble );
+  }
 
   if ( parse_name_preamble( &namebuf, "lyphplate:", &preamble ) )
   {
@@ -2130,7 +2166,7 @@ lyph *lyph_by_template_or_id( char *id, char *species )
   else
     namestr = "none";
 
-  e = make_lyph( 1, from, to, L, NULL, namestr, species );
+  e = make_lyph( 1, from, to, L, NULL, namestr, NULL, NULL, species );
 
   /*
    * To do: pass this work upward to avoid duplicated effort
@@ -2336,7 +2372,9 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "constraints": JS_ARRAY( lyphplate_to_shallow_json, e->constraints ),
     "house": house,
     "species": e->species ? trie_to_json( e->species ) : js_suppress,
-    "children": JS_ARRAY( lyph_child_to_json, children )
+    "children": JS_ARRAY( lyph_child_to_json, children ),
+    "pubmed": e->pubmed && *e->pubmed ? str_to_json(e->pubmed) : js_suppress,
+    "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress
   );
 
   free( children );
@@ -2605,14 +2643,14 @@ trie *new_lyphnode_id(lyphnode *n)
   return id;
 }
 
-lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *speciesstr )
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr )
 {
   trie *fma;
   lyph *e;
 
   fma = fmastr ? trie_strdup( fmastr, lyph_fmas ) : NULL;
 
-  e = find_duplicate_lyph( type, from, to, L, fma, namestr );
+  e = find_duplicate_lyph( type, from, to, L, fma, namestr, pubmedstr, projstr, speciesstr );
 
   if ( e )
     return e;
@@ -2627,6 +2665,8 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
   e->lyphplt = L;
   e->fma = fma;
   e->flags = 0;
+  e->pubmed = pubmedstr ? strdup( pubmedstr ) : strdup("");
+  e->projection_strength = projstr ? strdup( projstr ) : strdup("");
 
   if ( speciesstr )
     e->species = trie_strdup( speciesstr, metadata );
@@ -2659,9 +2699,9 @@ trie *new_lyph_id(lyph *e)
   return id;
 }
 
-lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr )
+lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr, char *pubmedstr, char *projstr, char *speciesstr )
 {
-  trie *name;
+  trie *name, *species_tr;
 
   if ( namestr )
   {
@@ -2673,10 +2713,20 @@ lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L,
   else
     name = NULL;
 
-  return find_duplicate_lyph_recurse( lyph_ids, type, from, to, L, fma, name );
+  if ( speciesstr )
+  {
+    species_tr = trie_search( speciesstr, metadata );
+
+    if ( !species_tr )
+      return NULL;
+  }
+  else
+    species_tr = NULL;
+
+  return find_duplicate_lyph_recurse( lyph_ids, type, from, to, L, fma, name, pubmedstr, projstr, species_tr );
 }
 
-lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name )
+lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr )
 {
   if ( t->data )
   {
@@ -2687,13 +2737,16 @@ lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *
     &&   e->from == from
     &&   e->to   == to
     &&   e->lyphplt == L
-    &&   e->fma  == fma )
+    &&   e->fma  == fma
+    &&   e->species == species_tr
+    &&   cmp_possibly_null( e->pubmed, pubmedstr )
+    &&   cmp_possibly_null( e->projection_strength, projstr ) )
       return e;
   }
 
   TRIE_RECURSE
   (
-    lyph *e = find_duplicate_lyph_recurse( *child, type, from, to, L, fma, name );
+    lyph *e = find_duplicate_lyph_recurse( *child, type, from, to, L, fma, name, pubmedstr, projstr, species_tr );
 
     if ( e )
       return e;
@@ -3024,6 +3077,8 @@ lyph *clone_lyph( lyph *e )
   d->constraints = e->constraints ? (lyphplate**)COPY_VOID_ARRAY(e->constraints) : NULL;
   d->annots = (lyph_annot**)blank_void_array();  
   d->fma = e->fma;
+  d->pubmed = strdup( e->pubmed );
+  d->projection_strength = strdup( e->projection_strength );
   
   return d;
 }

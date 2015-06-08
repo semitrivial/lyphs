@@ -214,6 +214,8 @@ struct LYPH
   lyphplate **constraints;
   lyph_annot **annots;
   trie *fma;
+  char *pubmed;
+  char *projection_strength;
 };
 
 typedef enum
@@ -451,6 +453,7 @@ int req_cmp( char *req, char *match );
 void **blank_void_array( void );
 void **copy_void_array( void **arr );
 void maybe_update_top_id( int *top, const char *idstr );
+int cmp_possibly_null( const char *x, const char *y );
 
 /*
  * ucl.c
@@ -534,7 +537,7 @@ void save_lyphviews( void );
 void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
 lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs, char **lxs, char **lys, char **widths, char **heights, char *name );
-lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *speciesstr );
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
 lyphnode *make_lyphnode( void );
 void compute_lyphplate_hierarchy( trie *t );
 lyphplate *lyphplate_by_ont_term( trie *term );

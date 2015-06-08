@@ -530,3 +530,17 @@ void **copy_void_array( void **arr )
 
   return buf;
 }
+
+int cmp_possibly_null( const char *x, const char *y )
+{
+  int is_x_null = !x || !*x;
+  int is_y_null = !y || !*y;
+
+  if ( is_x_null && is_y_null )
+    return 1;
+
+  if ( (is_x_null && !is_y_null) || (!is_x_null && is_y_null) )
+    return 0;
+
+  return !strcmp( x, y );
+}

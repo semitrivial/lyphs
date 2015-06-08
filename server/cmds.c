@@ -129,7 +129,7 @@ HANDLER( do_editlyphnode )
 
 HANDLER( do_editlyph )
 {
-  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr;
+  char *lyphid, *tmpltid, *typestr, *namestr, *fmastr, *constraintstr, *pubmedstr, *projstr;
   char *fromstr, *tostr, *speciesstr, *locstr;
   char *err = NULL;
   lyph *e, *loc;
@@ -279,6 +279,26 @@ HANDLER( do_editlyph )
 
   if ( L )
     e->lyphplt = L;
+
+  projstr = get_param( params, "projection_strength" );
+
+  if ( projstr )
+  {
+    if ( e->projection_strength )
+      free( e->projection_strength );
+
+    e->projection_strength = strdup( projstr );
+  }
+
+  pubmedstr = get_param( params, "pubmed" );
+
+  if ( pubmedstr )
+  {
+    if ( e->pubmed )
+      free( e->pubmed );
+
+    e->pubmed = strdup( pubmedstr );
+  }
 
   if ( constraint )
   {
