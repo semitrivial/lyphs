@@ -1337,14 +1337,12 @@ char *lyph_type_str( int type )
 {
   switch( type )
   {
-    case LYPH_ARTERIAL:
-      return "arterial";
-    case LYPH_MICROCIRC:
-      return "microcirculation";
-    case LYPH_VENOUS:
-      return "venous";
-    case LYPH_CARDIAC:
-      return "cardiac-chamber";
+    case LYPH_ADVECTIVE:
+      return "advective";
+    case LYPH_DIFFUSIVE:
+      return "diffusive";
+    case LYPH_NIF:
+      return "nif";
     default:
       return "unknown";
   }
@@ -1352,14 +1350,12 @@ char *lyph_type_str( int type )
 
 int parse_lyphplate_type_str( char *type )
 {
-  if ( !strcmp( type, "arterial" ) )
-    return LYPH_ARTERIAL;
-  if ( !strcmp( type, "microcirculation" ) )
-    return LYPH_MICROCIRC;
-  if ( !strcmp( type, "venous" ) )
-    return LYPH_VENOUS;
-  if ( !strcmp( type, "cardiac-chamber" ) )
-    return LYPH_CARDIAC;
+  if ( !strcmp( type, "advective" ) )
+    return LYPH_ADVECTIVE;
+  if ( !strcmp( type, "diffusive" ) )
+    return LYPH_DIFFUSIVE;
+  if ( !strcmp( type, "nif" ) )
+    return LYPH_NIF;
 
   return -1;
 }

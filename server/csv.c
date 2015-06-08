@@ -513,7 +513,7 @@ HANDLER( do_niflyph )
     return;
   }
 
-  e = make_lyph( 0, make_lyphnode(), make_lyphnode(), NULL, &ptr[1], buf, NULL, NULL, speciesstr );
+  e = make_lyph( LYPH_ADVECTIVE, make_lyphnode(), make_lyphnode(), NULL, &ptr[1], buf, NULL, NULL, speciesstr );
 
   send_response( req, lyph_to_json( e ) );
 }
@@ -576,7 +576,7 @@ HANDLER( do_nifconnection )
   sprintf( buf, "Connection from [%s] ", trie_to_static(fromlyph->name) );
   sprintf( buf + strlen(buf), "to [%s]", trie_to_static(tolyph->name) );
 
-  e = make_lyph( 0, from, to, NULL, NULL, buf, *pubmedstr ? pubmedstr : NULL, *projstr ? projstr : NULL, speciesstr );
+  e = make_lyph( LYPH_NIF, from, to, NULL, NULL, buf, *pubmedstr ? pubmedstr : NULL, *projstr ? projstr : NULL, speciesstr );
 
   send_response( req, lyph_to_json( e ) );
 }
