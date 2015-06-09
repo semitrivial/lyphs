@@ -24,6 +24,8 @@ int top_lyphplate_id;
 int top_lyph_id;
 int top_lyphnode_id;
 trie *blank_nodes;
+lyph null_rect_ptr;
+lyph *null_rect = &null_rect_ptr;
 
 lyphview **views;
 lyphview obsolete_lyphview;
@@ -62,7 +64,11 @@ lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs,
   {
     CREATE( rect, lv_rect, 1 );
 
-    rect->L = *lyphs;
+    if ( *lyphs != null_rect )
+      rect->L = *lyphs;
+    else
+      rect->L = NULL;
+
     rect->x = strdup( *lxs++ );
     rect->y = strdup( *lys++ );
     rect->width = strdup( *widths++ );
@@ -389,14 +395,16 @@ lyph *get_relative_lyph_loc_v( lyph *e, lyphview *v )
   lyph *house;
 
   for ( rects = v->rects; *rects; rects++ )
-    SET_BIT( (*rects)->L->flags, 2 );
+    if ( (*rects)->L )
+      SET_BIT( (*rects)->L->flags, 2 );
 
   for ( house = get_lyph_location( e ); house; house = get_lyph_location(house) )
     if ( IS_SET( house->flags, 2 ) )
       break;
 
   for ( rects = v->rects; *rects; rects++ )
-    REMOVE_BIT( (*rects)->L->flags, 2 );
+    if ( (*rects)->L )
+      REMOVE_BIT( (*rects)->L->flags, 2 );
 
   return house;
 }
@@ -435,13 +443,13 @@ char *lv_rect_to_json_r( lv_rect *rect, lyphview *v )
 {
   return JSON
   (
-    "id": trie_to_json( rect->L->id ),
+    "id": rect->L ? trie_to_json( rect->L->id ) : NULL,
     "x": rect->x,
     "y": rect->y,
     "width": rect->width,
     "height": rect->height,
-    "lyph": lyph_to_json( rect->L ),
-    "location": lyph_relative_loc_to_json_v( rect->L, v )
+    "lyph": rect->L ? lyph_to_json( rect->L ) : NULL,
+    "location": rect->L ? lyph_relative_loc_to_json_v( rect->L, v ) : NULL
   );
 }
 
@@ -549,7 +557,16 @@ void save_one_lyphview( lyphview *v, FILE *fp )
   fprintf( fp, "Lyphs %zd\n", VOIDLEN( v->rects ) );
 
   for ( r = v->rects; *r; r++ )
-    fprintf( fp, "L %s %s %s %s %s\n", trie_to_static( (*r)->L->id ), (*r)->x, (*r)->y, (*r)->width, (*r)->height );
+  {
+    char *id;
+
+    if ( (*r)->L )
+      id = trie_to_static( (*r)->L->id );
+    else
+      id = "null";
+
+    fprintf( fp, "L %s %s %s %s %s\n", id, (*r)->x, (*r)->y, (*r)->width, (*r)->height );
+  }
 }
 
 void init_default_lyphviews( void )
@@ -783,27 +800,35 @@ void load_lyphviews( void )
 
             fLyphID = 1;
 
-            lyphtr = trie_strdup( left, lyph_ids );
-
-            if ( !lyphtr->data )
+            if ( strcmp( left, "null" ) )
             {
-              CREATE( e, lyph, 1 );
-              e->id = lyphtr;
-              lyphtr->data = (trie **)e;
-              e->flags = 0;
-              e->species = NULL;
-              e->constraints = (lyphplate**)blank_void_array();
-              e->annots = (lyph_annot**)blank_void_array();
-              e->pubmed = strdup("");
-              e->projection_strength = strdup("");
+              lyphtr = trie_strdup( left, lyph_ids );
 
-              maybe_update_top_id( &top_lyph_id, left );
+              if ( !lyphtr->data )
+              {
+                CREATE( e, lyph, 1 );
+                e->id = lyphtr;
+                lyphtr->data = (trie **)e;
+                e->flags = 0;
+                e->species = NULL;
+                e->constraints = (lyphplate**)blank_void_array();
+                e->annots = (lyph_annot**)blank_void_array();
+                e->pubmed = strdup("");
+                e->projection_strength = strdup("");
+
+                maybe_update_top_id( &top_lyph_id, left );
+              }
+              else
+                e = (lyph *)lyphtr->data;
             }
-            else
-              e = (lyph *)lyphtr->data;
 
             CREATE( rects[0], lv_rect, 1 );
-            rects[0]->L = e;
+
+            if ( strcmp( left, "null" ) )
+              rects[0]->L = e;
+            else
+              rects[0]->L = NULL;
+
             rects++;
           }
 
@@ -2132,6 +2157,14 @@ lyphnode *lyphnode_by_id_or_new( char *id )
     return make_lyphnode();
   else
     return lyphnode_by_id( id );
+}
+
+lyph *lyph_by_template_or_id_or_null( char *id, char *species )
+{
+  if ( !strcmp( id, "null" ) )
+    return null_rect;
+  else
+    return lyph_by_template_or_id( id, species );
 }
 
 lyph *lyph_by_template_or_id( char *id, char *species )

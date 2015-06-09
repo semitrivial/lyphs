@@ -1186,7 +1186,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   speciesstr = get_param( params, "species" );
 
-  lyphs = (lyph**) GET_NUMBERED_ARGS_R( params, "lyph", lyph_by_template_or_id, speciesstr, &err, &lyphct );
+  lyphs = (lyph**) GET_NUMBERED_ARGS_R( params, "lyph", lyph_by_template_or_id_or_null, speciesstr, &err, &lyphct );
 
   if ( !lyphs )
   {
@@ -1275,7 +1275,8 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
 
   for ( rptr = v->rects; *rptr; rptr++ )
-    SET_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
+    if ( (*rptr)->L )
+      SET_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
 
   for ( nptr = nodes, cnt=0; *nptr; nptr++ )
   {
@@ -1447,6 +1448,9 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   for ( rptr = v->rects; *rptr; rptr++ )
   {
+    if ( !(*rptr)->L )
+      continue;
+
     REMOVE_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
     REMOVE_BIT( (*rptr)->L->flags, LYPH_QUEUED_FOR_ADDING );
   }

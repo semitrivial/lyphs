@@ -810,7 +810,7 @@ int remove_doomed_items_from_views( void )
     }
 
     for ( rptr = v->rects; *rptr; rptr++ )
-      if ( (*rptr)->L->type == LYPH_DELETED )
+      if ( (*rptr)->L && (*rptr)->L->type == LYPH_DELETED )
         break;
 
     if ( *rptr )
@@ -820,7 +820,7 @@ int remove_doomed_items_from_views( void )
       fMatch = 1;
 
       for ( rptr = v->rects, size = 0; *rptr; rptr++ )
-        if ( (*rptr)->L->type != LYPH_DELETED )
+        if ( !(*rptr)->L || (*rptr)->L->type != LYPH_DELETED )
           size++;
 
       CREATE( buf, lv_rect *, size + 1 );
@@ -828,7 +828,7 @@ int remove_doomed_items_from_views( void )
 
       for ( rptr = v->rects; *rptr; rptr++ )
       {
-        if ( (*rptr)->L->type == LYPH_DELETED )
+        if ( (*rptr)->L && (*rptr)->L->type == LYPH_DELETED )
           free( *rptr );
         else
           *bptr++ = *rptr;
@@ -1465,7 +1465,7 @@ HANDLER( do_lyphs_from_view )
 
   for ( rptr = v->rects, size = 0; *rptr; rptr++ )
   {
-    if ( IS_SET( (*rptr)->L->flags, LYPH_TO_BE_REMOVED ) )
+    if ( (*rptr)->L && IS_SET( (*rptr)->L->flags, LYPH_TO_BE_REMOVED ) )
       free( *rptr );
     else
       *bptr++ = *rptr;
