@@ -20,7 +20,6 @@
 
 #define LOG_FILE "log.txt"
 #define LYPH_ANNOTS_FILE "lyph_annots.dat"
-#define BULK_ANNOTS_FILE "bulk_annots.dat"
 #define PUBMED_FILE "pubmed.json"
 #define PUBMED_FILE_DEPRECATED "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
@@ -58,7 +57,6 @@ typedef struct LYPHPLATES_WRAPPER lyphplates_wrapper;
 typedef struct LYPH_FILTER lyph_filter;
 typedef struct LYPH_ANNOT lyph_annot;
 typedef struct LYPH_ANNOT_WRAPPER lyph_annot_wrapper;
-typedef struct BULK_ANNOT bulk_annot;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
 typedef struct NODEPATH nodepath;
@@ -249,22 +247,6 @@ struct LYPH_ANNOT_WRAPPER
   lyph_annot *a;
 };
 
-struct BULK_ANNOT
-{
-  bulk_annot *next;
-  trie *id;
-  trie *radio_index;
-  lyph **lyphs;
-  clinical_index *ci;
-  pubmed *pbmd;
-  int type;
-};
-
-typedef enum
-{
-  BULK_ANNOT_CLINICAL, BULK_ANNOT_RADIOLOGICAL, BULK_ANNOT_FUNCTIONAL
-} bulk_annot_types;
-
 struct CLINICAL_INDEX
 {
   clinical_index *next;
@@ -383,11 +365,6 @@ extern clinical_index *first_clinical_index;
 extern clinical_index *last_clinical_index;
 extern pubmed *first_pubmed;
 extern pubmed *last_pubmed;
-extern bulk_annot *first_bulk_annot;
-extern bulk_annot *last_bulk_annot;
-
-extern int top_bulk_annot_id;
-extern trie *radiological_index_predicate;
 
 /*
  * Function prototypes
@@ -571,12 +548,9 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
  * meta.c
  */
 char *lyph_to_json_id( lyph *e );
-char *bulk_annot_to_json( bulk_annot *b );
-char *bulk_annot_to_json_save( bulk_annot *b );
-bulk_annot *bulk_annot_by_id( const char *id );
 char *lyph_annot_obj_to_json( lyph_annot *a );
 void load_lyph_annotations(void);
-int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed, int update_bulk_annots );
+int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed );
 void save_lyph_annotations( void );
 pubmed *pubmed_by_id( const char *id );
 pubmed *pubmed_by_id_or_create( const char *id, int *callersaves );
@@ -584,8 +558,6 @@ clinical_index *clinical_index_by_index( const char *ind );
 clinical_index *clinical_index_by_trie( trie *ind_tr );
 void save_pubmeds( void );
 void load_pubmeds( void );
-void load_bulk_annots( void );
-void save_bulk_annots( void );
 void save_clinical_indices( void );
 void load_clinical_indices( void );
 void load_clinical_indices_deprecated( void );
@@ -604,4 +576,3 @@ int template_involves_any_of( lyphplate *L, lyphplate **parts );
  */
 void clinical_indices_from_js( const char *js );
 void pubmeds_from_js( const char *js );
-void bulk_annots_from_js( const char *js );

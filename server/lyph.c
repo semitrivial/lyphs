@@ -122,9 +122,6 @@ void free_all_lyphs( void )
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
 
-  first_bulk_annot = NULL;
-  last_bulk_annot = NULL;
-
   top_lyph_id = 0;
 
   free_all_views();

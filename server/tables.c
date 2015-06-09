@@ -13,8 +13,6 @@ void init_command_table(void)
   add_handler( "all_ont_terms", do_all_ont_terms, CMD_READONLY );
   add_handler( "all_pubmeds", do_all_pubmeds, CMD_READONLY );
   add_handler( "all_clinical_indices", do_all_clinical_indices, CMD_READONLY );
-  add_handler( "all_radiological_indices", do_radiological_indices, CMD_READONLY );
-  add_handler( "all_bulk_annots", do_all_bulk_annots, CMD_READONLY );
   add_handler( "clinical_index", do_clinical_index, CMD_READONLY );
   add_handler( "clone", do_clone, CMD_READWRITE );
   add_handler( "pubmed", do_pubmed, CMD_READONLY );
@@ -60,7 +58,6 @@ void init_command_table(void)
   add_handler( "lyphs_located_in_term", do_lyphs_located_in_term, CMD_READONLY );
   add_handler( "unused_indices", do_unused_indices, CMD_READONLY );
   add_handler( "annotate", do_annotate, CMD_READWRITE );
-  add_handler( "bulk_annot", do_bulk_annot, CMD_READWRITE );
   add_handler( "remove_annotations", do_remove_annotation, CMD_READWRITE );
   add_handler( "editlyph", do_editlyph, CMD_READWRITE );
   add_handler( "editlyphnode", do_editlyphnode, CMD_READWRITE );

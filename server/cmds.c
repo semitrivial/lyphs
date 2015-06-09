@@ -836,45 +836,6 @@ int remove_doomed_items_from_views( void )
   return fMatch;
 }
 
-int remove_doomed_lyphs_from_bulk_annots( void )
-{
-  bulk_annot *b;
-  int fMatch = 0;
-
-  for ( b = first_bulk_annot; b; b = b->next )
-  {
-    lyph **eptr;
-
-    for ( eptr = b->lyphs; *eptr; eptr++ )
-      if ( (*eptr)->type == LYPH_DELETED )
-        break;
-
-    if ( *eptr )
-    {
-      lyph **buf, **bptr;
-      int cnt = 0;
-
-      for ( eptr = b->lyphs; *eptr; eptr++ )
-        if ( (*eptr)->type != LYPH_DELETED )
-          cnt++;
-
-      CREATE( buf, lyph *, cnt + 1 );
-      bptr = buf;
-
-      for ( eptr = b->lyphs; *eptr; eptr++ )
-        if ( (*eptr)->type != LYPH_DELETED )
-          *bptr++ = *eptr;
-
-      *bptr = NULL;
-      free( b->lyphs );
-      b->lyphs = buf;
-      fMatch = 1;
-    }
-  }
-
-  return fMatch;
-}
-
 HANDLER( do_delete_lyphs )
 {
   char *lyphstr, *err;
@@ -900,9 +861,6 @@ HANDLER( do_delete_lyphs )
     else
       (*eptr)->type = LYPH_DELETED;
   }
-
-  if ( remove_doomed_lyphs_from_bulk_annots() )
-    save_bulk_annots();
 
   if ( remove_doomed_items_from_views() )
     save_lyphviews();

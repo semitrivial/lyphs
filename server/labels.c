@@ -18,7 +18,6 @@ void init_labels(FILE *fp)
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
   metadata = blank_trie();
-  radiological_index_predicate = trie_strdup( RADIOLOGICAL_INDEX_PRED, metadata );
 
   init_html_codes();
 
@@ -29,7 +28,6 @@ void init_labels(FILE *fp)
   load_pubmeds();
   load_clinical_indices();
   load_lyph_annotations();
-  load_bulk_annots();
 
 #ifdef PRE_LAYER_CHANGE
   compute_lyphplate_hierarchy( lyphplate_ids );

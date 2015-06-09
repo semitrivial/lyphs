@@ -80,48 +80,6 @@ extern "C" void clinical_indices_from_js( const char *js )
   }
 }
 
-void bulk_annot_from_js( bulk_annot *b, Value &v )
-{
-  static int idpos = strlen("BULK_ANNOT_");
-  const char *id = v["id"].GetString();
-
-  b->id = trie_strdup( id, metadata );
-  b->type = atoi( v["type"].GetString() );
-  b->lyphs = (lyph**)array_from_doc( v, "lyphs", CST( lyph_by_id ) );
-
-  maybe_update_top_id( &top_bulk_annot_id, &id[idpos] );
-
-  if ( v.HasMember("clinical index") )
-    b->ci = clinical_index_by_index( v["clinical index"].GetString() );
-  else
-    b->ci = NULL;
-
-  if ( v.HasMember("radiological index") )
-    b->radio_index = trie_strdup( v["radiological index"].GetString(), metadata );
-
-  b->pbmd = pubmed_by_id( v["pubmed"].GetString() );
-}
-
-extern "C" void bulk_annots_from_js( const char *js )
-{
-  Document d;
-  int size;
-
-  d.Parse(js);
-  size = d.Size();
-
-  for ( int i = 0; i < size; i++ )
-  {
-    bulk_annot *b = bulk_annot_by_id( d[i]["id"].GetString() );
-
-    if ( !b )
-      CREATE( b, bulk_annot, 1 );
-
-    bulk_annot_from_js( b, d[i] );
-    LINK( b, first_bulk_annot, last_bulk_annot, next );
-  }
-}
-
 void pubmed_from_js( pubmed *p, Value &v )
 {
   p->id = strdup( v["id"].GetString() );
