@@ -207,7 +207,7 @@ int calc_len_of_applying_template( char *tmplt, char **fields )
       continue;
     }
 
-    if ( !isdigit( tmplt[1] ) )
+    if ( !isdigit( tptr[1] ) )
       continue;
 
     for ( end = &tptr[2]; isdigit(*end); end++ )
@@ -490,7 +490,7 @@ HANDLER( do_niflyph )
   lyph *e;
   char *fmastr, *ptr, buf[1024], *speciesstr;
 
-  TRY_PARAM( fmastr, "fma", "You didn't specify an fma" );
+  TRY_TWO_PARAMS( fmastr, "fma", "fmastr", "You didn't specify an fma" );
   TRY_PARAM( speciesstr, "species", "You didn't specify a species" );
 
   for ( ptr = fmastr; *ptr; ptr++ )
