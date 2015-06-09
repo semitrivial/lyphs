@@ -86,7 +86,7 @@ HANDLER( do_editlyphnode )
   if ( !locstr )
     locstr = get_param( params, "loc" );
 
-  if ( locstr )
+  if ( locstr && strcmp( locstr, "none" ) && strcmp( locstr, "null" ) )
   {
     loc = lyph_by_id( locstr );
 
@@ -118,6 +118,8 @@ HANDLER( do_editlyphnode )
 
   if ( loc )
     n->location = loc;
+  else if ( locstr && (!strcmp( locstr, "null" ) || !strcmp( locstr, "none" )) )
+    n->location = NULL;
 
   if ( loctypestr )
     n->loctype = loctype;
@@ -222,7 +224,7 @@ HANDLER( do_editlyph )
   if ( !locstr )
     locstr = get_param( params, "location" );
 
-  if ( locstr )
+  if ( locstr && strcmp( locstr, "none" ) && strcmp( locstr, "null" ) )
   {
     if ( from || to )
       HND_ERR( "You can't change the lyph's 'from' or 'to' with the same command that you change its 'location'" );
@@ -333,6 +335,11 @@ HANDLER( do_editlyph )
     e->from->loctype = LOCTYPE_INTERIOR;
     e->to->location = loc;
     e->to->loctype = LOCTYPE_INTERIOR;
+  }
+  else if ( locstr && (!strcmp( locstr, "null" ) || !strcmp( locstr, "none" )) )
+  {
+    e->from->location = NULL;
+    e->to->location = NULL;
   }
 
   speciesstr = get_param( params, "species" );
