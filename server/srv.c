@@ -579,6 +579,7 @@ void send_response_with_type( http_request *req, char *code, char *txt, char *ty
                   "Content-Length: %zd\r\n"
                   "\r\n"
                   "%s",
+                  code,
                   current_date(),
                   type,
                   nocache_headers(),
