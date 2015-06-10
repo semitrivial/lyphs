@@ -305,6 +305,12 @@ struct LYPHVIEW
   lv_rect **rects;
 };
 
+typedef enum
+{
+  MAKEVIEW_WORKER_MAKEVIEW, MAKEVIEW_WORKER_NODES_TO_VIEW,
+  MAKEVIEW_WORKER_CHANGE_COORDS, MAKEVIEW_WORKER_EDITVIEW
+} makeview_worker_args;
+
 struct LV_RECT
 {
   lyph *L;

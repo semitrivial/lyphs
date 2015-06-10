@@ -564,33 +564,6 @@ HANDLER( do_edit_template )
   send_response( req, lyphplate_to_json( L ) );
 }
 
-HANDLER( do_editview )
-{
-  char *viewstr, *namestr;
-  lyphview *v;
-
-  TRY_PARAM( viewstr, "view", "You did not specify which lyphview to edit" );
-
-  v = lyphview_by_id( viewstr );
-
-  if ( !v )
-    HND_ERR( "The indicated view was not found in the database" );
-
-  namestr = get_param( params, "name" );
-
-  if ( namestr )
-  {
-    if ( v->name )
-      free( v->name );
-
-    v->name = strdup( namestr );
-  }
-
-  save_lyphviews();
-
-  send_response( req, lyphview_to_json( v ) );
-}
-
 HANDLER( do_editlayer )
 {
   layer *lyr;

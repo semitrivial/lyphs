@@ -1110,24 +1110,24 @@ HANDLER( do_makelyph )
 
 HANDLER( do_makeview )
 {
-  makeview_worker( request, req, params, 0 );
+  makeview_worker( request, req, params, MAKEVIEW_WORKER_MAKEVIEW );
 }
 
 HANDLER( do_nodes_to_view )
 {
-  makeview_worker( request, req, params, 1 );
+  makeview_worker( request, req, params, MAKEVIEW_WORKER_NODES_TO_VIEW );
 }
 
 HANDLER( do_change_coords )
 {
-  makeview_worker( request, req, params, 2 );
+  makeview_worker( request, req, params, MAKEVIEW_WORKER_CHANGE_COORDS );
 }
 
-/*
- *  Type = 0:  makeview
- *  Type = 1:  nodes_to_view or rects_to_view
- *  Type = 2:  change_coords
- */
+HANDLER( do_editview )
+{
+  makeview_worker( request, req, params, MAKEVIEW_WORKER_EDITVIEW );
+}
+
 void makeview_worker( char *request, http_request *req, url_param **params, int type )
 {
   lyphnode **nodes, **nptr;
@@ -1140,14 +1140,16 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   int cnt, fChange;
   lyphview *v;
 
-  if ( type != 0 )
+  if ( type != MAKEVIEW_WORKER_MAKEVIEW )
   {
     char *viewstr;
 
-    if ( type == 1 )
+    if ( type == MAKEVIEW_WORKER_NODES_TO_VIEW )
       TRY_PARAM( viewstr, "view", "You did not specify which view to add nodes to." );
-    else
+    else if ( type == MAKEVIEW_WORKER_CHANGE_COORDS )
       TRY_PARAM( viewstr, "view", "You did not specify which view to change coordinates in." );
+    else
+      TRY_PARAM( viewstr, "view", "You did not specify which view to edit." );
 
     v = lyphview_by_id( viewstr );
 
@@ -1236,7 +1238,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   if ( lyphct == 0 && nodect == 0 )
     HND_ERR( "You did not specify any nodes or any lyphs" );
 
-  if ( type == 0 )
+  if ( type == MAKEVIEW_WORKER_MAKEVIEW )
   {
     namestr = get_param( params, "name" );
 
@@ -1259,17 +1261,35 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     return;
   }
 
-  /*
-   * Remaining cases:
-   * 1 = nodes_to_view/lyphs_to_view
-   * 2 = change_coords
-   */
   #define LYPHNODE_ALREADY_IN_VIEW 1
   #define LYPHNODE_QUEUED_FOR_ADDING 2
   #define LYPH_ALREADY_IN_VIEW 1
   #define LYPH_QUEUED_FOR_ADDING 2
 
   fChange = 0;
+
+  if ( type == MAKEVIEW_WORKER_EDITVIEW )
+  {
+    if ( v->nodes )
+      free( v->nodes );
+    if ( v->coords )
+      free( v->coords );
+
+    v->nodes = (lyphnode**)blank_void_array();
+    v->coords = (char**)blank_void_array();
+
+    if ( v->rects )
+    {
+      for ( rptr = v->rects; *rptr; rptr++ )
+      {
+        MULTIFREE( (*rptr)->x, (*rptr)->y, (*rptr)->width, (*rptr)->height );
+        free( *rptr );
+      }
+      free( v->rects );
+    }
+    v->rects = (lv_rect**)blank_void_array();
+    fChange = 1;
+  }
 
   for ( nptr = v->nodes; *nptr; nptr++ )
     SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
@@ -1328,7 +1348,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     v->coords = newc;
   }
 
-  if ( type == 2 && nodect )  // change_coords
+  if ( (type == MAKEVIEW_WORKER_CHANGE_COORDS || type == MAKEVIEW_WORKER_EDITVIEW) && nodect )
   {
     for ( nptr = nodes, xsptr = xs, ysptr = ys; *nptr; nptr++, xsptr++, ysptr++ )
     {
@@ -1417,7 +1437,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     v->rects = buf;
   }
 
-  if ( type == 2 && lyphct ) // change_coords
+  if ( type == MAKEVIEW_WORKER_CHANGE_COORDS && lyphct ) // change_coords
   {
     for ( lptr = lyphs, lxsptr = lxs, lysptr = lys, wptr = widths, hptr = heights;
           *lptr; lptr++, lxsptr++, lysptr++, wptr++, hptr++ )
