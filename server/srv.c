@@ -1065,8 +1065,8 @@ HANDLER( do_makelyph )
   {
     type = strtol( typestr, NULL, 10 );
 
-    if ( type < 1 || type > 4 )
-      HND_ERR( "Type must be 1, 2, 3, or 4" );
+    if ( type < 1 || type > 3 )
+      HND_ERR( "Type must be 1, 2, or 3" );
   }
   else
     type = 1;

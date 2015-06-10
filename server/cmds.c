@@ -167,8 +167,8 @@ HANDLER( do_editlyph )
   if ( typestr )
   {
     type = strtol( typestr, NULL, 10 );
-    if ( type < 1 || type > 4 )
-      HND_ERR( "Valid edge types are 1, 2, 3, and 4." );
+    if ( type < 1 || type > 3 )
+      HND_ERR( "Valid edge types are 1, 2, and 3." );
   }
 
   namestr = get_param( params, "name" );
