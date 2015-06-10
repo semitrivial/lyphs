@@ -3603,7 +3603,7 @@ char *get_random_color( void )
       (
         "&": JSON1
         (
-          "background-color": color
+          "backgroundColor": color
         )
       )
     )
