@@ -209,7 +209,7 @@ void http_send( http_request *req, char *txt, int len );
 void handle_request( http_request *req, char *query );
 void send_400_response( http_request *req );
 void send_response( http_request *req, char *txt );
-void send_200_with_type( http_request *req, char *txt, char *type );
+void send_response_with_type( http_request *req, char *code, char *txt, char *type );
 char *nocache_headers(void);
 char *current_date(void);
 void send_gui( http_request *req );

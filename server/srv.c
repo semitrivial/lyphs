@@ -544,10 +544,15 @@ void send_400_response( http_request *req )
 
 void send_response( http_request *req, char *txt )
 {
-  send_200_with_type( req, txt, "application/json" );
+  send_response_with_type( req, "200 OK", txt, "application/json" );
 }
 
-void send_200_with_type( http_request *req, char *txt, char *type )
+void send_error_response( http_request *req, char *txt )
+{
+  send_response_with_type( req, "400 Bad Request", txt, "application/json" );
+}
+
+void send_response_with_type( http_request *req, char *code, char *txt, char *type )
 {
   char *buf, *fmt;
 
@@ -567,7 +572,7 @@ void send_200_with_type( http_request *req, char *txt, char *type )
     txt = jsonp;
   }
 
-  buf = strdupf(  "HTTP/1.1 200 OK\r\n"
+  buf = strdupf(  "HTTP/1.1 %s\r\n"
                   "Date: %s\r\n"
                   "Content-Type: %s; charset=utf-8\r\n"
                   "%s"
@@ -616,12 +621,12 @@ char *current_date(void)
 
 void send_gui( http_request *req )
 {
-  send_200_with_type( req, html, "text/html" );
+  send_response_with_type( req, "200 OK", html, "text/html" );
 }
 
 void send_js( http_request *req )
 {
-  send_200_with_type( req, js, "application/javascript" );
+  send_response_with_type( req, "200 OK", js, "application/javascript" );
 }
 
 char *load_file( char *filename )
