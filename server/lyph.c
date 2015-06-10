@@ -18,6 +18,7 @@ int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
 char *lyphnode_to_json_brief( lyphnode *n );
 void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t );
+char *get_random_color( void );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -2398,7 +2399,8 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "species": e->species ? trie_to_json( e->species ) : js_suppress,
     "children": JS_ARRAY( lyph_child_to_json, children ),
     "pubmed": e->pubmed && *e->pubmed ? str_to_json(e->pubmed) : js_suppress,
-    "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress
+    "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress,
+    "tile": get_random_color()
   );
 
   free( children );
@@ -3578,3 +3580,33 @@ lyph *lyph_by_name( const char *name )
 {
   return lyph_by_name_recurse( name, lyph_ids );
 }
+
+char *get_random_color( void )
+{
+  char *color;
+
+  switch( rand() % 5 )
+  {
+    case 0: color = "red"; break;
+    case 1: color = "blue"; break;
+    case 2: color = "green"; break;
+    case 3: color = "yellow"; break;
+    default:
+    case 4: color = "gray"; break;
+  }
+
+  return JSON1
+  (
+    "normal": JSON1
+    (
+      "css": JSON1
+      (
+        "&": JSON1
+        (
+          "background-color": color
+        )
+      )
+    )
+  );
+}
+
