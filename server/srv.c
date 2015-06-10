@@ -1301,7 +1301,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     SET_BIT( (*nptr)->flags, LYPHNODE_ALREADY_IN_VIEW );
 
   for ( rptr = v->rects; *rptr; rptr++ )
-    if ( (*rptr)->L )
+    if ( (*rptr)->L && (*rptr)->L != null_rect )
       SET_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
 
   for ( nptr = nodes, cnt=0; *nptr; nptr++ )
@@ -1392,6 +1392,12 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   for ( lptr = lyphs, cnt=0; *lptr; lptr++ )
   {
+    if ( *lptr == null_rect )
+    {
+      cnt++;
+      continue;
+    }
+
     if ( IS_SET( (*lptr)->flags, LYPH_ALREADY_IN_VIEW )
     ||   IS_SET( (*lptr)->flags, LYPH_QUEUED_FOR_ADDING ) )
       continue;
@@ -1415,7 +1421,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     {
       lv_rect *rect;
 
-      if ( IS_SET( (*lptr)->flags, LYPH_ALREADY_IN_VIEW ) )
+      if ( *lptr != null_rect && IS_SET( (*lptr)->flags, LYPH_ALREADY_IN_VIEW ) )
       {
         lxsptr++;
         lysptr++;
@@ -1425,10 +1431,16 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
         continue;
       }
 
-      SET_BIT( (*lptr)->flags, LYPH_ALREADY_IN_VIEW );
+      if ( *lptr != null_rect )
+        SET_BIT( (*lptr)->flags, LYPH_ALREADY_IN_VIEW );
 
       CREATE( rect, lv_rect, 1 );
-      rect->L = *lptr;
+
+      if ( *lptr != null_rect )
+        rect->L = *lptr;
+      else
+        rect->L = NULL;
+
       rect->x = strdup( *lxsptr++ );
       rect->y = strdup( *lysptr++ );
       rect->width = strdup( *wptr++ );
@@ -1474,7 +1486,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
 
   for ( rptr = v->rects; *rptr; rptr++ )
   {
-    if ( !(*rptr)->L )
+    if ( (*rptr)->L == null_rect || !(*rptr)->L )
       continue;
 
     REMOVE_BIT( (*rptr)->L->flags, LYPH_ALREADY_IN_VIEW );
