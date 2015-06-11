@@ -1057,9 +1057,25 @@ void save_lyphs_recurse( trie *t, FILE *fp )
   if ( t->data )
   {
     lyph *e = (lyph *)t->data;
+    char *fmastr;
 
     fprintf( fp, "%s\t", trie_to_static( e->id ) );
-    fprintf( fp, "%d\t%s\t", e->type, e->fma ? trie_to_static( e->fma ) : "(nofma)" );
+
+    if ( e->fma )
+    {
+      char *ptr;
+
+      fmastr = trie_to_static( e->fma );
+      for ( ptr = fmastr; *ptr; ptr++ )
+        if ( *ptr != ' ' )
+          break;
+      if ( !*ptr )
+        fmastr = "(nofma)";
+    }
+    else
+      fmastr = "(nofma)";
+
+    fprintf( fp, "%d\t%s\t", e->type, fmastr );
     fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
     fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
 

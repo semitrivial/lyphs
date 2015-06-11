@@ -1073,6 +1073,9 @@ HANDLER( do_makelyph )
 
   fmastr = get_param( params, "fma" );
 
+  if ( fmastr && !*fmastr )
+    fmastr = NULL;
+
   fromstr = get_param( params, "from" );
   tostr = get_param( params, "to" );
 

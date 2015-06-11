@@ -174,6 +174,9 @@ HANDLER( do_editlyph )
   namestr = get_param( params, "name" );
   fmastr = get_param( params, "fma" );
 
+  if ( fmastr && !*fmastr )
+    fmastr = NULL;
+
   if ( fmastr )
     fma = trie_strdup( fmastr, lyph_fmas );
   else
