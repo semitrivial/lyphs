@@ -2026,7 +2026,7 @@ HANDLER( do_all_lyphnodes )
 
 HANDLER( do_reset_db )
 {
-  int fMatch = 0, fWarning = 0;
+  int fMatch = 0;
 
   #ifdef NDEBUG
   HND_ERR( "The reset_db command is only available when the server is running in debug mode." );
@@ -2048,20 +2048,12 @@ HANDLER( do_reset_db )
   {
     fMatch = 1;
     free_all_lyphs();
-
-    if ( !copy_file( "lyphs.dat", "lyphs.dat.bak" ) )
-      fWarning = 1;
-    else
-      load_lyphs();
   }
 
   if ( !fMatch )
     HND_ERR( "You did not specify anything to delete (options are 'views', 'templates', and 'graph')" );
 
-  if ( fWarning )
-    send_response( req, JSON1( "Response": "Warning: Could not copy 'lyphs.dat.bak' to 'lyphs.dat'" ) );
-  else
-    send_response( req, JSON1( "Response": "OK" ) );
+  send_response( req, JSON1( "Response": "OK" ) );
 }
 
 void default_config_values( void )
