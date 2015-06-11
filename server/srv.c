@@ -1455,7 +1455,7 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     v->rects = buf;
   }
 
-  if ( type == MAKEVIEW_WORKER_CHANGE_COORDS && lyphct ) // change_coords
+  if ( type == MAKEVIEW_WORKER_CHANGE_COORDS && lyphct )
   {
     for ( lptr = lyphs, lxsptr = lxs, lysptr = lys, wptr = widths, hptr = heights;
           *lptr; lptr++, lxsptr++, lysptr++, wptr++, hptr++ )
@@ -1498,7 +1498,22 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   if ( lyphct > 0 )
     MULTIFREE( lxs, lys, widths, heights );
 
-  if ( fChange )
+  if ( type == MAKEVIEW_WORKER_EDITVIEW )
+  {
+    namestr = get_param( params, "name" );
+
+    if ( namestr )
+    {
+      fChange = 1;
+
+      if ( v->name )
+        free( v->name );
+
+      v->name = strdup( namestr );
+    }
+  }
+
+  if ( fChange || type == MAKEVIEW_WORKER_EDITVIEW )
     save_lyphviews();
 
   send_response( req, lyphview_to_json( v ) );
