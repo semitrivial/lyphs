@@ -6,6 +6,8 @@ clinical_index *first_clinical_index;
 clinical_index *last_clinical_index;
 pubmed *first_pubmed;
 pubmed *last_pubmed;
+correlation *first_correlation;
+correlation *last_correlation;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 
@@ -745,6 +747,27 @@ char *clinical_index_to_json_brief( clinical_index *ci )
   return trie_to_json( ci->index );
 }
 
+clinical_index *clinical_index_by_index_or_create( const char *ind )
+{
+  clinical_index *ci = clinical_index_by_index( ind );
+
+  if ( ci ) 
+    return ci;
+
+  CREATE( ci, clinical_index, 1 );
+
+  ci->index = trie_strdup( ind, metadata );
+  ci->label = ci->index;
+  ci->pubmeds = (pubmed**)blank_void_array();
+  ci->claimed = NULL;
+
+  LINK( ci, first_clinical_index, last_clinical_index, next );
+
+  save_clinical_indices();
+
+  return ci;
+}
+
 clinical_index *clinical_index_by_index( const char *ind )
 {
   trie *ind_tr;
@@ -1135,4 +1158,185 @@ HANDLER( do_remove_annotation )
     save_lyph_annotations();
 
   send_response( req, JSON1( "Response": "OK" ) );
+}
+
+char *variable_to_json( variable *v )
+{
+  if ( v->type == VARIABLE_CLINDEX )
+    return JSON
+    (
+      "type": "clinical index",
+      "clindex": trie_to_json( v->ci->index ),
+      "clindex label": trie_to_json( v->ci->label )
+    );
+  else
+    return JSON
+    (
+      "type": "located measure",
+      "quality": v->quality,
+      "location": trie_to_json( v->loc->id ),
+      "location name": v->loc->name ? trie_to_json( v->loc->name ) : NULL
+    );
+}
+
+char *correlation_to_json( correlation *c )
+{
+  return JSON
+  (
+    "id": int_to_json( c->id ),
+    "variables": JS_ARRAY( variable_to_json, c->vars ),
+    "pubmed": pubmed_to_json_full( c->pbmd )
+  );
+}
+
+HANDLER( do_correlation )
+{
+  correlation *c = correlation_by_id( request );
+
+  if ( !c )
+  {
+    if ( !*request )
+      HND_ERR( "You did not indicate which correlation to look up" );
+    else
+      HND_ERR( "The indicated correlation was not recognized" );
+  }
+
+  send_response( req, correlation_to_json( c ) );
+
+  return;
+}
+
+correlation *correlation_by_id( const char *id )
+{
+  correlation *c;
+  int id_as_int;
+
+  id_as_int = strtoul( id, NULL, 10 );
+
+  if ( id_as_int == -1 )
+    return NULL;
+
+  for ( c = first_correlation; c; c = c->next )
+    if ( c->id == id_as_int )
+      return c;
+
+  return NULL;
+}
+
+variable *parse_one_variable( const char *vstr )
+{
+  variable *v;
+  lyph *e;
+  char *of = strstr( vstr, " of " );
+
+  if ( !of )
+  {
+    clinical_index *ci;
+    const char *space;
+
+    for ( space = vstr; *space; space++ )
+      if ( *space == ' ' )
+        break;
+
+    if ( *space )
+      return NULL;
+
+    ci = clinical_index_by_index_or_create( vstr );
+
+    CREATE( v, variable, 1 );
+    v->type = VARIABLE_CLINDEX;
+    v->ci = ci;
+    v->quality = NULL;
+    v->loc = NULL;
+
+    return v;
+  }
+
+  if ( of == vstr )
+    return NULL;
+
+  e = lyph_by_id( of + strlen(" of ") );
+
+  if ( !e )
+    return NULL;
+
+  CREATE( v, variable, 1 );
+  v->type = VARIABLE_LOCATED;
+
+  CREATE( v->quality, char, of - vstr + 1 );
+  memcpy( v->quality, vstr, of - vstr );
+  v->quality[of-vstr] = '\0';
+
+  v->loc = e;
+  v->ci = NULL;
+
+  return v;
+}
+
+HANDLER( do_makecorrelation )
+{
+  correlation *c;
+  variable **vars;
+  char *pubmedstr, *varsstr, *err;
+  int yes;
+
+  TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed'" );
+  TRY_TWO_PARAMS( varsstr, "vars", "variables", "You did not indicate a list of 'variables'" );
+
+  vars = (variable**) PARSE_LIST( varsstr, parse_one_variable, "variable", &err );
+
+  if ( !vars )
+  {
+    if ( err )
+      free( err );
+    HND_ERR( "One of the indicated variables was malformed" );
+  }
+
+  if ( !*vars )
+  {
+    free( vars );
+    HND_ERR( "You cannot create a correlation with a blank list of variables" );
+  }
+
+  yes = 1;
+  CREATE( c, correlation, 1 );
+  c->vars = vars;
+  c->pbmd = pubmed_by_id_or_create( pubmedstr, &yes );
+
+  if ( last_correlation )
+    c->id = last_correlation->id + 1;
+  else
+    c->id = 1;
+
+  LINK( c, first_correlation, last_correlation, next );
+  save_correlations();
+
+  send_response( req, correlation_to_json( c ) );
+  return;
+}
+
+HANDLER( do_all_correlations )
+{
+  correlation **cbuf, **cbufptr, *c;
+  int cnt = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+    cnt++;
+
+  CREATE( cbuf, correlation *, cnt + 1 );
+  cbufptr = cbuf;
+
+  for ( c = first_correlation; c; c = c->next )
+    *cbufptr++ = c;
+
+  *cbufptr = NULL;
+
+  send_response( req, JS_ARRAY( correlation_to_json, cbuf ) );
+
+  free( cbuf );
+}
+
+void save_correlations( void )
+{
+  return;
 }

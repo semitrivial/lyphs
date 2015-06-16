@@ -59,6 +59,8 @@ typedef struct LYPH_ANNOT lyph_annot;
 typedef struct LYPH_ANNOT_WRAPPER lyph_annot_wrapper;
 typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
+typedef struct VARIABLE variable;
+typedef struct CORRELATION correlation;
 typedef struct NODEPATH nodepath;
 typedef struct SYSTEM_CONFIGS system_configs;
 
@@ -264,6 +266,27 @@ struct PUBMED
   pubmed *next;
   char *id;
   char *title;
+};
+
+struct VARIABLE
+{
+  int type;
+  clinical_index *ci;
+  char *quality;
+  lyph *loc;
+};
+
+typedef enum
+{
+  VARIABLE_CLINDEX, VARIABLE_LOCATED
+} variable_types;
+
+struct CORRELATION
+{
+  correlation *next;
+  variable **vars;
+  pubmed *pbmd;
+  int id;
 };
 
 struct NODEPATH
@@ -557,6 +580,10 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+void save_correlations( void );
+char *correlation_to_json( correlation *c );
+char *variable_to_json( variable *v );
+correlation *correlation_by_id( const char *id );
 char *lyph_to_json_id( lyph *e );
 char *lyph_annot_obj_to_json( lyph_annot *a );
 void load_lyph_annotations(void);

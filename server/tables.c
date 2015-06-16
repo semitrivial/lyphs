@@ -6,6 +6,7 @@ command_entry *last_handler[TABLES_HASH];
 
 void init_command_table(void)
 {
+  add_handler( "all_correlations", do_all_correlations, CMD_READONLY );
   add_handler( "all_templates", do_all_templates, CMD_READONLY );
   add_handler( "all_lyphnodes", do_all_lyphnodes, CMD_READONLY );
   add_handler( "all_lyphs", do_all_lyphs, CMD_READONLY );
@@ -15,12 +16,14 @@ void init_command_table(void)
   add_handler( "all_clinical_indices", do_all_clinical_indices, CMD_READONLY );
   add_handler( "clinical_index", do_clinical_index, CMD_READONLY );
   add_handler( "clone", do_clone, CMD_READWRITE );
+  add_handler( "correlation", do_correlation, CMD_READONLY );
   add_handler( "pubmed", do_pubmed, CMD_READONLY );
   add_handler( "template_hierarchy", do_template_hierarchy, CMD_READONLY );
   add_handler( "assign_template", do_assign_template, CMD_READWRITE );
   add_handler( "lyphconstrain", do_lyphconstrain, CMD_READWRITE );
   add_handler( "template_along_path", do_template_along_path, CMD_READWRITE );
   add_handler( "constrain_along_path", do_constrain_along_path, CMD_READWRITE );
+  add_handler( "makecorrelation", do_makecorrelation, CMD_READWRITE );
   add_handler( "maketemplate", do_maketemplate, CMD_READWRITE );
   add_handler( "makelayer", do_makelayer, CMD_READWRITE );
   add_handler( "makelyph", do_makelyph, CMD_READWRITE );
