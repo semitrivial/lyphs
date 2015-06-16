@@ -3594,3 +3594,43 @@ lyph *lyph_by_name( const char *name )
 {
   return lyph_by_name_recurse( name, lyph_ids );
 }
+
+void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+
+    if ( e->name && str_begins( trie_to_static( e->name ), prefix ) )
+    {
+      **bptr = e;
+      (*bptr)++;
+    }
+    else if ( str_begins( trie_to_static( e->id ), prefix ) )
+    {
+      **bptr = e;
+      (*bptr)++;
+    }
+  }
+
+  TRIE_RECURSE( populate_lyphs_by_prefix( prefix, bptr, *child ) );
+}
+
+HANDLER( do_lyphs_by_prefix )
+{
+  lyph **buf, **bptr;
+  char *prefix;
+
+  TRY_PARAM( prefix, "prefix", "You did not indicate a 'prefix'" );
+
+  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) + 1);
+  bptr = buf;
+
+  populate_lyphs_by_prefix( prefix, &bptr, lyph_ids );
+
+  *bptr = NULL;
+
+  send_response( req, JS_ARRAY( lyph_to_json, buf ) );
+
+  free( buf );
+}

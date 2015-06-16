@@ -32,6 +32,7 @@ void init_command_table(void)
   add_handler( "make_clinical_index", do_make_clinical_index, CMD_READWRITE );
   add_handler( "make_pubmed", do_make_pubmed, CMD_READWRITE );
   add_handler( "nodes_to_view", do_nodes_to_view, CMD_READWRITE );
+  add_handler( "lyphs_by_prefix", do_lyphs_by_prefix, CMD_READONLY );
   add_handler( "lyphs_to_view", do_nodes_to_view, CMD_READWRITE ); // Not a type -- lyphs_from_view and nodes_to_view are actually handled by the same handler function
   add_handler( "lyphs_from_view", do_lyphs_from_view, CMD_READWRITE );
   add_handler( "nodes_from_view", do_nodes_from_view, CMD_READWRITE );
