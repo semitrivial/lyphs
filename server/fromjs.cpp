@@ -210,7 +210,7 @@ void correlation_from_js( Value &v )
   c->pbmd = pbmd;
   c->id = id;
 
-  LINK( c, first_correlation, last_correlation, next );
+  LINK2( c, first_correlation, last_correlation, next, prev );
 }
 
 void located_measure_from_js( Value &v )
@@ -248,7 +248,7 @@ void located_measure_from_js( Value &v )
   m->id = id;
   m->loc = e;
 
-  LINK( m, first_located_measure, last_located_measure, next );
+  LINK2( m, first_located_measure, last_located_measure, next, prev );
 }
 
 extern "C" void correlations_from_js( const char *js )

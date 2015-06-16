@@ -287,6 +287,7 @@ typedef enum
 struct CORRELATION
 {
   correlation *next;
+  correlation *prev;
   variable **vars;
   pubmed *pbmd;
   int id;
@@ -295,6 +296,7 @@ struct CORRELATION
 struct LOCATED_MEASURE
 {
   located_measure *next;
+  located_measure *prev;
   char *quality;
   lyph *loc;
   int id;
@@ -595,6 +597,8 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+void delete_located_measure( located_measure *m );
+void delete_correlation( correlation *c );
 void load_correlations( void );
 void load_located_measures( void );
 void save_located_measures( void );

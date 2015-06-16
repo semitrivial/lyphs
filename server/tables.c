@@ -18,6 +18,8 @@ void init_command_table(void)
   add_handler( "clinical_index", do_clinical_index, CMD_READONLY );
   add_handler( "clone", do_clone, CMD_READWRITE );
   add_handler( "correlation", do_correlation, CMD_READONLY );
+  add_handler( "delete_correlation", do_delete_correlation, CMD_READWRITE );
+  add_handler( "delete_located_measure", do_delete_located_measure, CMD_READWRITE );
   add_handler( "ontsearch", do_ontsearch, CMD_READONLY );
   add_handler( "pubmed", do_pubmed, CMD_READONLY );
   add_handler( "template_hierarchy", do_template_hierarchy, CMD_READONLY );

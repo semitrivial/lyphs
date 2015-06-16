@@ -684,6 +684,37 @@ void remove_exit_data( lyphnode *n, lyph *e )
  n->exits = xnew;
 }
 
+void delete_located_measures_involving_lyph( lyph *e )
+{
+  located_measure *m, *m_next;
+
+  for ( m = first_located_measure; m; m = m_next )
+  {
+    m_next = m->next;
+
+    if ( m->loc == e )
+      delete_located_measure( m );
+  }
+}
+
+void delete_correlations_involving_lyph( lyph *e )
+{
+  correlation *c, *c_next;
+  variable **v;
+
+  for ( c = first_correlation; c; c = c_next )
+  {
+    c_next = c->next;
+
+    for ( v = c->vars; *v; v++ )
+      if ( (*v)->type == VARIABLE_LOCATED && (*v)->loc == e )
+        break;
+
+    if ( *v )
+      delete_correlation( c );
+  }
+}
+
 int delete_lyph( lyph *e )
 {
   int fAnnot;
@@ -699,6 +730,11 @@ int delete_lyph( lyph *e )
   free( e->annots );
 
   remove_exit_data( e->from, e );
+
+  delete_correlations_involving_lyph( e );
+  save_correlations();
+  delete_located_measures_involving_lyph( e );
+  save_located_measures();
 
   free( e );
 

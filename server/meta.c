@@ -1346,7 +1346,7 @@ HANDLER( do_makecorrelation )
   else
     c->id = 1;
 
-  LINK( c, first_correlation, last_correlation, next );
+  LINK2( c, first_correlation, last_correlation, next, prev );
   save_correlations();
 
   send_response( req, correlation_to_json( c ) );
@@ -1537,7 +1537,7 @@ located_measure *make_located_measure( char *qualstr, lyph *e, int should_save )
   else
     m->id = 1;
 
-  LINK( m, first_located_measure, last_located_measure, next );
+  LINK2( m, first_located_measure, last_located_measure, next, prev );
 
   if ( should_save )
     save_located_measures();
@@ -1612,4 +1612,71 @@ void save_located_measures( void )
   fprintf( fp, "]" );
 
   fclose(fp);
+}
+
+HANDLER( do_delete_correlation )
+{
+  correlation *c;
+  char *corrstr;
+
+  TRY_TWO_PARAMS( corrstr, "corr", "correlation", "You did not specify which 'correlation' to delete" );
+
+  c = correlation_by_id( corrstr );
+
+  if ( !c )
+    HND_ERR( "The indicated correlation was not recognized" );
+
+  delete_correlation( c );
+  save_correlations();
+
+  send_response( req, JSON1( "Response": "OK" ) );
+}
+
+void delete_correlation( correlation *c )
+{
+  variable **v;
+
+  UNLINK2( c, first_correlation, last_correlation, next, prev );
+
+  for ( v = c->vars; *v; v++ )
+  {
+    if ( (*v)->type == VARIABLE_LOCATED )
+      free( (*v)->quality );
+
+    free( *v );
+  }
+
+  free( c->vars );
+  free( c );
+}
+
+HANDLER( do_delete_located_measure )
+{
+  located_measure *m;
+  char *measstr;
+  int id;
+
+  TRY_PARAM( measstr, "measure", "You did not specify which measure to delete" );
+
+  id = strtoul( measstr, NULL, 10 );
+
+  m = located_measure_by_id( id );
+
+  if ( !m )
+    HND_ERR( "The indicated located measure was not recognized" );
+
+  delete_located_measure( m );
+  save_located_measures();
+
+  send_response( req, JSON1( "Response": "OK" ) );
+}
+
+void delete_located_measure( located_measure *m )
+{
+  if ( m->quality )
+    free( m->quality );
+
+  UNLINK2( m, first_located_measure, last_located_measure, next, prev );
+
+  free( m );
 }
