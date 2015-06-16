@@ -111,6 +111,108 @@ extern "C" void pubmeds_from_js( const char *js )
   }
 }
 
+void correlation_from_js( Value &v )
+{
+  correlation *c;
+  variable **vbl, **vblptr;
+  pubmed *pbmd;
+  char *idstr, *pubmedstr;
+  int id, vrcnt, no = 0;
+
+  idstr = strdup( v["id"].GetString() );
+
+  id = strtoul( idstr, NULL, 10 );
+
+  if ( id < 1 )
+  {
+    error_messagef( "Error loading correlation: invalid id %s", idstr );
+    free( idstr );
+    return;
+  }
+  free( idstr );
+
+  pubmedstr = strdup( v["pubmed"]["id"].GetString() );
+
+  pbmd = pubmed_by_id_or_create( pubmedstr, &no );
+
+  if ( !pbmd )
+  {
+    error_messagef( "Error loading correlation %d: invalid pubmed %s", id, pubmedstr );
+    free( pubmedstr );
+    return;
+  }
+  free( pubmedstr );
+
+  vrcnt = v["variables"].Size();
+
+  CREATE( vbl, variable *, vrcnt + 1 );
+  vblptr = vbl;
+
+  for ( rapidjson::SizeType i = 0; i < vrcnt; i++ )
+  {
+    Value &varjs = v["variables"][i];
+    variable *newvar;
+    clinical_index *ci;
+    lyph *e;
+    char *typestr, *qual;
+    int type;
+
+    typestr = strdup( varjs["type"].GetString() );
+
+    if ( !strcmp( typestr, "clinical index" ) )
+    {
+      ci = clinical_index_by_index( varjs["clindex"].GetString() );
+
+      if ( !ci )
+      {
+        error_messagef( "Error loading correlation %d: invalid clinical index %s", id, varjs["clindex"].GetString() );
+        return;
+      }
+
+      e = NULL;
+      qual = NULL;
+      type = VARIABLE_CLINDEX;
+    }
+    else if ( !strcmp( typestr, "located measure" ) )
+    {
+      e = lyph_by_id( varjs["location"].GetString() );
+
+      if ( !e )
+      {
+        error_messagef( "Error loading correlation %d: a variable has invalid lyph %s", id, varjs["location"].GetString() );
+        return;
+      }
+
+      qual = strdup( varjs["quality"].GetString() );
+      ci = NULL;
+      type = VARIABLE_LOCATED;
+    }
+    else
+    {
+      error_messagef( "Error loading correlation %d: a variable has invalid type %s", id, typestr );
+      free( typestr );
+      return;
+    }
+    free( typestr );
+
+    CREATE( newvar, variable, 1 );
+    newvar->type = type;
+    newvar->ci = ci;
+    newvar->quality = qual;
+    newvar->loc = e;
+
+    *vblptr++ = newvar;
+  }
+  *vblptr = NULL;
+
+  CREATE( c, correlation, 1 );
+  c->vars = vbl;
+  c->pbmd = pbmd;
+  c->id = id;
+
+  LINK( c, first_correlation, last_correlation, next );
+}
+
 void located_measure_from_js( Value &v )
 {
   located_measure *m;
@@ -147,6 +249,21 @@ void located_measure_from_js( Value &v )
   m->loc = e;
 
   LINK( m, first_located_measure, last_located_measure, next );
+}
+
+extern "C" void correlations_from_js( const char *js )
+{
+  Document d;
+  int size;
+
+  d.Parse( js );
+
+  size = d.Size();
+
+  for ( int i = 0; i < size; i++ )
+    correlation_from_js( d[i] );
+
+  return;
 }
 
 extern "C" void located_measures_from_js( const char *js )

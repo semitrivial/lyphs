@@ -25,6 +25,7 @@
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
 #define CLINICAL_INDEX_FILE "clinical_indices.json"
 #define LOCATED_MEASURE_FILE "locmeas.json"
+#define CORRELATION_FILE "corr.json"
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
@@ -404,6 +405,8 @@ extern clinical_index *first_clinical_index;
 extern clinical_index *last_clinical_index;
 extern pubmed *first_pubmed;
 extern pubmed *last_pubmed;
+extern correlation *first_correlation;
+extern correlation *last_correlation;
 extern located_measure *first_located_measure;
 extern located_measure *last_located_measure;
 
@@ -592,6 +595,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+void load_correlations( void );
 void load_located_measures( void );
 void save_located_measures( void );
 void save_correlations( void );
@@ -625,6 +629,7 @@ int template_involves_any_of( lyphplate *L, lyphplate **parts );
 /*
  * fromjs.cpp
  */
+void correlations_from_js( const char *js );
 void clinical_indices_from_js( const char *js );
 void pubmeds_from_js( const char *js );
 void located_measures_from_js( const char *js );

@@ -30,6 +30,7 @@ void init_labels(FILE *fp)
   load_lyph_annotations();
 
   load_located_measures();
+  load_correlations();
 
 #ifdef PRE_LAYER_CHANGE
   compute_lyphplate_hierarchy( lyphplate_ids );

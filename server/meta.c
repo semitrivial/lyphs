@@ -594,6 +594,23 @@ void load_clinical_indices_deprecated( void )
   fclose( fp );
 }
 
+void load_correlations( void )
+{
+  char *js = load_file( CORRELATION_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading -- no correlations loaded", CORRELATION_FILE );
+    return;
+  }
+
+  correlations_from_js( js );
+
+  save_pubmeds();
+
+  free( js );
+}
+
 void load_located_measures( void )
 {
   char *js = load_file( LOCATED_MEASURE_FILE );
@@ -1359,7 +1376,31 @@ HANDLER( do_all_correlations )
 
 void save_correlations( void )
 {
-  return;
+  FILE *fp = fopen( CORRELATION_FILE, "w" );
+  correlation *c;
+  int fFirst = 0;
+
+  if ( !fp )
+  {
+    error_messagef( "Could not open %s for writing", CORRELATION_FILE );
+    return;
+  }
+
+  fprintf( fp, "[" );
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", correlation_to_json( c ) );
+  }
+
+  fprintf( fp, "]" );
+
+  fclose(fp);
 }
 
 void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t )
