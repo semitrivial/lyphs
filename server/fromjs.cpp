@@ -148,7 +148,7 @@ void correlation_from_js( Value &v )
   CREATE( vbl, variable *, vrcnt + 1 );
   vblptr = vbl;
 
-  for ( rapidjson::SizeType i = 0; i < vrcnt; i++ )
+  for ( int i = 0; i < vrcnt; i++ )
   {
     Value &varjs = v["variables"][i];
     variable *newvar;
