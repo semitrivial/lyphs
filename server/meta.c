@@ -1341,11 +1341,8 @@ void save_correlations( void )
   return;
 }
 
-void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t, int substrings )
+void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t )
 {
-  if ( *cnt >= 100 )
-    return;
-
   if ( t->data )
   {
     char *label = trie_to_static( t ), *lptr;
@@ -1361,9 +1358,6 @@ void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t, int substri
         break;
       }
 
-      if ( !substrings )
-        break;
-
       for ( ; *lptr; lptr++ )
         if ( *lptr == ' ' )
           break;
@@ -1375,7 +1369,16 @@ void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t, int substri
     }
   }
 
-  TRIE_RECURSE( populate_ontsearch( key, bptr, cnt, *child, substrings ) );
+  TRIE_RECURSE( populate_ontsearch( key, bptr, cnt, *child ) );
+}
+
+char *ontsearch_term_to_json( trie *x )
+{
+  return JSON
+  (
+    "label": trie_to_json( x ),
+    "iri": trie_to_json( x->data[0] )
+  );
 }
 
 HANDLER( do_ontsearch )
@@ -1386,14 +1389,16 @@ HANDLER( do_ontsearch )
 
   TRY_PARAM( keystr, "key", "You did not indicate a 'key' to search for" );
 
-  CREATE( buf, trie *, count_nontrivial_members( label_to_iris )*2 + 1);
+  CREATE( buf, trie *, count_nontrivial_members(label_to_iris)*2 + 1);
   bptr = buf;
 
-  populate_ontsearch( keystr, &bptr, &cnt, label_to_iris, 0 );
-  populate_ontsearch( keystr, &bptr, &cnt, label_to_iris, 1 );
+  populate_ontsearch( keystr, &bptr, &cnt, label_to_iris );
   *bptr = NULL;
 
-  send_response( req, JS_ARRAY( trie_to_json, buf ) );
+  qsort( buf, cnt, sizeof(trie*), cmp_trie_data );
+  buf[100] = NULL;
+
+  send_response( req, JS_ARRAY( ontsearch_term_to_json, buf ) );
 
   free( buf );
 }
