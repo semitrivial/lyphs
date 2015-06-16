@@ -8,6 +8,7 @@ void init_command_table(void)
 {
   add_handler( "all_correlations", do_all_correlations, CMD_READONLY );
   add_handler( "all_templates", do_all_templates, CMD_READONLY );
+  add_handler( "all_located_measures", do_all_located_measures, CMD_READONLY );
   add_handler( "all_lyphnodes", do_all_lyphnodes, CMD_READONLY );
   add_handler( "all_lyphs", do_all_lyphs, CMD_READONLY );
   add_handler( "all_lyphviews", do_all_lyphviews, CMD_READONLY );
@@ -27,12 +28,14 @@ void init_command_table(void)
   add_handler( "makecorrelation", do_makecorrelation, CMD_READWRITE );
   add_handler( "maketemplate", do_maketemplate, CMD_READWRITE );
   add_handler( "makelayer", do_makelayer, CMD_READWRITE );
+  add_handler( "make_located_measure", do_make_located_measure, CMD_READWRITE );
   add_handler( "makelyph", do_makelyph, CMD_READWRITE );
   add_handler( "makelyphnode", do_makelyphnode, CMD_READWRITE );
   add_handler( "makeview", do_makeview, CMD_READWRITE );
   add_handler( "make_clinical_index", do_make_clinical_index, CMD_READWRITE );
   add_handler( "make_pubmed", do_make_pubmed, CMD_READWRITE );
   add_handler( "nodes_to_view", do_nodes_to_view, CMD_READWRITE );
+  add_handler( "located_measure", do_located_measure, CMD_READONLY );
   add_handler( "lyphs_by_prefix", do_lyphs_by_prefix, CMD_READONLY );
   add_handler( "lyphs_to_view", do_nodes_to_view, CMD_READWRITE ); // Not a type -- lyphs_from_view and nodes_to_view are actually handled by the same handler function
   add_handler( "lyphs_from_view", do_lyphs_from_view, CMD_READWRITE );

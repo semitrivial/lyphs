@@ -24,6 +24,7 @@
 #define PUBMED_FILE_DEPRECATED "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
 #define CLINICAL_INDEX_FILE "clinical_indices.json"
+#define LOCATED_MEASURE_FILE "locmeas.json"
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
@@ -61,6 +62,7 @@ typedef struct CLINICAL_INDEX clinical_index;
 typedef struct PUBMED pubmed;
 typedef struct VARIABLE variable;
 typedef struct CORRELATION correlation;
+typedef struct LOCATED_MEASURE located_measure;
 typedef struct NODEPATH nodepath;
 typedef struct SYSTEM_CONFIGS system_configs;
 
@@ -289,6 +291,14 @@ struct CORRELATION
   int id;
 };
 
+struct LOCATED_MEASURE
+{
+  located_measure *next;
+  char *quality;
+  lyph *loc;
+  int id;
+};
+
 struct NODEPATH
 {
   lyph *start;
@@ -394,6 +404,8 @@ extern clinical_index *first_clinical_index;
 extern clinical_index *last_clinical_index;
 extern pubmed *first_pubmed;
 extern pubmed *last_pubmed;
+extern located_measure *first_located_measure;
+extern located_measure *last_located_measure;
 
 extern lyph null_rect_ptr;
 extern lyph *null_rect;
@@ -448,7 +460,7 @@ char *url_decode(char *str);
 char *url_encode(char *str);
 int is_number( const char *arg );
 void error_message( char *err );
-void error_messagef( char *fmt, ... );
+void error_messagef( const char *fmt, ... );
 char *strdupf( const char *fmt, ... );
 char *jsonf( int paircnt, ... );;
 void json_gc( void );
@@ -580,6 +592,8 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+void load_located_measures( void );
+void save_located_measures( void );
 void save_correlations( void );
 char *correlation_to_json( correlation *c );
 char *variable_to_json( variable *v );
@@ -613,3 +627,4 @@ int template_involves_any_of( lyphplate *L, lyphplate **parts );
  */
 void clinical_indices_from_js( const char *js );
 void pubmeds_from_js( const char *js );
+void located_measures_from_js( const char *js );

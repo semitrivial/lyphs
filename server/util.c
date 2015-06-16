@@ -66,7 +66,7 @@ void log_linenum( int linenum )
     printf( "(Line %d)\n", linenum );
 }
 
-void error_messagef( char *fmt, ... )
+void error_messagef( const char *fmt, ... )
 {
   char *buf;
   va_list args;

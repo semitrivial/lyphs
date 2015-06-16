@@ -110,3 +110,54 @@ extern "C" void pubmeds_from_js( const char *js )
     pubmed_from_js( p, d[i] );
   }
 }
+
+void located_measure_from_js( Value &v )
+{
+  located_measure *m;
+  lyph *e;
+  char *lyphstr, *idstr;
+  int id;
+
+  lyphstr = strdup( v["lyph"].GetString() );
+
+  e = lyph_by_id( lyphstr );
+  free( lyphstr );
+
+  if ( !e )
+  {
+    error_messagef( "Error while loading located measures: lyph %s not found", lyphstr );
+    return;
+  }
+
+  idstr = strdup( v["id"].GetString() );
+
+  id = strtoul( idstr, NULL, 10 );
+
+  if ( id < 1 )
+  {
+    error_messagef( "Error while loading located measures: located measure with invalid ID %s", idstr );
+    free( idstr );
+    return;
+  }
+  free( idstr );
+
+  CREATE( m, located_measure, 1 );
+  m->quality = strdup( v["quality"].GetString() );
+  m->id = id;
+  m->loc = e;
+
+  LINK( m, first_located_measure, last_located_measure, next );
+}
+
+extern "C" void located_measures_from_js( const char *js )
+{
+  Document d;
+  int size;
+
+  d.Parse( js );
+
+  size = d.Size();
+
+  for ( int i = 0; i < size; i++ )
+    located_measure_from_js( d[i] );
+}

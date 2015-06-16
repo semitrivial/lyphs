@@ -309,6 +309,9 @@ HANDLER( do_all_correlations );
 HANDLER( do_makecorrelation );
 HANDLER( do_lyphs_by_prefix );
 HANDLER( do_ontsearch );
+HANDLER( do_all_located_measures );
+HANDLER( do_make_located_measure );
+HANDLER( do_located_measure );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );

@@ -8,6 +8,8 @@ pubmed *first_pubmed;
 pubmed *last_pubmed;
 correlation *first_correlation;
 correlation *last_correlation;
+located_measure *first_located_measure;
+located_measure *last_located_measure;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 
@@ -589,6 +591,21 @@ void load_clinical_indices_deprecated( void )
   }
 
   fclose( fp );
+}
+
+void load_located_measures( void )
+{
+  char *js = load_file( LOCATED_MEASURE_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading -- no located measures loaded", LOCATED_MEASURE_FILE );
+    return;
+  }
+
+  located_measures_from_js( js );
+
+  free( js );
 }
 
 void load_pubmeds( void )
@@ -1401,4 +1418,137 @@ HANDLER( do_ontsearch )
   send_response( req, JS_ARRAY( ontsearch_term_to_json, buf ) );
 
   free( buf );
+}
+
+char *located_measure_to_json( located_measure *m )
+{
+  return JSON
+  (
+    "id": int_to_json( m->id ),
+    "quality": m->quality,
+    "lyph": trie_to_json( m->loc->id ),
+    "lyph name": m->loc->name ? trie_to_json( m->loc->name ) : js_suppress
+  );
+}
+
+located_measure *located_measure_by_id( int id )
+{
+  located_measure *m;
+
+  for ( m = first_located_measure; m; m = m->next )
+    if ( m->id == id )
+      return m;
+
+  return NULL;
+}
+
+HANDLER( do_all_located_measures )
+{
+  located_measure **buf, **bptr, *m;
+  int cnt = 0;
+
+  for ( m = first_located_measure; m; m = m->next )
+    cnt++;
+
+  CREATE( buf, located_measure *, cnt + 1 );
+  bptr = buf;
+
+  for ( m = first_located_measure; m; m = m->next )
+    *bptr++ = m;
+
+  *bptr = NULL;
+
+  send_response( req, JS_ARRAY( located_measure_to_json, buf ) );
+
+  free( buf );
+}
+
+located_measure *make_located_measure( char *qualstr, lyph *e, int should_save )
+{
+  located_measure *m;
+
+  CREATE( m, located_measure, 1 );
+  m->quality = strdup( qualstr );
+  m->loc = e;
+
+  if ( last_located_measure )
+    m->id = last_located_measure->id + 1;
+  else
+    m->id = 1;
+
+  LINK( m, first_located_measure, last_located_measure, next );
+
+  if ( should_save )
+    save_located_measures();
+
+  return m;
+}
+
+HANDLER( do_located_measure )
+{
+  located_measure *m;
+  int id;
+
+  if ( !*request )
+    HND_ERR( "You didn't indicate which located measure to look up" );
+
+  id = strtoul( request, NULL, 10 );
+
+  if ( id < 1 )
+    HND_ERR( "The indicated located measure was not recognized" );
+
+  m = located_measure_by_id( id );
+
+  if ( !m )
+    HND_ERR( "The indicated located measure was not recognized" );
+
+  send_response( req, located_measure_to_json( m ) );
+}
+
+HANDLER( do_make_located_measure )
+{
+  located_measure *m;
+  lyph *e;
+  char *qualstr, *lyphstr;
+
+  TRY_PARAM( qualstr, "quality", "You did not indicate a 'quality'" );
+  TRY_PARAM( lyphstr, "lyph", "You did not indicate a 'lyph'" );
+
+  e = lyph_by_id( lyphstr );
+
+  if ( !e )
+    HND_ERR( "The indicated lyph was not recognized" );
+
+  m = make_located_measure( qualstr, e, 1 );
+
+  send_response( req, located_measure_to_json( m ) );
+}
+
+void save_located_measures( void )
+{
+  FILE *fp = fopen( LOCATED_MEASURE_FILE, "w" );
+  located_measure *m;
+  int fFirst = 0;
+
+  if ( !fp )
+  {
+    error_messagef( "Could not open %s for writing", LOCATED_MEASURE_FILE );
+    return;
+  }
+
+  fprintf( fp, "[" );
+
+  for ( m = first_located_measure; m; m = m->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", located_measure_to_json( m ) );
+  }
+
+  fprintf( fp, "]" );
+
+  fclose(fp);
 }
