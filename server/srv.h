@@ -308,6 +308,7 @@ HANDLER( do_correlation );
 HANDLER( do_all_correlations );
 HANDLER( do_makecorrelation );
 HANDLER( do_lyphs_by_prefix );
+HANDLER( do_ontsearch );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );

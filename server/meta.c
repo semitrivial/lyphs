@@ -1340,3 +1340,60 @@ void save_correlations( void )
 {
   return;
 }
+
+void populate_ontsearch( char *key, trie ***bptr, int *cnt, trie *t, int substrings )
+{
+  if ( *cnt >= 100 )
+    return;
+
+  if ( t->data )
+  {
+    char *label = trie_to_static( t ), *lptr;
+
+    for ( lptr = label; *lptr; )
+    {
+      if ( str_begins( lptr, key ) )
+      {
+        **bptr = t;
+        (*bptr)++;
+        (*cnt)++;
+
+        break;
+      }
+
+      if ( !substrings )
+        break;
+
+      for ( ; *lptr; lptr++ )
+        if ( *lptr == ' ' )
+          break;
+
+      if ( !*lptr )
+        break;
+      else
+        lptr++;
+    }
+  }
+
+  TRIE_RECURSE( populate_ontsearch( key, bptr, cnt, *child, substrings ) );
+}
+
+HANDLER( do_ontsearch )
+{
+  trie **buf, **bptr;
+  char *keystr;
+  int cnt = 0;
+
+  TRY_PARAM( keystr, "key", "You did not indicate a 'key' to search for" );
+
+  CREATE( buf, trie *, count_nontrivial_members( label_to_iris )*2 + 1);
+  bptr = buf;
+
+  populate_ontsearch( keystr, &bptr, &cnt, label_to_iris, 0 );
+  populate_ontsearch( keystr, &bptr, &cnt, label_to_iris, 1 );
+  *bptr = NULL;
+
+  send_response( req, JS_ARRAY( trie_to_json, buf ) );
+
+  free( buf );
+}
