@@ -12,6 +12,7 @@ located_measure *first_located_measure;
 located_measure *last_located_measure;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
+located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -1287,6 +1288,8 @@ variable *parse_one_variable( const char *vstr )
   v->loc = e;
   v->ci = NULL;
 
+  make_located_measure( v->quality, e, 0 );
+
   return v;
 }
 
@@ -1301,6 +1304,7 @@ HANDLER( do_makecorrelation )
   TRY_TWO_PARAMS( varsstr, "vars", "variables", "You did not indicate a list of 'variables'" );
 
   vars = (variable**) PARSE_LIST( varsstr, parse_one_variable, "variable", &err );
+  save_located_measures();
 
   if ( !vars )
   {
@@ -1463,9 +1467,25 @@ HANDLER( do_all_located_measures )
   free( buf );
 }
 
+located_measure *located_measure_by_description( const char *qual, const lyph *e )
+{
+  located_measure *m;
+
+  for ( m = first_located_measure; m; m = m->next )
+    if ( !strcmp( m->quality, qual ) && m->loc == e )
+      return m;
+
+  return NULL;
+}
+
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save )
 {
   located_measure *m;
+
+  m = located_measure_by_description( qualstr, e );
+
+  if ( m )
+    return m;
 
   CREATE( m, located_measure, 1 );
   m->quality = strdup( qualstr );
