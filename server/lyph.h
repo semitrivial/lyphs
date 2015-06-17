@@ -236,6 +236,7 @@ struct LYPH_WRAPPER
 struct LYPH_TO_JSON_DETAILS
 {
   int show_annots;
+  int suppress_correlations;
   lyph **buf;
 };
 
@@ -597,6 +598,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+char *correlation_jsons_by_lyph( const lyph *e );
 void free_all_correlations( void );
 void free_all_located_measures( void );
 void delete_located_measure( located_measure *m );

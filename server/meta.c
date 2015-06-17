@@ -1104,6 +1104,7 @@ HANDLER( do_has_clinical_index )
   *bptr = NULL;
 
   details.show_annots = 1;
+  details.suppress_correlations = 1;
   details.buf = buf;
 
   send_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
@@ -1216,10 +1217,16 @@ char *variable_to_json( variable *v )
 
 char *correlation_to_json( correlation *c )
 {
+  lyph_to_json_details details;
+
+  details.show_annots = 0;
+  details.suppress_correlations = 1;
+  details.buf = NULL;
+
   return JSON
   (
     "id": int_to_json( c->id ),
-    "variables": JS_ARRAY( variable_to_json, c->vars ),
+    "variables": JS_ARRAY_R( variable_to_json, c->vars, &details ),
     "pubmed": pubmed_to_json_full( c->pbmd )
   );
 }
@@ -1703,4 +1710,44 @@ void free_all_correlations( void )
   first_correlation = NULL;
   last_correlation = NULL;
   save_correlations();
+}
+
+correlation **correlations_by_lyph( const lyph *e )
+{
+  correlation *c, **buf, **bptr;
+  variable **vs, *v;
+  int cnt = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+    cnt++;
+
+  CREATE( buf, correlation *, cnt + 1 );
+  bptr = buf;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    for ( vs = c->vars; *vs; vs++ )
+    {
+      v = *vs;
+
+      if ( v->type == VARIABLE_LOCATED && v->loc == e )
+      {
+        *bptr++ = c;
+        break;
+      }
+    }
+  }
+
+  *bptr = NULL;
+  return buf;
+}
+
+char *correlation_jsons_by_lyph( const lyph *e )
+{
+  correlation **corrs = correlations_by_lyph( e );
+  char *retval = JS_ARRAY( correlation_to_json, corrs );
+
+  free( corrs );
+
+  return retval;
 }
