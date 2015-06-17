@@ -544,3 +544,17 @@ int cmp_possibly_null( const char *x, const char *y )
 
   return !strcmp( x, y );
 }
+
+int str_has_substring( const char *hay, const char *needle )
+{
+  const char *space;
+
+  if ( str_begins( hay, needle ) )
+    return 1;
+
+  for ( space = hay; *space; space++ )
+    if ( *space == ' ' && str_begins( space+1, needle ) )
+      return 1;
+
+  return 0;
+}

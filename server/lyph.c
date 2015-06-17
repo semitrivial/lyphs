@@ -3611,7 +3611,7 @@ void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t )
   {
     lyph *e = (lyph*)t->data;
 
-    if ( e->name && str_begins( trie_to_static( e->name ), prefix ) )
+    if ( e->name && str_has_substring( trie_to_static( e->name ), prefix ) )
     {
       **bptr = e;
       (*bptr)++;

@@ -259,9 +259,9 @@ int str_approx( char *full, char *init )
   }
 }
 
-int str_begins( char *full, char *init )
+int str_begins( const char *full, const char *init )
 {
-  char *fptr = full, *iptr = init;
+  const char *fptr = full, *iptr = init;
 
   for (;;)
   {
