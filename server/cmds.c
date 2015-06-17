@@ -1469,7 +1469,7 @@ HANDLER( do_lyphs_from_view )
     SET_BIT( (*lptr)->flags, LYPH_TO_BE_REMOVED );
 
   for ( rptr = v->rects, size = 0; *rptr; rptr++ )
-    if ( !IS_SET( (*lptr)->flags, LYPH_TO_BE_REMOVED ) )
+    if ( (*rptr)->L && !IS_SET( (*rptr)->L->flags, LYPH_TO_BE_REMOVED ) )
       size++;
 
   CREATE( buf, lv_rect *, size + 1 );
