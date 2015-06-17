@@ -556,10 +556,13 @@ void send_response_with_type( http_request *req, char *code, char *txt, char *ty
 {
   char *buf, *fmt;
 
-  fmt = json_format( txt, 2, NULL );
+  if ( !strcmp( type, "application/json" ) )
+  {
+    fmt = json_format( txt, 2, NULL );
 
-  if ( fmt )
-    txt = fmt;
+    if ( fmt )
+      txt = fmt;
+  }
 
   /*
    * JSONP support
