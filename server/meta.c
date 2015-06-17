@@ -13,6 +13,7 @@ located_measure *last_located_measure;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
+char *correlation_jsons_by_located_measure( const located_measure *m );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -1479,7 +1480,8 @@ char *located_measure_to_json( located_measure *m )
     "id": int_to_json( m->id ),
     "quality": m->quality,
     "lyph": trie_to_json( m->loc->id ),
-    "lyph name": m->loc->name ? trie_to_json( m->loc->name ) : js_suppress
+    "lyph name": m->loc->name ? trie_to_json( m->loc->name ) : js_suppress,
+    "correlations": correlation_jsons_by_located_measure( m )
   );
 }
 
@@ -1710,6 +1712,55 @@ void free_all_correlations( void )
   first_correlation = NULL;
   last_correlation = NULL;
   save_correlations();
+}
+
+int count_correlations( void )
+{
+  correlation *c;
+  int cnt = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+    cnt++;
+
+  return cnt;
+}
+
+correlation **correlations_by_located_measure( const located_measure *m )
+{
+  correlation *c, **buf, **bptr;
+  variable **vs, *v;
+
+  CREATE( buf, correlation *, count_correlations() + 1 );
+  bptr = buf;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    for ( vs = c->vars; *vs; vs++ )
+    {
+      v = *vs;
+
+      if ( v->type == VARIABLE_LOCATED
+      &&   v->loc == m->loc
+      &&  !strcmp( v->quality, m->quality ) )
+      {
+        *bptr++ = c;
+        break;
+      }
+    }
+  }
+
+  *bptr = NULL;
+
+  return buf;  
+}
+
+char *correlation_jsons_by_located_measure( const located_measure *m )
+{
+  correlation **corrs = correlations_by_located_measure( m );
+  char *retval = JS_ARRAY( correlation_to_json, corrs );
+
+  free( corrs );
+  return retval;
 }
 
 correlation **correlations_by_lyph( const lyph *e )
