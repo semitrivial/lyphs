@@ -131,6 +131,8 @@ void free_all_lyphs( void )
   top_lyph_id = 0;
 
   free_all_views();
+  free_all_located_measures();
+  free_all_correlations();
 
   save_lyphs();
 }

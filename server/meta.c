@@ -1680,3 +1680,27 @@ void delete_located_measure( located_measure *m )
 
   free( m );
 }
+
+void free_all_located_measures( void )
+{
+  /*
+   * Intentional memory leak here because the complexity of avoiding
+   * it would not be worth the anticipated rarity of this function
+   * being called
+   */
+  first_located_measure = NULL;
+  last_located_measure = NULL;
+  save_located_measures();
+}
+
+void free_all_correlations( void )
+{
+  /*
+   * Intentional memory leak here because the complexity of avoiding
+   * it would not be worth the anticipated rarity of this function
+   * being called
+   */
+  first_correlation = NULL;
+  last_correlation = NULL;
+  save_correlations();
+}

@@ -2053,6 +2053,18 @@ HANDLER( do_reset_db )
     free_all_lyphs();
   }
 
+  if ( get_param( params, "located_measures" ) )
+  {
+    fMatch = 1;
+    free_all_located_measures();
+  }
+
+  if ( get_param( params, "correlations" ) )
+  {
+    fMatch = 1;
+    free_all_correlations();
+  }
+
   if ( !fMatch )
     HND_ERR( "You did not specify anything to delete (options are 'views', 'templates', and 'graph')" );
 

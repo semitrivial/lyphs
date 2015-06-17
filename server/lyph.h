@@ -597,6 +597,8 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+void free_all_correlations( void );
+void free_all_located_measures( void );
 void delete_located_measure( located_measure *m );
 void delete_correlation( correlation *c );
 void load_correlations( void );
