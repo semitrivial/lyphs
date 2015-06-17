@@ -580,3 +580,71 @@ HANDLER( do_nifconnection )
 
   send_response( req, lyph_to_json( e ) );
 }
+
+char *correlations_to_csv( void )
+{
+  correlation *c;
+  variable **vs, *v;
+  char *buf, *bptr;
+  int len = 1024, fFirst;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    len += 2048;
+    for ( vs = c->vars; *vs; vs++ )
+      len += 2048;
+  }
+
+  CREATE( buf, char, len + 1 );
+  bptr = buf;
+
+  sprintf( bptr, "id,pubmed,variables\n" );
+  bptr += strlen(bptr);
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    sprintf( bptr, "%d,%s,\"", c->id, c->pbmd->id );
+    bptr += strlen(bptr);
+    fFirst = 0;
+
+    for ( vs = c->vars; *vs; vs++ )
+    {
+      v = *vs;
+
+      if ( fFirst )
+        *bptr++ = ',';
+      else
+        fFirst = 1;
+
+      if ( v->type == VARIABLE_CLINDEX )
+        sprintf( bptr, "%s", trie_to_static(v->ci->index) );
+      else
+        sprintf( bptr, "%s of %s", v->quality, trie_to_static(v->loc->id) );
+
+      bptr += strlen(bptr);
+    }
+
+    sprintf( bptr, "\"\n" );
+    bptr += strlen(bptr);
+  }
+
+  return buf;
+}
+
+HANDLER( do_get_csv )
+{
+  char *whatstr, *csv, *type;
+
+  TRY_PARAM( whatstr, "what", "You did not indicate 'what' you want to get as CSV" );
+
+  if ( !strcmp( whatstr, "correlations" ) )
+  {
+    csv = correlations_to_csv();
+    type = "text/csv; name=\"correlations.csv\"";
+  }
+  else
+    HND_ERR( "The indicated 'what' can't be sent as CSV right now" );
+
+  send_response_with_type( req, "200", csv, type );
+  free( csv );
+}

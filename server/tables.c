@@ -24,6 +24,7 @@ void init_command_table(void)
   add_handler( "pubmed", do_pubmed, CMD_READONLY );
   add_handler( "template_hierarchy", do_template_hierarchy, CMD_READONLY );
   add_handler( "assign_template", do_assign_template, CMD_READWRITE );
+  add_handler( "get_csv", do_get_csv, CMD_READONLY );
   add_handler( "lyphconstrain", do_lyphconstrain, CMD_READWRITE );
   add_handler( "template_along_path", do_template_along_path, CMD_READWRITE );
   add_handler( "constrain_along_path", do_constrain_along_path, CMD_READWRITE );

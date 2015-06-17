@@ -314,6 +314,7 @@ HANDLER( do_make_located_measure );
 HANDLER( do_located_measure );
 HANDLER( do_delete_correlation );
 HANDLER( do_delete_located_measure );
+HANDLER( do_get_csv );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );
