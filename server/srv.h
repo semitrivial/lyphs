@@ -318,3 +318,4 @@ HANDLER( do_get_csv );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );
+HANDLER( do_gen_random_correlations );

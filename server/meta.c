@@ -1838,3 +1838,172 @@ int correlation_count( lyph *e, lyph **children )
 
   return cnt;
 }
+
+lyph *get_random_lyph_recurse( trie *t, int *cnt )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+
+    if ( !(rand() % (*cnt) ) )
+      return e;
+    else
+      (*cnt)--;
+  }
+
+  TRIE_RECURSE
+  (
+    lyph *e = get_random_lyph_recurse( *child, cnt );
+
+    if ( e )
+      return e;
+  );
+
+  return NULL;
+}
+
+lyph *get_random_lyph( void )
+{
+  int cnt = count_nontrivial_members( lyph_ids );
+
+  return get_random_lyph_recurse( lyph_ids, &cnt );
+}
+
+const char *get_random_quality( void )
+{
+  switch( rand() % 5 )
+  {
+    default:
+    case 0: return "volume";
+    case 1: return "radius";
+    case 2: return "surface area";
+    case 3: return "length";
+    case 4: return "weight";
+  }
+}
+
+variable *generate_random_clindex_variable( variable **vars, variable **end )
+{
+  clinical_index *ci;
+  variable **vptr, *v;
+  int cnt = 0;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+    cnt++;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+  {
+    if ( !(rand() % cnt) )
+      break;
+    else
+      cnt--;
+  }
+
+  for ( vptr = vars; *vptr; vptr++ )
+    if ( (*vptr)->type == VARIABLE_CLINDEX && (*vptr)->ci == ci )
+      break;
+
+  if ( *vptr )
+    return generate_random_clindex_variable( vars, end );
+
+  CREATE( v, variable, 1 );
+  v->type = VARIABLE_CLINDEX;
+  v->ci = ci;
+  v->loc = NULL;
+  v->quality = NULL;
+
+  return v;
+}
+
+variable *generate_random_located_variable( variable **vars, variable **end )
+{
+  lyph *e;
+  variable **vptr, *v;
+  const char *quality;
+
+  for ( ; ; )
+  {
+    e = get_random_lyph();
+    quality = get_random_quality();
+
+    for ( vptr = vars; vptr < end; vptr++ )
+    {
+      if ( (*vptr)->type == VARIABLE_LOCATED
+      &&   (*vptr)->loc == e
+      &&   !strcmp( (*vptr)->quality, quality ) )
+        break;
+    }
+
+    if ( vptr == end )
+      break;
+  }
+
+  CREATE( v, variable, 1 );
+  v->type = VARIABLE_LOCATED;
+  v->loc = e;
+  v->quality = strdup( quality );
+  v->ci = NULL;
+
+  return v;
+}
+
+variable *generate_random_correlation_variable( variable **vars, variable **end )
+{
+  if ( rand() % 5 )
+    return generate_random_located_variable( vars, end );
+  else
+    return generate_random_clindex_variable( vars, end );
+}
+
+void generate_random_correlation( void )
+{
+  correlation *c;
+  variable **vars, **vptr;
+  int vcnt = 0;
+
+  CREATE( vars, variable *, 6 );
+  vptr = vars;
+
+  for ( ; ; )
+  {
+    if ( vcnt == 5 || ( vcnt > 1 && !(rand() % 2) ) )
+      break;
+
+    *vptr = generate_random_correlation_variable( vars, vptr );
+    vptr++;
+    vcnt++;
+  }
+
+  *vptr = NULL;
+
+  CREATE( c, correlation, 1 );
+  c->pbmd = pubmed_by_id_or_create( "autogen", NULL );
+  c->vars = vars;
+
+  if ( last_correlation )
+    c->id = last_correlation->id + 1;
+  else
+    c->id = 1;
+
+  LINK( c, first_correlation, last_correlation, next );
+}
+
+HANDLER( do_gen_random_correlations )
+{
+  char *cntstr;
+  int cnt, i;
+
+  TRY_PARAM( cntstr, "count", "You did not specify (using 'count') how many correlations to generate" );
+
+  cnt = strtoul( cntstr, NULL, 10 );
+
+  if ( cnt < 1 )
+    HND_ERR( "'count' must be a positive integer" );
+
+  for ( i = 0; i < cnt; i++ )
+    generate_random_correlation();
+
+  save_correlations();
+
+  send_response( req, JSON1( "Response": "OK" ) );
+}
