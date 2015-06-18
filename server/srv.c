@@ -1918,8 +1918,14 @@ int has_param( url_param **params, char *key )
 HANDLER( do_all_lyphs )
 {
   lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
+  lyph_to_json_details details;
 
-  send_response( req, JS_ARRAY( lyph_to_json, lyphs ) );
+  details.show_annots = 1;
+  details.suppress_correlations = 1;
+  details.count_correlations = 0;
+  details.buf = NULL;
+
+  send_response( req, JS_ARRAY_R( lyph_to_json, lyphs, &details ) );
 
   free( lyphs );
 }
