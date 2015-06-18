@@ -2368,6 +2368,7 @@ char *lyph_to_json( lyph *e )
 
   details.show_annots = 1;
   details.suppress_correlations = 0;
+  details.count_correlations = 0;
   details.buf = NULL;
 
   return lyph_to_json_r( e, &details );
@@ -2384,10 +2385,12 @@ char *lyph_child_to_json( lyph *child )
 
 char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
 {
-  char *retval, *annots, *house, *correlations;
+  char *retval, *annots, *house, *correlations, *correlation_cnt;
   int old_LTJ_flags = lyphnode_to_json_flags;
   lyph **children;
   lyphnode_to_json_flags = 0;
+
+  children = get_children( e );
 
   if ( details )
   {
@@ -2398,15 +2401,19 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
       correlations = js_suppress;
     else
       correlations = correlation_jsons_by_lyph( e );
+
+    if ( details->count_correlations )
+      correlation_cnt = int_to_json( correlation_count( e, children ) );
+    else
+      correlation_cnt = js_suppress;
   }
   else
   {
     annots = js_suppress;
     house = js_suppress;
     correlations = correlation_jsons_by_lyph( e );
+    correlation_cnt = js_suppress;
   }
-
-  children = get_children( e );
 
   retval = JSON
   (
@@ -2424,6 +2431,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "children": JS_ARRAY( lyph_child_to_json, children ),
     "pubmed": e->pubmed && *e->pubmed ? str_to_json(e->pubmed) : js_suppress,
     "correlations": correlations,
+    "correlation count": correlation_cnt,
     "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress
   );
 

@@ -1106,6 +1106,7 @@ HANDLER( do_has_clinical_index )
 
   details.show_annots = 1;
   details.suppress_correlations = 1;
+  details.count_correlations = 0;
   details.buf = buf;
 
   send_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
@@ -1218,16 +1219,10 @@ char *variable_to_json( variable *v )
 
 char *correlation_to_json( correlation *c )
 {
-  lyph_to_json_details details;
-
-  details.show_annots = 0;
-  details.suppress_correlations = 1;
-  details.buf = NULL;
-
   return JSON
   (
     "id": int_to_json( c->id ),
-    "variables": JS_ARRAY_R( variable_to_json, c->vars, &details ),
+    "variables": JS_ARRAY( variable_to_json, c->vars ),
     "pubmed": pubmed_to_json_full( c->pbmd )
   );
 }
@@ -1801,4 +1796,45 @@ char *correlation_jsons_by_lyph( const lyph *e )
   free( corrs );
 
   return retval;
+}
+
+int correlation_count( lyph *e, lyph **children )
+{
+  lyph **chptr;
+  correlation *c;
+  variable **vs, *v;
+  int cnt = 0;
+
+  for ( chptr = children; *chptr; chptr++ )
+    (*chptr)->flags = 1;
+
+  e->flags = 1;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    if ( c->flags == 1 )
+      continue;
+
+    for ( vs = c->vars; *vs; vs++ )
+    {
+      v = *vs;
+
+      if ( v->type == VARIABLE_LOCATED && v->loc->flags == 1 )
+      {
+        c->flags = 1;
+        cnt++;
+        break;
+      }
+    }
+  }
+
+  for ( chptr = children; *chptr; chptr++ )
+    (*chptr)->flags = 0;
+
+  e->flags = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+    c->flags = 0;
+
+  return cnt;
 }

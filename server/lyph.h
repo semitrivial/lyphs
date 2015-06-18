@@ -237,6 +237,7 @@ struct LYPH_TO_JSON_DETAILS
 {
   int show_annots;
   int suppress_correlations;
+  int count_correlations;
   lyph **buf;
 };
 
@@ -292,6 +293,7 @@ struct CORRELATION
   variable **vars;
   pubmed *pbmd;
   int id;
+  int flags;
 };
 
 struct LOCATED_MEASURE
@@ -599,6 +601,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+int correlation_count( lyph *e, lyph **children );
 char *correlation_jsons_by_lyph( const lyph *e );
 void free_all_correlations( void );
 void free_all_located_measures( void );

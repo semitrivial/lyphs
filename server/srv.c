@@ -1803,6 +1803,7 @@ HANDLER( do_lyph )
 
   details.show_annots = has_param( params, "annots" );
   details.suppress_correlations = !has_param( params, "correlations" );
+  details.count_correlations = has_param( params, "correlations" );
   details.buf = NULL;
 
   if ( *e && !e[1] && !has_param( params, "array" ) )
