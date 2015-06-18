@@ -1925,7 +1925,7 @@ HANDLER( do_all_lyphs )
   details.count_correlations = 0;
   details.buf = NULL;
 
-  send_response( req, JS_ARRAY_R( lyph_to_json, lyphs, &details ) );
+  send_response( req, JS_ARRAY_R( lyph_to_json_r, lyphs, &details ) );
 
   free( lyphs );
 }
