@@ -11,7 +11,7 @@ int *html_code_lengths;
 
 void log_string( char *txt )
 {
-    printf( "%s\n", txt );
+    to_logfile( txt );
 }
 
 void log_stringf( char *fmt, ... )
@@ -63,7 +63,7 @@ void to_logfile( const char *fmt, ... )
 
 void log_linenum( int linenum )
 {
-    printf( "(Line %d)\n", linenum );
+    log_stringf( "(Line %d)\n", linenum );
 }
 
 void error_messagef( const char *fmt, ... )
