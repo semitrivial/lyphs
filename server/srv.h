@@ -222,6 +222,7 @@ int has_param( url_param **params, char *key );
 void along_path_abstractor( http_request *req, url_param **params, int along_path_type );
 void makeview_worker( char *request, http_request *req, url_param **params, int makeview );
 void default_config_values( void );
+void send_ok( http_request *req );
 
 /*
  * tables.c

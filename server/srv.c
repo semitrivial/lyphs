@@ -998,7 +998,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
       send_response( req, JS_ARRAY( lyphpath_to_json, paths ) );
   }
   else
-    send_response( req, JSON1( "Response": "OK" ) );
+    send_ok( req );
 
   for ( pathsptr = paths; *pathsptr; pathsptr++ )
     free( *pathsptr );
@@ -1610,7 +1610,7 @@ HANDLER( do_lyphconstrain )
 
   save_lyphs();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 #else
   send_response( req, JSON1( "Response": "Temporarily disabled" ) );
 #endif
@@ -1663,7 +1663,7 @@ HANDLER( do_assign_template )
 
   save_lyphs();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 HANDLER( do_maketemplate )
@@ -2079,7 +2079,7 @@ HANDLER( do_reset_db )
   if ( !fMatch )
     HND_ERR( "You did not specify anything to delete (options are 'views', 'templates', and 'graph')" );
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void default_config_values( void )
@@ -2159,4 +2159,9 @@ int parse_commandline_args( int argc, const char *argv[], const char **filename,
   *filename = argv[0];
 
   return 1;
+}
+
+void send_ok( http_request *req )
+{
+  send_response( req, JSON1( "Response": "OK" ) );
 }

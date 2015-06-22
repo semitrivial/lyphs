@@ -897,7 +897,7 @@ HANDLER( do_delete_lyphs )
   if ( fAnnot )
     save_lyph_annotations();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 int remove_lyphs_with_doomed_nodes( trie *t )
@@ -963,7 +963,7 @@ HANDLER( do_delete_nodes )
 
   free( n );
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 #undef LYPHNODE_BEING_DELETED
@@ -1303,7 +1303,7 @@ HANDLER( do_delete_templates )
   recalculate_lyphplate_hierarchy();
 #endif
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void delete_lyphview( lyphview *v )
@@ -1368,7 +1368,7 @@ HANDLER( do_delete_views )
 
   save_lyphviews();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void spread_lyphplate_doom_from_layers( trie *t )
@@ -1433,7 +1433,7 @@ HANDLER( do_delete_layers )
   recalculate_lyphplate_hierarchy();
 #endif
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 HANDLER( do_lyphs_from_view )

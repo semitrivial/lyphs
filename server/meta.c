@@ -217,7 +217,7 @@ HANDLER( do_annotate )
   if ( fMatch )
     save_lyph_annotations();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void save_lyph_annotations_recurse( FILE *fp, trie *t )
@@ -1148,7 +1148,7 @@ HANDLER( do_remove_annotation )
     }
 
     save_lyph_annotations();
-    send_response( req, JSON1( "Response": "OK" ) );
+    send_ok( req );
     return;
   }
 
@@ -1195,7 +1195,7 @@ HANDLER( do_remove_annotation )
   if ( fMatch )
     save_lyph_annotations();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 char *variable_to_json( variable *v )
@@ -1633,7 +1633,7 @@ HANDLER( do_delete_correlation )
   delete_correlation( c );
   save_correlations();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void delete_correlation( correlation *c )
@@ -1672,7 +1672,7 @@ HANDLER( do_delete_located_measure )
   delete_located_measure( m );
   save_located_measures();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
 
 void delete_located_measure( located_measure *m )
@@ -2005,5 +2005,5 @@ HANDLER( do_gen_random_correlations )
 
   save_correlations();
 
-  send_response( req, JSON1( "Response": "OK" ) );
+  send_ok( req );
 }
