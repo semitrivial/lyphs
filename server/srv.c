@@ -1247,9 +1247,6 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
     }
   }
 
-  if ( lyphct == 0 && nodect == 0 )
-    HND_ERR( "You did not specify any nodes or any lyphs" );
-
   if ( type == MAKEVIEW_WORKER_MAKEVIEW )
   {
     namestr = get_param( params, "name" );
