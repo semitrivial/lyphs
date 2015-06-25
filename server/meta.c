@@ -1267,7 +1267,24 @@ variable *parse_one_variable( const char *vstr )
   lyph *e;
   char *of = strstr( vstr, " of " );
 
-  if ( !of )
+  if ( of )
+  {
+    char *of2;
+
+    /*
+     * Use the last "of", to allow for quantities which themselves contain " of ",
+     * e.g., "volume of blood of 5"
+     */
+    do
+    {
+      of2 = strstr( of + 1, " of " );
+
+      if ( of2 )
+        of = of2;
+    }
+    while( of2 );
+  }
+  else
   {
     clinical_index *ci;
     const char *space;
