@@ -2024,3 +2024,14 @@ HANDLER( do_gen_random_correlations )
 
   send_ok( req );
 }
+
+int is_null_species( lyph *e )
+{
+  if ( !e->species )
+    return 1;
+
+  if ( !e->species->parent )
+    return 1;
+
+  return 0;
+}

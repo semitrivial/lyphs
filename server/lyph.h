@@ -601,6 +601,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+int is_null_species( lyph *e );
 int correlation_count( lyph *e, lyph **children );
 char *correlation_jsons_by_lyph( const lyph *e );
 void free_all_correlations( void );

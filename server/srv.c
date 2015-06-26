@@ -1912,17 +1912,6 @@ int has_param( url_param **params, char *key )
   return 0;
 }
 
-int is_null_species( lyph *e )
-{
-  if ( !e->species )
-    return 1;
-
-  if ( !e->species->parent )
-    return 1;
-
-  return 0;
-}
-
 void populate_lyphs_by_species( trie *species, lyph ***ptr, trie *t, int include_null_species )
 {
   if ( t->data )

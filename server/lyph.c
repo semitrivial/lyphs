@@ -3613,38 +3613,64 @@ lyph *lyph_by_name( const char *name )
   return lyph_by_name_recurse( name, lyph_ids );
 }
 
-void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t )
+void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t, trie *species, int include_null_species, int include_any_species )
 {
   if ( t->data )
   {
     lyph *e = (lyph*)t->data;
 
-    if ( e->name && str_has_substring( trie_to_static( e->name ), prefix ) )
+    if ( include_any_species
+    ||   e->species == species
+    || ( is_null_species(e) && include_null_species ) )
     {
-      **bptr = e;
-      (*bptr)++;
-    }
-    else if ( str_begins( trie_to_static( e->id ), prefix ) )
-    {
-      **bptr = e;
-      (*bptr)++;
+      if ( e->name && str_has_substring( trie_to_static( e->name ), prefix ) )
+      {
+        **bptr = e;
+        (*bptr)++;
+      }
+      else if ( str_begins( trie_to_static( e->id ), prefix ) )
+      {
+        **bptr = e;
+        (*bptr)++;
+      }
     }
   }
 
-  TRIE_RECURSE( populate_lyphs_by_prefix( prefix, bptr, *child ) );
+  TRIE_RECURSE( populate_lyphs_by_prefix( prefix, bptr, *child, species, include_null_species, include_any_species ) );
 }
 
 HANDLER( do_lyphs_by_prefix )
 {
   lyph **buf, **bptr;
-  char *prefix;
+  trie *species;
+  char *prefix, *speciesstr;
+  int include_null_species, include_any_species = 0;
 
   TRY_PARAM( prefix, "prefix", "You did not indicate a 'prefix'" );
+
+  speciesstr = get_param( params, "species" );
+
+  if ( !speciesstr )
+  {
+    speciesstr = "human";
+    include_null_species = 1;
+  }
+  else if ( !strcmp( speciesstr, "any" ) )
+  {
+    include_any_species = 1;
+    include_null_species = 1;
+  }
+  else if ( !strcmp( speciesstr, "human" ) )
+    include_null_species = 1;
+  else
+    include_null_species = 0;
+
+  species = trie_strdup( speciesstr, metadata );
 
   CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) + 1);
   bptr = buf;
 
-  populate_lyphs_by_prefix( prefix, &bptr, lyph_ids );
+  populate_lyphs_by_prefix( prefix, &bptr, lyph_ids, species, include_null_species, include_any_species );
 
   *bptr = NULL;
 
