@@ -1912,15 +1912,66 @@ int has_param( url_param **params, char *key )
   return 0;
 }
 
+int is_null_species( lyph *e )
+{
+  if ( !e->species )
+    return 1;
+
+  if ( !e->species->parent )
+    return 1;
+
+  return 0;
+}
+
+void populate_lyphs_by_species( trie *species, lyph ***ptr, trie *t, int include_null_species )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+
+    if ( e->species == species || ( is_null_species(e) && include_null_species ) )
+    {
+      **ptr = e;
+      (*ptr)++;
+    }
+  }
+
+  TRIE_RECURSE( populate_lyphs_by_species( species, ptr, *child, include_null_species ) );
+}
+
 HANDLER( do_all_lyphs )
 {
-  lyph **lyphs = (lyph **)datas_to_array( lyph_ids );
+  lyph **lyphs, **ptr;
   lyph_to_json_details details;
+  trie *species;
+  char *speciesstr;
+  int include_null_species = 0;
 
   details.show_annots = 1;
   details.suppress_correlations = 1;
   details.count_correlations = 0;
   details.buf = NULL;
+
+  speciesstr = get_param( params, "species" );
+
+  if ( !speciesstr )
+  {
+    include_null_species = 1;
+    speciesstr = "human";
+  }
+  else if ( !strcmp( speciesstr, "human" ) )
+    include_null_species = 1;
+
+  if ( !strcmp( speciesstr, "any" ) )
+    lyphs = (lyph**)datas_to_array( lyph_ids );
+  else
+  {
+    species = trie_strdup( speciesstr, metadata );
+    CREATE( lyphs, lyph *, count_nontrivial_members( lyph_ids ) );
+    ptr = lyphs;
+    populate_lyphs_by_species( species, &ptr, lyph_ids, include_null_species );
+    *ptr = NULL;
+  }
 
   send_response( req, JS_ARRAY_R( lyph_to_json_r, lyphs, &details ) );
 
