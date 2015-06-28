@@ -1946,9 +1946,9 @@ HANDLER( do_all_lyphs )
   if ( !speciesstr )
   {
     include_null_species = 1;
-    speciesstr = "human";
+    speciesstr = "Human";
   }
-  else if ( !strcmp( speciesstr, "human" ) )
+  else if ( !strcmp( speciesstr, "Human" ) )
     include_null_species = 1;
 
   if ( !strcmp( speciesstr, "any" ) )

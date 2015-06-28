@@ -2708,6 +2708,9 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
 
   fma = fmastr ? trie_strdup( fmastr, lyph_fmas ) : NULL;
 
+  if ( speciesstr && *speciesstr >= 'a' && *speciesstr <= 'z' )
+    *speciesstr += 'A' - 'a';
+
   e = find_duplicate_lyph( type, from, to, L, fma, namestr, pubmedstr, projstr, speciesstr );
 
   if ( e )
@@ -3652,7 +3655,7 @@ HANDLER( do_lyphs_by_prefix )
 
   if ( !speciesstr )
   {
-    speciesstr = "human";
+    speciesstr = "Human";
     include_null_species = 1;
   }
   else if ( !strcmp( speciesstr, "any" ) )
@@ -3660,7 +3663,7 @@ HANDLER( do_lyphs_by_prefix )
     include_any_species = 1;
     include_null_species = 1;
   }
-  else if ( !strcmp( speciesstr, "human" ) )
+  else if ( !strcmp( speciesstr, "Human" ) )
     include_null_species = 1;
   else
     include_null_species = 0;

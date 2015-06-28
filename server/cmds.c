@@ -348,7 +348,12 @@ HANDLER( do_editlyph )
   speciesstr = get_param( params, "species" );
 
   if ( speciesstr )
+  {
+    if ( *speciesstr >= 'a' && *speciesstr <= 'z' )
+      *speciesstr += 'A' - 'a';
+
     e->species = trie_strdup( speciesstr, metadata );
+  }
 
   save_lyphs();
 
