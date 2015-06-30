@@ -1296,7 +1296,14 @@ variable *parse_one_variable( const char *vstr )
     if ( *space )
       return NULL;
 
-    ci = clinical_index_by_index_or_create( vstr );
+    ci = clinical_index_by_index( vstr );
+
+    if ( !ci )
+    {
+      CREATE( v, variable, 1 );
+      v->type = VARIABLE_ERROR;
+      return v;
+    }
 
     CREATE( v, variable, 1 );
     v->type = VARIABLE_CLINDEX;
@@ -1333,7 +1340,7 @@ variable *parse_one_variable( const char *vstr )
 HANDLER( do_makecorrelation )
 {
   correlation *c;
-  variable **vars;
+  variable **vars, **vptr;
   char *pubmedstr, *varsstr, *err;
   int yes;
 
@@ -1341,6 +1348,24 @@ HANDLER( do_makecorrelation )
   TRY_TWO_PARAMS( varsstr, "vars", "variables", "You did not indicate a list of 'variables'" );
 
   vars = (variable**) PARSE_LIST( varsstr, parse_one_variable, "variable", &err );
+
+  for ( vptr = vars; *vptr; vptr++ )
+  {
+    if ( (*vptr)->type == VARIABLE_ERROR )
+    {
+      for ( vptr = vars; *vptr; vptr++ )
+      {
+        if ( (*vptr)->type == VARIABLE_LOCATED )
+          free( (*vptr)->quality );
+
+        free( *vptr );
+      }
+
+      free( vars );
+      HND_ERR( "One of the indicated clinical indices was not recognized" );
+    }
+  }
+
   save_located_measures();
 
   if ( !vars )
