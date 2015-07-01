@@ -1,12 +1,13 @@
 #include "lyph.h"
 #include "srv.h"
 
-#define FMA_HASH 1024
+#define FMA_HASH 65536
 
 fma *first_fma[FMA_HASH];
 fma *last_fma[FMA_HASH];
 nifling *first_nifling;
 nifling *last_nifling;
+trie *fmacheck;
 
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
@@ -37,7 +38,7 @@ fma *fma_by_ul( unsigned long id )
 {
   fma *f;
 
-  for ( f = first_fma[FMA_HASH % id]; f; f = f->next )
+  for ( f = first_fma[id%FMA_HASH]; f; f = f->next )
     if ( f->id == id )
       return f;
 
@@ -47,12 +48,17 @@ fma *fma_by_ul( unsigned long id )
 void add_raw_fma_term( unsigned long id )
 {
   fma *f;
+  char buf[1024];
   int hash;
 
-  if ( fma_by_ul( id ) )
+  sprintf( buf, "%ld", id );
+
+  if ( trie_search( buf, fmacheck ) )
     return;
 
-  hash = FMA_HASH % id;
+  trie_strdup( buf, fmacheck );
+
+  hash = id % FMA_HASH;
 
   CREATE( f, fma, 1 );
   f->id = id;
@@ -84,6 +90,17 @@ void parse_fma_for_terms_one_word( char *word )
 void parse_fma_file( void )
 {
   char *file = load_file( FMA_FILE );
+  int hash;
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  {
+    first_fma[hash] = NULL;
+    last_fma[hash] = NULL;
+  }
+
+  log_string( "Parsing FMA file..." );
+
+  fmacheck = blank_trie();
 
   if ( !file )
   {
@@ -100,6 +117,8 @@ void parse_fma_file( void )
 void parse_fma_file_for_raw_terms( char *file )
 {
   char *ptr, *left;
+
+  log_string( "Parsing FMA file for raw terms..." );
 
   for ( ptr = file, left = file; *ptr; ptr++ )
   {
@@ -199,6 +218,8 @@ void parse_fma_file_for_parts( char *file )
 {
   char *ptr, *left;
 
+  log_string( "Parsing FMA file for parts..." );
+
   for ( ptr = file, left = file; *ptr; ptr++ )
   {
     if ( *ptr == '\n' )
@@ -246,9 +267,13 @@ void link_fmas_to_lyphs( void )
   fma *f;
   int hash;
 
+  log_string( "Linking FMA terms to lyphs..." );
+
   for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-    link_fma_to_lyph( f );
+  {
+    for ( f = first_fma[hash]; f; f = f->next )
+      link_fma_to_lyph( f );
+  }
 }
 
 void remove_lyph_from_fmas( const lyph *e )
@@ -361,6 +386,8 @@ void parse_nifling_file( void )
   char *file = load_file( NIFLING_FILE );
   char *left, *ptr;
 
+  log_string( "Parsing nifling file..." );
+
   if ( !file )
   {
     error_messagef( "Could not read from %s -- no niflings loaded", NIFLING_FILE );
@@ -456,7 +483,7 @@ void mark_fma_tree( fma *f, int bit, fma **head, fma **tail, int offset )
 displayed_niflings *compute_niflings_by_fma( fma *x, fma *y, lyph *ex, lyph *ey )
 {
   displayed_niflings *dn;
-  fma *xhead = NULL, *xtail = NULL, *yhead = NULL, *ytail = NULL, *f;
+  fma *xhead = NULL, *xtail = NULL, *yhead = NULL, *ytail = NULL, *f, *f_next;
   int finds = 0;
 
   mark_fma_tree( x, 1, &xhead, &xtail, 0 );
@@ -500,6 +527,20 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y, lyph *ex, lyph *ey 
 
       finds++;
     }
+  }
+
+  for ( f = xhead; f; f = f_next )
+  {
+    f_next = f->next_by_x;
+    f->next_by_x = NULL;
+    f->flags = 0;
+  }
+
+  for ( f = yhead; f; f = f_next )
+  {
+    f_next = f->next_by_y;
+    f->next_by_y = NULL;
+    f->flags = 0;
   }
 
   if ( finds )
