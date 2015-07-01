@@ -27,6 +27,8 @@
 #define LOCATED_MEASURE_FILE "locmeas.json"
 #define CORRELATION_FILE "corr.json"
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
+#define FMA_FILE "fma.parts"
+#define NIFLING_FILE "nifs.dat"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
 
@@ -65,6 +67,9 @@ typedef struct VARIABLE variable;
 typedef struct CORRELATION correlation;
 typedef struct LOCATED_MEASURE located_measure;
 typedef struct NODEPATH nodepath;
+typedef struct FMA fma;
+typedef struct NIFLING nifling;
+typedef struct DISPLAYED_NIFLINGS displayed_niflings;
 typedef struct SYSTEM_CONFIGS system_configs;
 
 /*
@@ -381,6 +386,35 @@ struct LAYER_LOADING
   layer *lyr;
 };
 
+struct FMA
+{
+  unsigned long id;
+  fma *next;
+  fma *next_by_x;
+  fma *next_by_y;
+  fma **parents;
+  fma **children;
+  nifling **niflings;
+  lyph *e;
+  int flags;
+};
+
+struct NIFLING
+{
+  fma *fma1;
+  fma *fma2;
+  char *pubmed;
+  char *proj;
+  trie *species;
+};
+
+struct DISPLAYED_NIFLINGS
+{
+  nifling **niflings;
+  lyph *e1;
+  lyph *e2;
+};
+
 struct SYSTEM_CONFIGS
 {
   int readonly;
@@ -637,6 +671,16 @@ char *pubmed_to_json_brief( pubmed *p );
 char *pubmed_to_json_full( pubmed *p );
 char *clinical_index_to_json_brief( clinical_index *ci );
 char *clinical_index_to_json_full( clinical_index *ci );
+
+/*
+ * fma.c
+ */
+void parse_nifling_file( void );
+void remove_lyph_from_fmas( const lyph *e );
+void link_fmas_to_lyphs( void );
+void parse_fma_file( void );
+fma *fma_by_trie( trie *id );
+fma *fma_by_ul( unsigned long id );
 
 /*
  * cmds.c
