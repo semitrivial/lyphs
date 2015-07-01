@@ -487,13 +487,12 @@ HANDLER( do_parse_csv )
 
 void add_nif_lyph( lyph *x, lyph *y, char *species, char *proj, char *pubmed, char *name )
 {
-  lyph *e;
   lyphnode *xn, *yn;
 
   xn = make_lyphnode();
   yn = make_lyphnode();
 
-  e = make_lyph( LYPH_NIF, xn, yn, NULL, NULL, name, pubmed, proj, species );
+  make_lyph( LYPH_NIF, xn, yn, NULL, NULL, name, pubmed, proj, species );
 }
 
 void populate_by_human_fma( lyph ***bptr, char *fma, trie *t )
