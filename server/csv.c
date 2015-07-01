@@ -528,8 +528,8 @@ HANDLER( do_renif )
   if ( !str_begins( ystr, "fma:" ) )
     HND_ERR( "'fma2' did not begin with 'fma:'" );
 
-  xstr += strlen( "fma:" );
-  ystr += strlen( "fma:" );
+  memcpy( xstr, "FMA_", strlen("FMA_") );
+  memcpy( ystr, "FMA_", strlen("FMA_") );
 
   cnt = count_nontrivial_members( lyph_ids );
 
