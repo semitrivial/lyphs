@@ -2531,7 +2531,7 @@ int parse_lyphplate_type( char *str )
   return -1;
 }
 
-lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses )
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses, int include_nif )
 {
   lyphstep *head = NULL, *tail = NULL, *step, *curr;
   lyphnode_wrapper *w;
@@ -2634,6 +2634,9 @@ lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_hea
       if ( !*x )
         break;
       if ( IS_SET( (*x)->to->flags, LYPHNODE_SEEN ) )
+        continue;
+
+      if ( (*x)->via->type == LYPH_NIF && !include_nif )
         continue;
 
       if ( filter && !lyph_passes_filter( (*x)->via, filter ) )
@@ -3498,10 +3501,36 @@ char *nodepath_to_json( nodepath *np )
 
 char *nodepathset_to_json( nodepath **nodepaths )
 {
-  return JSON1
+  nodepath **vascular, **vptr;
+  nodepath **nif, **nifptr;
+  nodepath **npptr;
+  char *retval;
+
+  CREATE( vascular, nodepath *, VOIDLEN( nodepaths ) + 1 );
+  vptr = vascular;
+  CREATE( nif, nodepath *, VOIDLEN( nodepaths ) + 1 );
+  nifptr = nif;
+
+  for ( npptr = nodepaths; *npptr; npptr++ )
+  {
+    if ( (*npptr)->edges && (*npptr)->edges[0] && (*npptr)->edges[0]->type == LYPH_NIF )
+      *nifptr++ = *npptr;
+    else
+      *vptr++ = *npptr;
+  }
+  *nifptr = NULL;
+  *vptr = NULL;
+
+  retval = JSON
   (
-    "vascular": JS_ARRAY( nodepath_to_json, nodepaths )
+    "vascular": JS_ARRAY( nodepath_to_json, vascular ),
+    "nif": nifptr != nif ? JS_ARRAY( nodepath_to_json, nif ) : js_suppress
   );
+
+  free( nif );
+  free( vascular );
+
+  return retval;
 }
 
 HANDLER( do_connections )
@@ -3510,11 +3539,16 @@ HANDLER( do_connections )
   lyph ****pathsets, ****pathsetsptr, ***dpathsetsptr;
   nodepath **nodepaths, **nodepathsptr;
   char *lyphsstr, *err;
-  int nlyphs, npaths = 0;
+  int nlyphs, npaths = 0, include_nifs;
 
   TRY_TWO_PARAMS( lyphsstr, "lyph", "lyphs", "You did not specify which lyphs to find connections among" );
 
   e = (lyph **)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+
+  if ( get_param( params, "nif" ) )
+    include_nifs = 1;
+  else
+    include_nifs = 0;
 
   if ( !e )
   {
@@ -3544,7 +3578,7 @@ HANDLER( do_connections )
     calc_nodes_directly_in_lyph_buf( *eptr1, &from_head, &from_tail, e );
     calc_nodes_directly_in_lyph_buf( *eptr2, &to_head, &to_tail, e );
 
-    *pathsetsptr = compute_lyphpaths( from_head, to_head, NULL, 16, 1, 0 );
+    *pathsetsptr = compute_lyphpaths( from_head, to_head, NULL, 16, 1, 0, include_nifs );
     npaths += VOIDLEN( *pathsetsptr );
     pathsetsptr++;
 

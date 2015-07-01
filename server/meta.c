@@ -10,6 +10,8 @@ correlation *first_correlation;
 correlation *last_correlation;
 located_measure *first_located_measure;
 located_measure *last_located_measure;
+trie *human_species_uppercase;
+trie *human_species_lowercase;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
@@ -2059,4 +2061,14 @@ int is_null_species( lyph *e )
     return 1;
 
   return 0;
+}
+
+int is_human_species( lyph *e )
+{
+  return
+  (
+    !e->species
+    || e->species == human_species_uppercase
+    || e->species == human_species_lowercase
+  );
 }

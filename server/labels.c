@@ -36,6 +36,9 @@ void init_labels(FILE *fp)
   compute_lyphplate_hierarchy( lyphplate_ids );
 #endif
 
+  human_species_lowercase = trie_strdup( "human", metadata );
+  human_species_uppercase = trie_strdup( "Human", metadata );
+
   return;
 }
 

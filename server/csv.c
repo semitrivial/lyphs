@@ -485,6 +485,116 @@ HANDLER( do_parse_csv )
   }
 }
 
+void add_nif_lyph( lyph *x, lyph *y, char *species, char *proj, char *pubmed, char *name )
+{
+  lyph *e;
+  lyphnode *xn, *yn;
+
+  xn = make_lyphnode();
+  yn = make_lyphnode();
+
+  e = make_lyph( LYPH_NIF, xn, yn, NULL, NULL, name, pubmed, proj, species );
+}
+
+void populate_by_human_fma( lyph ***bptr, char *fma, trie *t )
+{
+  if ( t->data )
+  {
+    lyph *e = (lyph*)t->data;
+
+    if ( is_human_species(e) )
+    {
+      if ( e->fma && !strcmp( fma, trie_to_static( e->fma ) ) )
+      {
+        **bptr = e;
+        (*bptr)++;
+      }
+    }
+  }
+
+  TRIE_RECURSE( populate_by_human_fma( bptr, fma, *child ) );
+}
+
+HANDLER( do_renif )
+{
+  lyph **xbuf, **xbufptr, **ybuf, **ybufptr;
+  char *xstr, *ystr, *projstr, *pubmedstr, *speciesstr, *name;
+  int cnt;
+
+  TRY_PARAM( xstr, "fma1", "You did not specify an 'fma1'" );
+  TRY_PARAM( ystr, "fma2", "You did not specify an 'fma2'" );
+
+  if ( !str_begins( xstr, "fma:" ) )
+    HND_ERR( "'fma1' did not begin with 'fma:'" );
+  if ( !str_begins( ystr, "fma:" ) )
+    HND_ERR( "'fma2' did not begin with 'fma:'" );
+
+  xstr += strlen( "fma:" );
+  ystr += strlen( "fma:" );
+
+  cnt = count_nontrivial_members( lyph_ids );
+
+  CREATE( xbuf, lyph *, cnt+1 );
+  xbufptr = xbuf;
+
+  populate_by_human_fma( &xbufptr, xstr, lyph_ids );
+
+  if ( !*xbuf )
+  {
+    free( xbuf );
+    HND_ERR( "There were no human lyphs corresponding to FMA1" );
+  }
+
+  CREATE( ybuf, lyph *, cnt+1 );
+  ybufptr = ybuf;
+
+  populate_by_human_fma( &ybufptr, ystr, lyph_ids );
+
+  if ( !*ybuf )
+  {
+    free( xbuf );
+    free( ybuf );
+    HND_ERR( "There were no human lyphs corresponding to fma2" );
+  }
+
+  *xbufptr = NULL;
+  *ybufptr = NULL;
+
+  projstr = get_param( params, "proj" );
+  pubmedstr = get_param( params, "pubmed" );
+  speciesstr = get_param( params, "species" );
+
+  if ( !projstr || !pubmedstr || !speciesstr || !*speciesstr )
+  {
+    MULTIFREE( xbuf, ybuf );
+
+    if ( !projstr )
+      HND_ERR( "You did not indicate a 'proj'ection strength" );
+    if ( !pubmedstr )
+      HND_ERR( "You did not indicate a 'pubmed'" );
+    if ( !speciesstr || !*speciesstr )
+      HND_ERR( "You did not indicate a 'species'" );
+  }
+
+  if ( !*projstr )
+    projstr = NULL;
+  if ( !*pubmedstr )
+    pubmedstr = NULL;
+
+  name = strdupf( "%s connection from %s to %s", speciesstr, xstr, ystr );
+
+  for ( xbufptr = xbuf; *xbufptr; xbufptr++ )
+  for ( ybufptr = ybuf; *ybufptr; ybufptr++ )
+    add_nif_lyph( *xbufptr, *ybufptr, speciesstr, projstr, pubmedstr, name );
+
+  free( name );
+  free( xbufptr );
+  free( ybufptr );
+  save_lyphs();
+
+  send_ok( req );
+}
+
 HANDLER( do_niflyph )
 {
   lyph *e;

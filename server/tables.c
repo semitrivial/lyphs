@@ -86,7 +86,8 @@ void init_command_table(void)
 
   //add_handler( "niflyph", do_niflyph, CMD_READWRITE );
   //add_handler( "nifconnection", do_nifconnection, CMD_READWRITE );
-  add_handler( "gen_random_correlations", do_gen_random_correlations, CMD_READWRITE );
+  add_handler( "renif", do_renif, CMD_READWRITE );
+  //add_handler( "gen_random_correlations", do_gen_random_correlations, CMD_READWRITE );
 }
 
 void add_handler( char *cmd, do_function *fnc, int read_write_state )

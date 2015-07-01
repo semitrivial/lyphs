@@ -418,6 +418,9 @@ extern located_measure *last_located_measure;
 extern lyph null_rect_ptr;
 extern lyph *null_rect;
 
+extern trie *human_species_lowercase;
+extern trie *human_species_uppercase;
+
 /*
  * Function prototypes
  */
@@ -563,7 +566,7 @@ void add_to_exits( lyph *e, lyphnode *to, exit_data ***victim );
 void remove_from_exits( lyph *e, exit_data ***victim );
 void change_source_of_exit( lyph *via, lyphnode *new_src, exit_data **exits );
 void change_dest_of_exit( lyph *via, lyphnode *new_dest, exit_data **exits );
-lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses );
+lyph ***compute_lyphpaths( lyphnode_wrapper *from_head, lyphnode_wrapper *to_head, lyph_filter *filter, int numpaths, int dont_see_initials, int include_reverses, int include_nif );
 void free_lyphsteps( lyphstep *head );
 void save_lyphviews( void );
 void load_lyphviews( void );
@@ -601,6 +604,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y );
 /*
  * meta.c
  */
+int is_human_species( lyph *e );
 int is_null_species( lyph *e );
 int correlation_count( lyph *e, lyph **children );
 char *correlation_jsons_by_lyph( const lyph *e );

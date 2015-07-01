@@ -885,7 +885,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
   else
     calc_nodes_in_lyph( ylyph, &to_head, &to_tail );
 
-  paths = compute_lyphpaths( from_head, to_head, f, numpaths, 0, 1 );
+  paths = compute_lyphpaths( from_head, to_head, f, numpaths, 0, 1, 0 );
 
   free_lyphnode_wrappers( from_head );
   free_lyphnode_wrappers( to_head );
