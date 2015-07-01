@@ -19,10 +19,10 @@ fma *fma_by_trie( trie *id )
   char *str = trie_to_static( id );
   unsigned long n;
 
-  if ( !str_begins( str, "FMA_" ) )
-    return NULL;
+  if ( str_begins( str, "FMA_" ) )
+    str += strlen( "FMA_" );
 
-  n = strtoul( str + strlen( "FMA_" ), NULL, 10 );
+  n = strtoul( str, NULL, 10 );
 
   if ( n < 1 )
     return NULL;
@@ -346,8 +346,8 @@ void parse_nifling_line( char *line )
   if ( !str_begins( cols[1], "fma:" ) )
     return;
 
-  id1 = strtoul( cols[0], NULL, 10 );
-  id2 = strtoul( cols[1], NULL, 10 );
+  id1 = strtoul( cols[0] + strlen("fma:"), NULL, 10 );
+  id2 = strtoul( cols[1] + strlen("fma:"), NULL, 10 );
 
   if ( id1 < 1 || id2 < 1 )
     return;
