@@ -411,8 +411,8 @@ struct NIFLING
 struct DISPLAYED_NIFLINGS
 {
   nifling **niflings;
-  lyph *e1;
-  lyph *e2;
+  fma *f1;
+  fma *f2;
 };
 
 struct SYSTEM_CONFIGS
@@ -493,6 +493,7 @@ int count_nontrivial_members( trie *t );
 /*
  * util.c
  */
+char *ul_to_json( unsigned long n );
 void log_string( char *txt );
 void log_stringf( char *fmt, ... );
 void log_linenum( int linenum );

@@ -45,6 +45,23 @@ fma *fma_by_ul( unsigned long id )
   return NULL;
 }
 
+fma *fma_by_str( const char *str )
+{
+  unsigned long id;
+
+  if ( str_begins( str, "FMA_" ) )
+    str += strlen( "FMA_" );
+  else if ( str_begins( str, "fma:" ) )
+    str += strlen( "fma:" );
+
+  id = strtoul( str, NULL, 10 );
+
+  if ( id < 1 )
+    return NULL;
+
+  return fma_by_ul( id );
+}
+
 void add_raw_fma_term( unsigned long id )
 {
   fma *f;
@@ -410,15 +427,10 @@ void parse_nifling_file( void )
 
 char *nifling_to_json( const nifling *n )
 {
-  char fmaid1[2048], fmaid2[2048];
-
-  sprintf( fmaid1, "FMA_%ld", n->fma1->id );
-  sprintf( fmaid2, "FMA_%ld", n->fma2->id );
-
   return JSON
   (
-    "fma1": fmaid1,
-    "fma2": fmaid2,
+    "fma1": ul_to_json( n->fma1->id ),
+    "fma2": ul_to_json( n->fma2->id ),
     "pubmed": n->pubmed,
     "projection strength": n->proj,
     "species": n->species ? trie_to_json( n->species ) : NULL
@@ -429,8 +441,8 @@ char *displayed_niflings_to_json( const displayed_niflings *dn )
 {
   return JSON
   (
-    "lyph1": lyph_to_json( dn->e1 ),
-    "lyph2": lyph_to_json( dn->e2 ),
+    "lyph1": ul_to_json( dn->f1->id ),
+    "lyph2": ul_to_json( dn->f2->id ),
     "niflings": JS_ARRAY( nifling_to_json, dn->niflings )
   );
 }
@@ -480,7 +492,7 @@ void mark_fma_tree( fma *f, int bit, fma **head, fma **tail, int offset )
   mark_fma_tree_downward( f, bit, head, tail, offset );
 }
 
-displayed_niflings *compute_niflings_by_fma( fma *x, fma *y, lyph *ex, lyph *ey )
+displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
 {
   displayed_niflings *dn;
   fma *xhead = NULL, *xtail = NULL, *yhead = NULL, *ytail = NULL, *f, *f_next;
@@ -507,8 +519,8 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y, lyph *ex, lyph *ey 
       if ( !finds )
       {
         CREATE( dn, displayed_niflings, 1 );
-        dn->e1 = ex;
-        dn->e2 = ey;
+        dn->f1 = x;
+        dn->f2 = y;
         CREATE( dn->niflings, nifling *, 2 );
         dn->niflings[0] = n;
         dn->niflings[1] = NULL;
@@ -549,50 +561,23 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y, lyph *ex, lyph *ey 
     return NULL;
 }
 
-void compute_niflings( lyph *x, lyph *y, displayed_niflings ***dnsptr )
-{
-  fma *fx, *fy;
-  displayed_niflings *dn;
-
-  if ( !x->fma || !y->fma )
-    return;
-
-  fx = fma_by_trie( x->fma );
-
-  if ( !fx )
-    return;
-
-  fy = fma_by_trie( y->fma );
-
-  if ( !fy )
-    return;
-
-  dn = compute_niflings_by_fma( fx, fy, x, y );
-
-  if ( dn )
-  {
-    **dnsptr = dn;
-    (*dnsptr)++;
-  }
-}
-
 HANDLER( do_nifs )
 {
-  lyph **buf, **bptr1, **bptr2;
+  fma **buf, **bptr1, **bptr2;
   displayed_niflings **dns, **dnsptr;
-  char *lyphsstr, *err;
+  char *fmasstr, *err;
   int cnt;
 
-  TRY_PARAM( lyphsstr, "lyphs", "You did not specify a comma-separated list of 'lyphs'" );
+  TRY_PARAM( fmasstr, "fmas", "You did not specify a comma-separated list of 'fmas'" );
 
-  buf = (lyph **)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", &err );
+  buf = (fma **)PARSE_LIST( fmasstr, fma_by_str, "fma", &err );
 
   if ( !buf )
   {
     if ( err )
       HND_ERR_FREE( err );
     else
-      HND_ERR( "One of the indicated lyphs was not recognized" );
+      HND_ERR( "One of the indicated fmas was not recognized" );
   }
 
   cnt = VOIDLEN( buf );
@@ -600,7 +585,7 @@ HANDLER( do_nifs )
   if ( cnt > 100 )
   {
     free( buf );
-    HND_ERR( "The nifs command is restricted to 100 lyphs at once" );
+    HND_ERR( "The nifs command is restricted to 100 fmas at once" );
   }
 
   CREATE( dns, displayed_niflings *, (cnt * (cnt+1))/2 + 1 );
@@ -608,7 +593,12 @@ HANDLER( do_nifs )
 
   for ( bptr1 = buf; *bptr1; bptr1++ )
   for ( bptr2 = bptr1 + 1; *bptr2; bptr2++ )
-    compute_niflings( *bptr1, *bptr2, &dnsptr );
+  {
+    displayed_niflings *computed;
+
+    if ( (computed = compute_niflings_by_fma( *bptr1, *bptr2 )) != NULL )
+      *dnsptr++ = computed;
+  }
 
   *dnsptr = NULL;
 
