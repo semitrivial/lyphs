@@ -84,6 +84,7 @@ void add_raw_fma_term( unsigned long id )
   f->niflings = (nifling**)blank_void_array();
   f->e = NULL;
   f->flags = 0;
+  f->is_up = 0;
 
   LINK( f, first_fma[hash], last_fma[hash], next );
 }
@@ -210,7 +211,10 @@ void parse_fma_for_parts_one_line( char *line )
     return;
 
   *space = '\0';
-  id1 = strtoul( pound + 1, NULL, 10 );
+  if ( str_begins( pound + 1, "FMA_" ) )
+    id1 = strtoul( pound + strlen( "FMA_" ) + 1, NULL, 10 );
+  else
+    id1 = 0;
   *space = ' ';
 
   if ( id1 < 1 )
@@ -223,7 +227,10 @@ void parse_fma_for_parts_one_line( char *line )
   if ( !*pound )
     return;
 
-  id2 = strtoul( pound + 1, NULL, 10 );
+  if ( str_begins( pound + 1, "FMA_" ) )
+    id2 = strtoul( pound + strlen( "FMA_" ) + 1, NULL, 10 );
+  else
+    id2 = 0;
 
   if ( id2 < 1 )
     return;
@@ -447,11 +454,16 @@ char *displayed_niflings_to_json( const displayed_niflings *dn )
   );
 }
 
-void mark_fma_tree_single( fma *f, int bit, fma **head, fma **tail, int offset )
+void mark_fma_tree_single( fma *f, int bit, fma **head, fma **tail, int offset, int is_up )
 {
   f->flags |= bit;
 
-  if ( offset == 0 )
+  if ( is_up )
+    f->is_up = 1;
+  else
+    f->is_up = 0;
+
+  if ( !offset )
     LINK( f, *head, *tail, next_by_x );
   else
     LINK( f, *head, *tail, next_by_y );
@@ -466,7 +478,7 @@ void mark_fma_tree_upward( fma *f, int bit, fma **head, fma **tail, int offset )
     if ( (*parents)->flags & bit )
       continue;
 
-    mark_fma_tree_single( *parents, bit, head, tail, offset );
+    mark_fma_tree_single( *parents, bit, head, tail, offset, 1 );
     mark_fma_tree_upward( *parents, bit, head, tail, offset );
   }
 }
@@ -480,14 +492,14 @@ void mark_fma_tree_downward( fma *f, int bit, fma **head, fma **tail, int offset
     if ( (*children)->flags & bit )
       continue;
 
-    mark_fma_tree_single( *children, bit, head, tail, offset );
+    mark_fma_tree_single( *children, bit, head, tail, offset, 0 );
     mark_fma_tree_downward( *children, bit, head, tail, offset );
   }
 }
 
 void mark_fma_tree( fma *f, int bit, fma **head, fma **tail, int offset )
 {
-  mark_fma_tree_single( f, bit, head, tail, offset );
+  mark_fma_tree_single( f, bit, head, tail, offset, 0 );
   mark_fma_tree_upward( f, bit, head, tail, offset );
   mark_fma_tree_downward( f, bit, head, tail, offset );
 }
@@ -501,7 +513,7 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
   mark_fma_tree( x, 1, &xhead, &xtail, 0 );
   mark_fma_tree( y, 2, &yhead, &ytail, 1 );
 
-  for ( f = xhead; f; f = f->next )  // Iterate over fma's in x's tree but not in y's
+  for ( f = xhead; f; f = f->next_by_x )  // Iterate over fma's in x's tree but not in y's
   {
     nifling **nptr;
 
@@ -511,16 +523,27 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
     for ( nptr = f->niflings; *nptr; nptr++ )
     {
       nifling *n = *nptr;
-      fma *otherside = (n->fma1 == f ? n->fma2 : n->fma1);
+      fma *x_rep, *y_rep;
 
-      if ( otherside->flags & 1 || !(otherside->flags & 2) )  // Find connections in y's tree but not in x's
+      if ( n->fma1 == f )
+      {
+        x_rep = f;
+        y_rep = n->fma2;
+      }
+      else
+      {
+        y_rep = f;
+        x_rep = n->fma2;
+      }
+
+      if ( (y_rep->flags & 1) || !(y_rep->flags & 2) )  // Find connections in y's tree but not in x's
         continue;
 
       if ( !finds )
       {
         CREATE( dn, displayed_niflings, 1 );
-        dn->f1 = x;
-        dn->f2 = y;
+        dn->f1 = x_rep;
+        dn->f2 = y_rep;
         CREATE( dn->niflings, nifling *, 2 );
         dn->niflings[0] = n;
         dn->niflings[1] = NULL;

@@ -397,6 +397,7 @@ struct FMA
   nifling **niflings;
   lyph *e;
   int flags;
+  int is_up;
 };
 
 struct NIFLING
