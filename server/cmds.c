@@ -740,7 +740,6 @@ int delete_lyph( lyph *e )
   save_correlations();
   delete_located_measures_involving_lyph( e );
   save_located_measures();
-  remove_lyph_from_fmas( e );
 
   free( e );
 

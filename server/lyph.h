@@ -395,7 +395,6 @@ struct FMA
   fma **parents;
   fma **children;
   nifling **niflings;
-  lyph *e;
   int flags;
   int is_up;
 };
@@ -678,8 +677,6 @@ char *clinical_index_to_json_full( clinical_index *ci );
  * fma.c
  */
 void parse_nifling_file( void );
-void remove_lyph_from_fmas( const lyph *e );
-void link_fmas_to_lyphs( void );
 void parse_fma_file( void );
 fma *fma_by_trie( trie *id );
 fma *fma_by_ul( unsigned long id );

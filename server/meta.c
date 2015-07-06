@@ -1263,7 +1263,16 @@ correlation *correlation_by_id( const char *id )
   return NULL;
 }
 
-variable *parse_one_variable( const char *vstr )
+void bars_to_commas( char *str )
+{
+  char *ptr;
+
+  for ( ptr = str; *ptr; ptr++ )
+    if ( *ptr == '|' )
+      *ptr = ',';
+}
+
+variable *parse_one_variable( const char *vstr, variable ***tobuf )
 {
   variable *v;
   lyph *e;
@@ -1313,11 +1322,66 @@ variable *parse_one_variable( const char *vstr )
     v->quality = NULL;
     v->loc = NULL;
 
+    if ( tobuf )
+    {
+      **tobuf = v;
+      (*tobuf)++;
+    }
+
     return v;
   }
 
   if ( of == vstr )
     return NULL;
+
+  if ( of[strlen(" of ")] == '(' )
+  {
+    /*
+     * Special syntax requested by bdb:
+     * volume of (1,2,3) = volume of 1, volume of 2, volume of 3
+     */
+    lyph **buf, **bptr;
+    variable *retval = NULL;
+    char *end = &of[strlen(of)-1], *listptr = &of[strlen(" of ") + 1];
+
+    if ( !tobuf )
+      return NULL;
+
+    while ( *end == ' ' )
+      end--;
+
+    if ( *end != ')' )
+      return NULL;
+
+    *end = '\0';
+
+    bars_to_commas( listptr );
+
+    buf = (lyph**)PARSE_LIST( listptr, lyph_by_id, "lyph", NULL );
+    *end = ')';
+
+    if ( !buf || !*buf )
+      return NULL;
+
+    for ( bptr = buf; *bptr; bptr++ )
+    {
+      CREATE( v, variable, 1 );
+      v->type = VARIABLE_LOCATED;
+      CREATE( v->quality, char, of - vstr + 1 );
+      memcpy( v->quality, vstr, of - vstr );
+      v->quality[of-vstr] = '\0';
+      v->loc = *bptr;
+      v->ci = NULL;
+      make_located_measure( v->quality, *bptr, 0 );
+      **tobuf = v;
+      (*tobuf)++;
+
+      if ( !retval )
+        retval = v;
+    }
+
+    return retval;
+  }
 
   e = lyph_by_id( of + strlen(" of ") );
 
@@ -1336,20 +1400,73 @@ variable *parse_one_variable( const char *vstr )
 
   make_located_measure( v->quality, e, 0 );
 
-  return v;
+  if ( tobuf )
+  {
+    **tobuf = v;
+    (*tobuf)++;
+    return v;
+  }
+  else
+    return v;
+}
+
+int preprocess_vars_for_bdb_syntax( char *str )
+{
+  char *ptr;
+  int parens = 0;
+
+  for ( ptr = str; *ptr; ptr++ )
+  {
+    if ( *ptr == '(' )
+    {
+      parens++;
+      continue;
+    }
+
+    if ( *ptr == ')' )
+    {
+      parens--;
+
+      if ( parens < 0 )
+        return 0;
+    }
+
+    if ( *ptr == ',' && parens )
+      *ptr = '|';
+  }
+
+  if ( parens )
+    return 0;
+
+  return 1;
 }
 
 HANDLER( do_makecorrelation )
 {
   correlation *c;
-  variable **vars, **vptr;
-  char *pubmedstr, *varsstr, *err;
+  variable **vars, **vptr, **tmp;
+  char *pubmedstr, *varsstr, *err = NULL;
   int yes;
 
   TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed'" );
   TRY_TWO_PARAMS( varsstr, "vars", "variables", "You did not indicate a list of 'variables'" );
 
-  vars = (variable**) PARSE_LIST( varsstr, parse_one_variable, "variable", &err );
+  if ( !preprocess_vars_for_bdb_syntax( varsstr ) )
+    HND_ERR( "Improperly formed parentheses detected" );
+
+  CREATE( vars, variable *, strlen( varsstr ) + 1 );
+  vptr = vars;
+
+  tmp = (variable**)PARSE_LIST_R( varsstr, parse_one_variable, &vptr, "variable", &err );
+  free( tmp );
+
+  if ( err )
+  {
+    free( vars );
+    HND_ERR_FREE( err );
+  }
+
+  *vptr = NULL;
 
   for ( vptr = vars; *vptr; vptr++ )
   {

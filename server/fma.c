@@ -82,7 +82,6 @@ void add_raw_fma_term( unsigned long id )
   f->parents = (fma**)blank_void_array();
   f->children = (fma**)blank_void_array();
   f->niflings = (nifling**)blank_void_array();
-  f->e = NULL;
   f->flags = 0;
   f->is_up = 0;
 
@@ -275,58 +274,6 @@ lyph *lyph_by_fma( char *fma, trie *t )
   );
 
   return NULL;
-}
-
-void link_fma_to_lyph( fma *f )
-{
-  char buf[2048];
-
-  sprintf( buf, "FMA_%ld", f->id );
-
-  f->e = lyph_by_fma( buf, lyph_ids );
-}
-
-void link_fmas_to_lyphs( void )
-{
-  fma *f;
-  int hash;
-
-  log_string( "Linking FMA terms to lyphs..." );
-
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  {
-    for ( f = first_fma[hash]; f; f = f->next )
-      link_fma_to_lyph( f );
-  }
-}
-
-void remove_lyph_from_fmas( const lyph *e )
-{
-  fma *f;
-  char *fmaid;
-  unsigned long id;
-
-  if ( !e->fma )
-    return;
-
-  fmaid = trie_to_static( e->fma );
-
-  if ( !str_begins( fmaid, "FMA_" ) )
-    return;
-
-  id = strtoul( fmaid + strlen( "FMA_" ), NULL, 10 );
-
-  if ( id < 1 )
-    return;
-
-  for ( f = first_fma[id % FMA_HASH]; f; f = f->next )
-  {
-    if ( f->e == e )
-    {
-      f->e = NULL;
-      return;
-    }
-  }
 }
 
 void fma_append_nifling( fma *f, nifling *n )

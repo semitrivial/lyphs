@@ -40,7 +40,6 @@ void init_labels(FILE *fp)
   human_species_uppercase = trie_strdup( "Human", metadata );
 
   parse_fma_file();
-  link_fmas_to_lyphs();
   parse_nifling_file();
 
   return;
