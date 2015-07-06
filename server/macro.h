@@ -118,6 +118,22 @@ do\
 } while(0)
 
 /*
+ * Insert object into doubly-linked list
+ */
+#define INSERT2(link, insert, first, next, prev)\
+do\
+{\
+  (link)->prev = (insert)->prev;\
+  if ( !(insert)->prev )\
+    (first) = (link);\
+  else\
+    (insert)->prev->next = (link);\
+  (insert)->prev = (link);\
+  (link)->next = (insert);\
+}\
+while(0)\
+
+/*
  * Quickly read char from file
  */
 #define QUICK_GETC( ch, fp )\

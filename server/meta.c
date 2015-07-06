@@ -1443,13 +1443,25 @@ int preprocess_vars_for_bdb_syntax( char *str )
 
 HANDLER( do_makecorrelation )
 {
-  correlation *c;
+  correlation *c, *edit;
   variable **vars, **vptr, **tmp;
-  char *pubmedstr, *varsstr, *err = NULL;
+  char *pubmedstr, *varsstr, *err = NULL, *editstr;
   int yes;
 
   TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed'" );
   TRY_TWO_PARAMS( varsstr, "vars", "variables", "You did not indicate a list of 'variables'" );
+
+  editstr = get_param( params, "id" );
+
+  if ( editstr )
+  {
+    edit = correlation_by_id( editstr );
+
+    if ( !edit )
+      HND_ERR( "The indicated correlation was not recognized" );
+  }
+  else
+    edit = NULL;
 
   if ( !preprocess_vars_for_bdb_syntax( varsstr ) )
     HND_ERR( "Improperly formed parentheses detected" );
@@ -1505,12 +1517,27 @@ HANDLER( do_makecorrelation )
   c->vars = vars;
   c->pbmd = pubmed_by_id_or_create( pubmedstr, &yes );
 
-  if ( last_correlation )
-    c->id = last_correlation->id + 1;
+  if ( edit )
+  {
+    /*
+     * Intentional memory leak here as we do not anticipate
+     * the functionality in question to be used so often that
+     * it will have an impact
+     */
+    INSERT2( c, edit, first_correlation, next, prev );
+    UNLINK2( edit, first_correlation, last_correlation, next, prev );
+    c->id = edit->id;
+  }
   else
-    c->id = 1;
+  {
+    if ( last_correlation )
+      c->id = last_correlation->id + 1;
+    else
+      c->id = 1;
 
-  LINK2( c, first_correlation, last_correlation, next, prev );
+    LINK2( c, first_correlation, last_correlation, next, prev );
+  }
+
   save_correlations();
 
   send_response( req, correlation_to_json( c ) );
