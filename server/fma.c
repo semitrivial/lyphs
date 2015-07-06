@@ -255,19 +255,29 @@ void parse_fma_file_for_parts( char *file )
   }
 }
 
-lyph *lyph_by_fma( char *fma, trie *t )
+lyph *lyph_by_fma( fma *f, trie *t )
 {
   if ( t->data )
   {
     lyph *e = (lyph*)t->data;
 
-    if ( is_human_species( e ) && e->fma && !strcmp( trie_to_static( e->fma ), fma ) )
-      return e;
+    if ( is_human_species( e ) && e->fma )
+    {
+      char *fmastr = trie_to_static( e->fma );
+
+      if ( str_begins( fmastr, "FMA_" ) )
+        fmastr += strlen( "FMA_" );
+      else if ( str_begins( fmastr, "fma:" ) )
+        fmastr += strlen( "fma:" );
+
+      if ( strtoul( fmastr, NULL, 10 ) == f->id )
+        return e;
+    }
   }
 
   TRIE_RECURSE
   (
-    lyph *e = lyph_by_fma( fma, *child );
+    lyph *e = lyph_by_fma( f, *child );
 
     if ( e )
       return e;
@@ -379,12 +389,21 @@ void parse_nifling_file( void )
   free( file );
 }
 
+char *fma_lyph_to_json( fma *f )
+{
+  lyph *e = lyph_by_fma( f, lyph_ids );
+
+  return e ? trie_to_json( e->id ) : NULL;
+}
+
 char *nifling_to_json( const nifling *n )
 {
   return JSON
   (
     "fma1": ul_to_json( n->fma1->id ),
     "fma2": ul_to_json( n->fma2->id ),
+    "fma1_lyph": fma_lyph_to_json( n->fma1 ),
+    "fma2_lyph": fma_lyph_to_json( n->fma2 ),
     "pubmed": n->pubmed,
     "projection strength": n->proj,
     "species": n->species ? trie_to_json( n->species ) : NULL
@@ -395,8 +414,10 @@ char *displayed_niflings_to_json( const displayed_niflings *dn )
 {
   return JSON
   (
-    "lyph1": ul_to_json( dn->f1->id ),
-    "lyph2": ul_to_json( dn->f2->id ),
+    "fma1": ul_to_json( dn->f1->id ),
+    "fma2": ul_to_json( dn->f2->id ),
+    "fma1_lyph": fma_lyph_to_json( dn->f1 ),
+    "fma2_lyph": fma_lyph_to_json( dn->f2 ),
     "niflings": JS_ARRAY( nifling_to_json, dn->niflings )
   );
 }
@@ -531,24 +552,93 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
     return NULL;
 }
 
+fma **get_fmas_from_fmasstr_and_lyphsstr( char *fmasstr, char *lyphsstr )
+{
+  fma **by_fmas, **by_lyphs, **by_lyphs_ptr, **buf, **fs;
+  lyph **lyphs, **lyphsptr;
+  int by_fmas_len, by_lyphs_len;
+
+  if ( fmasstr )
+  {
+    by_fmas = (fma**)PARSE_LIST( fmasstr, fma_by_str, "fma", NULL );
+
+    if ( !by_fmas )
+      return NULL;
+  }
+  else
+    by_fmas = (fma**)blank_void_array();
+
+  if ( lyphsstr )
+  {
+    lyphs = (lyph**)PARSE_LIST( lyphsstr, lyph_by_id, "lyph", NULL );
+
+    if ( !lyphs )
+    {
+      free( by_fmas );
+      return NULL;
+    }
+  }
+  else
+    lyphs = (lyph**)blank_void_array();
+
+  for ( fs = by_fmas; *fs; fs++ )
+    (*fs)->flags = 1;
+
+  CREATE( by_lyphs, fma *, VOIDLEN( lyphs ) + 1 );
+
+  for ( lyphsptr = lyphs, by_lyphs_ptr = by_lyphs; *lyphsptr; lyphsptr++ )
+  {
+    fma *f;
+
+    if ( !(*lyphsptr)->fma )
+      continue;
+
+    f = fma_by_trie( (*lyphsptr)->fma );
+
+    if ( !f || f->flags == 1 )
+      continue;
+
+    *by_lyphs_ptr++ = f;
+    f->flags = 1;
+  }
+
+  *by_lyphs_ptr = NULL;
+  free( lyphs );
+
+  by_fmas_len = VOIDLEN( by_fmas );
+  by_lyphs_len = VOIDLEN( by_lyphs );
+
+  CREATE( buf, fma *, by_fmas_len + by_lyphs_len + 1 );
+
+  memcpy( buf, by_fmas, by_fmas_len * sizeof(fma*) );
+  memcpy( buf + by_fmas_len, by_lyphs, by_lyphs_len * sizeof(fma*) );
+  buf[by_fmas_len + by_lyphs_len] = NULL;
+  free( by_fmas );
+  free( by_lyphs );
+
+  for ( fs = buf; *fs; fs++ )
+    (*fs)->flags = 0;
+
+  return buf;
+}
+
 HANDLER( do_nifs )
 {
   fma **buf, **bptr1, **bptr2;
   displayed_niflings **dns, **dnsptr;
-  char *fmasstr, *err;
+  char *fmasstr, *lyphsstr;
   int cnt;
 
-  TRY_PARAM( fmasstr, "fmas", "You did not specify a comma-separated list of 'fmas'" );
+  fmasstr = get_param( params, "fmas" );
+  lyphsstr = get_param( params, "lyphs" );
 
-  buf = (fma **)PARSE_LIST( fmasstr, fma_by_str, "fma", &err );
+  if ( !fmasstr && !lyphsstr )
+    HND_ERR( "You did not specify either a comma-separated list of 'fmas' nor a comma-separated list of 'lyphs'" );
+
+  buf = get_fmas_from_fmasstr_and_lyphsstr( fmasstr, lyphsstr );
 
   if ( !buf )
-  {
-    if ( err )
-      HND_ERR_FREE( err );
-    else
-      HND_ERR( "One of the indicated fmas was not recognized" );
-  }
+    HND_ERR( "One of the indicated fmas or lyphs was not recognized" );
 
   cnt = VOIDLEN( buf );
 
