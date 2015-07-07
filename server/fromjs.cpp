@@ -131,7 +131,7 @@ void correlation_from_js( Value &v )
   }
   free( idstr );
 
-  if ( v.HasMember("comment") )
+  if ( v.HasMember("comment") && !v["comment"].IsNull() )
     comment = strdup( v["comment"].GetString() );
   else
     comment = NULL;
