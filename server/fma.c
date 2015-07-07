@@ -510,8 +510,8 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
       if ( !finds )
       {
         CREATE( dn, displayed_niflings, 1 );
-        dn->f1 = x_rep;
-        dn->f2 = y_rep;
+        dn->f1 = x;
+        dn->f2 = y;
         CREATE( dn->niflings, nifling *, 2 );
         dn->niflings[0] = n;
         dn->niflings[1] = NULL;
