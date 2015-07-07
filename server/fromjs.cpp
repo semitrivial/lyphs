@@ -116,7 +116,7 @@ void correlation_from_js( Value &v )
   correlation *c;
   variable **vbl, **vblptr;
   pubmed *pbmd;
-  char *idstr, *pubmedstr;
+  char *idstr, *pubmedstr, *comment;
   int id, vrcnt, no = 0;
 
   idstr = strdup( v["id"].GetString() );
@@ -130,6 +130,11 @@ void correlation_from_js( Value &v )
     return;
   }
   free( idstr );
+
+  if ( v.HasMember("comment") )
+    comment = strdup( v["comment"].GetString() );
+  else
+    comment = NULL;
 
   pubmedstr = strdup( v["pubmed"]["id"].GetString() );
 
@@ -209,6 +214,7 @@ void correlation_from_js( Value &v )
   c->vars = vbl;
   c->pbmd = pbmd;
   c->id = id;
+  c->comment = comment;
 
   LINK2( c, first_correlation, last_correlation, next, prev );
 }

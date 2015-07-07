@@ -297,6 +297,7 @@ struct CORRELATION
   correlation *prev;
   variable **vars;
   pubmed *pbmd;
+  char *comment;
   int id;
   int flags;
 };

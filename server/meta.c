@@ -1225,7 +1225,8 @@ char *correlation_to_json( correlation *c )
   (
     "id": int_to_json( c->id ),
     "variables": JS_ARRAY( variable_to_json, c->vars ),
-    "pubmed": pubmed_to_json_full( c->pbmd )
+    "pubmed": pubmed_to_json_full( c->pbmd ),
+    "comment": c->comment
   );
 }
 
@@ -1445,7 +1446,7 @@ HANDLER( do_makecorrelation )
 {
   correlation *c, *edit;
   variable **vars, **vptr, **tmp;
-  char *pubmedstr, *varsstr, *err = NULL, *editstr;
+  char *pubmedstr, *varsstr, *editstr, *commentstr, *err = NULL;
   int yes;
 
   TRY_PARAM( pubmedstr, "pubmed", "You did not indicate a 'pubmed'" );
@@ -1516,6 +1517,13 @@ HANDLER( do_makecorrelation )
   CREATE( c, correlation, 1 );
   c->vars = vars;
   c->pbmd = pubmed_by_id_or_create( pubmedstr, &yes );
+
+  commentstr = get_param( params, "comment" );
+
+  if ( commentstr )
+    c->comment = strdup( commentstr );
+  else
+    c->comment = NULL;
 
   if ( edit )
   {
@@ -2167,6 +2175,7 @@ void generate_random_correlation( void )
   CREATE( c, correlation, 1 );
   c->pbmd = pubmed_by_id_or_create( "autogen", NULL );
   c->vars = vars;
+  c->comment = NULL;
 
   if ( last_correlation )
     c->id = last_correlation->id + 1;
