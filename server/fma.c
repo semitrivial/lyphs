@@ -491,18 +491,12 @@ displayed_niflings *compute_niflings_by_fma( fma *x, fma *y )
     for ( nptr = f->niflings; *nptr; nptr++ )
     {
       nifling *n = *nptr;
-      fma *x_rep, *y_rep;
+      fma *y_rep;
 
       if ( n->fma1 == f )
-      {
-        x_rep = f;
         y_rep = n->fma2;
-      }
       else
-      {
         y_rep = f;
-        x_rep = n->fma2;
-      }
 
       if ( (y_rep->flags & 1) || !(y_rep->flags & 2) )  // Find connections in y's tree but not in x's
         continue;
