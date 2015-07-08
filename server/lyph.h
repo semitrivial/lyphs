@@ -395,6 +395,7 @@ struct FMA
   fma *next_by_y;
   fma **parents;
   fma **children;
+  fma **superclasses;
   nifling **niflings;
   int flags;
   int is_up;

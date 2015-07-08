@@ -9,6 +9,8 @@ nifling *first_nifling;
 nifling *last_nifling;
 trie *fmacheck;
 
+fma *brain;
+
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
@@ -82,6 +84,7 @@ void add_raw_fma_term( unsigned long id )
   f->parents = (fma**)blank_void_array();
   f->children = (fma**)blank_void_array();
   f->niflings = (nifling**)blank_void_array();
+  f->superclasses = (fma**)blank_void_array();
   f->flags = 0;
   f->is_up = 0;
 
@@ -102,6 +105,17 @@ void parse_fma_for_terms_one_word( char *word )
     return;
 
   add_raw_fma_term( id );
+}
+
+void init_brain( void )
+{
+  brain = fma_by_ul( 50801 );
+
+  if ( !brain )
+  {
+    error_message( "There was no brain FMA term detected.  Shutting down." );
+    exit(1);
+  }
 }
 
 void parse_fma_file( void )
@@ -129,6 +143,8 @@ void parse_fma_file( void )
   parse_fma_file_for_parts( file );
 
   free( file );
+
+  init_brain();
 }
 
 void parse_fma_file_for_raw_terms( char *file )
@@ -169,6 +185,23 @@ void maybe_fma_append( fma ***arr, fma *what )
   *arr = buf;
 }
 
+void add_fma_sub( unsigned long id1, unsigned long id2 )
+{
+  fma *super, *sub;
+
+  super = fma_by_ul( id1 );
+
+  if ( !super )
+    return;
+
+  sub = fma_by_ul( id2 );
+
+  if ( !sub )
+    return;
+
+  maybe_fma_append( &sub->superclasses, super );
+}
+
 void add_fma_part( unsigned long id1, unsigned long id2 )
 {
   fma *parent, *child;
@@ -192,7 +225,7 @@ void parse_fma_for_parts_one_line( char *line )
   char *space, *pound;
   unsigned long id1, id2;
 
-  if ( !str_begins( line, "Part " ) )
+  if ( !str_begins( line, "Part " ) && !str_begins( line, "Sub " ) )
     return;
 
   for ( pound = line; *pound; pound++ )
@@ -234,14 +267,17 @@ void parse_fma_for_parts_one_line( char *line )
   if ( id2 < 1 )
     return;
 
-  add_fma_part( id1, id2 );
+  if ( str_begins( line, "Part " ) )
+    add_fma_part( id1, id2 );
+  else
+    add_fma_sub( id1, id2 );
 }
 
 void parse_fma_file_for_parts( char *file )
 {
   char *ptr, *left;
 
-  log_string( "Parsing FMA file for parts..." );
+  log_string( "Parsing FMA file for parts and subclasses..." );
 
   for ( ptr = file, left = file; *ptr; ptr++ )
   {
@@ -261,7 +297,7 @@ lyph *lyph_by_fma( fma *f, trie *t )
   {
     lyph *e = (lyph*)t->data;
 
-    if ( is_human_species( e ) && e->fma )
+    if ( e->fma )
     {
       char *fmastr = trie_to_static( e->fma );
 
@@ -662,4 +698,108 @@ HANDLER( do_nifs )
     free( *dnsptr );
 
   free( dns );
+}
+
+int is_bdbpart_brain( fma *f )
+{
+  fma **fs;
+
+  if ( f == brain )
+    return 1;
+
+  if ( f->flags & 2 )
+    return 0;
+
+  f->flags |= 2;
+
+  for ( fs = f->parents; *fs; fs++ )
+  {
+    if ( is_bdbpart_brain( *fs ) )
+    {
+      f->flags &= ~2;
+      return 1;
+    }
+  }
+
+  for ( fs = f->superclasses; *fs; fs++ )
+  {
+    if ( is_bdbpart_brain( *fs ) )
+    {
+      f->flags &= ~2;
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+void dotfile_handle( fma *f, FILE *fp )
+{
+  fma **fs;
+
+  f->flags |= 1;
+
+  if ( f != brain )
+  {
+    for ( fs = f->parents; *fs; fs++ )
+    {
+      if ( (*fs)->flags & 1 )
+        continue;
+
+      dotfile_handle( *fs, fp );
+    }
+  }
+
+  for ( fs = f->children; *fs; fs++ )
+  {
+    fprintf( fp, "    \"%lu\" -> \"%lu\";\n", f->id, (*fs)->id );
+
+    if ( !( (*fs)->flags & 1 ) )
+      dotfile_handle( *fs, fp );
+  }
+}
+
+/*
+ * The following was a presumably one-time use plugin requested by BdB.
+ * Currently disabled in tables.c
+ */
+HANDLER( do_dotfile )
+{
+  FILE *fp = fopen( "dotfile.txt", "w" );
+  fma *f;
+  int hash, cluster = 0;
+
+  if ( !fp )
+    HND_ERR( "!fp" );
+
+  fprintf( fp, "digraph\n"
+               "{\n" );
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+  {
+    if ( !is_bdbpart_brain(f) )
+      continue;
+
+    if ( f->flags & 1 )
+      continue;
+
+    if ( !f->parents[0] && !f->children[0] )
+      continue;
+
+    fprintf( fp, "  subgraph cluster_%d\n"
+                 "  {\n", cluster );
+
+    cluster++;
+
+    dotfile_handle( f, fp );
+
+    fprintf( fp, "  }\n\n" );
+  }
+
+  fprintf( fp, "}" );
+
+  fclose( fp );
+
+  send_ok( req );
 }
