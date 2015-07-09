@@ -30,7 +30,7 @@ void **array_from_value( Value &v, void * (*fnc) (const char *) )
 
 void **array_from_doc( Value &d, const char *key, void * (*fnc) (const char *) )
 {
-  if ( d.HasMember( key ) )
+  if ( d.HasMember( key ) && d[key].IsArray() )
     return array_from_value( d[key], fnc );
   else
     return blank_void_array();
@@ -38,7 +38,7 @@ void **array_from_doc( Value &d, const char *key, void * (*fnc) (const char *) )
 
 trie *trie_from_doc( Document &d, const char *key, trie *base )
 {
-  if ( d.HasMember( key ) )
+  if ( d.HasMember( key ) && d[key].IsString() )
     return trie_search( d[key].GetString(), base );
   else
     return NULL;
@@ -46,8 +46,10 @@ trie *trie_from_doc( Document &d, const char *key, trie *base )
 
 void int_from_doc( Document &d, const char *key, int *dest )
 {
-  if ( d.HasMember( key ) )
+  if ( d.HasMember( key ) && d[key].IsInt() )
     *dest = d[key].GetInt();
+  else
+    *dest = -1;
 }
 
 void clinical_index_from_js( clinical_index *ci, Value &v )
@@ -56,7 +58,7 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
   ci->label = trie_strdup( v["label"].GetString(), metadata );
   ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id_or_create) );
 
-  if ( v.HasMember("claimed") )
+  if ( v.HasMember("claimed") && v["claimed"].IsString() )
     ci->claimed = strdup( v["claimed"].GetString() );
 }
 
@@ -131,7 +133,7 @@ void correlation_from_js( Value &v )
   }
   free( idstr );
 
-  if ( v.HasMember("comment") && !v["comment"].IsNull() )
+  if ( v.HasMember("comment") && v["comment"].IsString() )
     comment = strdup( v["comment"].GetString() );
   else
     comment = NULL;
