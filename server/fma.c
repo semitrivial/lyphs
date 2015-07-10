@@ -87,6 +87,7 @@ void add_raw_fma_term( unsigned long id )
   f->superclasses = (fma**)blank_void_array();
   f->flags = 0;
   f->is_up = 0;
+  f->lyph = NULL;
 
   LINK( f, first_fma[hash], last_fma[hash], next );
 }
@@ -291,7 +292,7 @@ void parse_fma_file_for_parts( char *file )
   }
 }
 
-lyph *lyph_by_fma( fma *f, trie *t )
+lyph *lyph_by_fma_recurse( fma *f, trie *t )
 {
   if ( t->data )
   {
@@ -313,13 +314,25 @@ lyph *lyph_by_fma( fma *f, trie *t )
 
   TRIE_RECURSE
   (
-    lyph *e = lyph_by_fma( f, *child );
+    lyph *e = lyph_by_fma_recurse( f, *child );
 
     if ( e )
       return e;
   );
 
   return NULL;
+}
+
+lyph *lyph_by_fma( fma *f )
+{
+  char buf[2048];
+
+  sprintf( buf, "FMA_%lu", f->id );
+
+  if ( !trie_search( buf, lyph_fmas ) )
+    return NULL;
+
+  return lyph_by_fma_recurse( f, lyph_ids );
 }
 
 void fma_append_nifling( fma *f, nifling *n )
@@ -427,7 +440,7 @@ void parse_nifling_file( void )
 
 char *fma_lyph_to_json( fma *f )
 {
-  lyph *e = lyph_by_fma( f, lyph_ids );
+  lyph *e = lyph_by_fma( f );
 
   return e ? trie_to_json( e->id ) : NULL;
 }
@@ -800,6 +813,176 @@ HANDLER( do_dotfile )
   fprintf( fp, "}" );
 
   fclose( fp );
+
+  send_ok( req );
+}
+
+fma *common_ancestor( fma **arr )
+{
+  fma *anc, **ptr, *retval;
+
+  for ( anc = arr[0]->parents[0]; anc; anc = anc->parents[0] )
+    SET_BIT( anc->flags, 2 );
+
+  for ( ptr = arr + 1; *ptr; ptr++ )
+  {
+    for ( anc = ptr[0]->parents[0]; anc; anc = anc->parents[0] )
+      if ( IS_SET( anc->flags, 2 ) )
+        break;
+
+    retval = anc;
+
+    if ( !anc )
+      break;
+
+    for ( anc = ptr[0]->parents[0]; anc != retval; anc = anc->parents[0] )
+      REMOVE_BIT( anc->flags, 2 );
+  }
+
+  for ( anc = arr[0]->parents[0]; anc; anc = anc->parents[0] )
+    REMOVE_BIT( anc->flags, 2 );
+
+  return retval;  
+}
+
+void flatten_fma( fma *f )
+{
+  fma **p, **buf, *anc;
+
+  if ( IS_SET( f->flags, 1 ) )
+    return;
+
+  SET_BIT( f->flags, 1 );
+
+  if ( !f->parents[0] || !f->parents[1] )
+    return;
+
+  for ( p = f->parents; *p; p++ )
+    flatten_fma( *p );
+
+  anc = common_ancestor( f->parents );
+
+  if ( !anc )
+  {
+    free( f->parents );
+    f->parents = (fma**)blank_void_array();
+    return;
+  }
+
+  CREATE( buf, fma *, 2 );
+  buf[0] = anc;
+  buf[1] = NULL;
+  free( f->parents );
+  f->parents = buf;
+
+  return;
+}
+
+void flatten_fmas( void )
+{
+  fma *f;
+  int hash;
+
+  log_string( "Flattening FMA from DAG into tree..." );
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+    flatten_fma( f );
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+    f->flags = 0;
+}
+
+void create_fma_lyph( fma *f, int brain_only )
+{
+  fma *parent;
+  lyph *e;
+  lyphnode *from, *to;
+
+  if ( IS_SET( f->flags, 1 ) )
+    return;
+
+  SET_BIT( f->flags, 1 );
+
+  if ( !f->parents[0] )
+    parent = NULL;
+  else if ( brain_only && !is_bdbpart_brain( f->parents[0] ) )
+    parent = NULL;
+  else
+    parent = f->parents[0];
+
+  from = make_lyphnode();
+  to = make_lyphnode();
+
+  if ( parent )
+  {
+    create_fma_lyph( parent, brain_only );
+    from->location = parent->lyph;
+    from->loctype = LOCTYPE_INTERIOR;
+    to->location = parent->lyph;
+    to->loctype = LOCTYPE_INTERIOR;
+  }
+
+  e = lyph_by_fma( f );
+
+  if ( !e )
+  {
+    char *fmastr = strdupf( "FMA_%lu", f->id );
+    char *namestr;
+    trie *nametr;
+
+    nametr = trie_search( fmastr, iri_to_labels );
+
+    if ( nametr && nametr->data && nametr->data[0] )
+      namestr = strdupf( "%s", trie_to_static( nametr->data[0] ) );
+    else
+      namestr = strdup( fmastr );
+
+    e = make_lyph_nosave( 1, from, to, NULL, fmastr, namestr, NULL, NULL, "Human" );
+
+    free( namestr );
+    free( fmastr );
+  }
+
+  e->from = from;
+  e->to = to;
+  f->lyph = e;
+}
+
+void create_fma_lyphs( int brain_only )
+{
+  fma *f;
+  int hash;
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  {
+    for ( f = first_fma[hash]; f; f = f->next )
+    {
+      if ( brain_only && !is_bdbpart_brain( f ) )
+        continue;
+
+      create_fma_lyph( f, brain_only );
+    }
+  }
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+    f->flags = 0;
+}
+
+HANDLER( do_create_fmalyphs )
+{
+  char *brainstr;
+
+  brainstr = get_param( params, "brain" );
+
+  if ( brainstr && !strcmp( brainstr, "yes" ) )
+    create_fma_lyphs( 1 );
+  else
+    create_fma_lyphs( 0 );
+
+  save_lyphs();
 
   send_ok( req );
 }

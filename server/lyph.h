@@ -399,6 +399,7 @@ struct FMA
   nifling **niflings;
   int flags;
   int is_up;
+  lyph *lyph;
 };
 
 struct NIFLING
@@ -610,6 +611,7 @@ void load_lyphviews( void );
 char *lyphview_to_json( lyphview *v );
 lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs, char **lxs, char **lys, char **widths, char **heights, char *name );
 lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
+lyph *make_lyph_nosave( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
 lyphnode *make_lyphnode( void );
 void compute_lyphplate_hierarchy( trie *t );
 lyphplate *lyphplate_by_ont_term( trie *term );
@@ -678,6 +680,7 @@ char *clinical_index_to_json_full( clinical_index *ci );
 /*
  * fma.c
  */
+void flatten_fmas( void );
 void parse_nifling_file( void );
 void parse_fma_file( void );
 fma *fma_by_trie( trie *id );

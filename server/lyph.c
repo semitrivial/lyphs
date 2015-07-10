@@ -2704,7 +2704,7 @@ trie *new_lyphnode_id(lyphnode *n)
   return id;
 }
 
-lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr )
+lyph *make_lyph_( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr, int save )
 {
   trie *fma;
   lyph *e;
@@ -2742,9 +2742,20 @@ lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fma
 
   add_exit( e );
 
-  save_lyphs();
+  if ( save )
+    save_lyphs();
 
   return e;
+}
+
+lyph *make_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr )
+{
+  return make_lyph_( type, from, to, L, fmastr, namestr, pubmedstr, projstr, speciesstr, 1 );
+}
+
+lyph *make_lyph_nosave( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fmastr, char *namestr, char *pubmedstr, char *projstr, char *speciesstr )
+{
+  return make_lyph_( type, from, to, L, fmastr, namestr, pubmedstr, projstr, speciesstr, 0 );
 }
 
 trie *new_lyph_id(lyph *e)

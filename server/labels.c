@@ -41,6 +41,7 @@ void init_labels(FILE *fp)
 
   parse_fma_file();
   parse_nifling_file();
+  flatten_fmas();
 
   return;
 }

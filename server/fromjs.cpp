@@ -231,13 +231,16 @@ void located_measure_from_js( Value &v )
   lyphstr = strdup( v["lyph"].GetString() );
 
   e = lyph_by_id( lyphstr );
-  free( lyphstr );
 
   if ( !e )
   {
     error_messagef( "Error while loading located measures: lyph %s not found", lyphstr );
+    free( lyphstr );
+
     return;
   }
+
+  free( lyphstr );
 
   idstr = strdup( v["id"].GetString() );
 
