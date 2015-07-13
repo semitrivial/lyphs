@@ -3660,6 +3660,7 @@ HANDLER( do_lyphs_by_prefix )
 {
   lyph **buf, **bptr;
   trie *species;
+  lyph_to_json_details details;
   char *prefix, *speciesstr;
   int include_null_species, include_any_species = 0;
 
@@ -3691,7 +3692,13 @@ HANDLER( do_lyphs_by_prefix )
 
   *bptr = NULL;
 
-  send_response( req, JS_ARRAY( lyph_to_json, buf ) );
+  details.show_annots = 0;
+  details.suppress_correlations = 1;
+  details.count_correlations = 0;
+  details.show_children = 0;
+  details.buf = NULL;
+
+  send_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
 
   free( buf );
 }
