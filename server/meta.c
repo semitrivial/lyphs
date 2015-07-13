@@ -1108,6 +1108,7 @@ HANDLER( do_has_clinical_index )
   details.suppress_correlations = 1;
   details.count_correlations = 0;
   details.buf = buf;
+  details.show_children = 0;
 
   send_response( req, JS_ARRAY_R( lyph_to_json_r, buf, &details ) );
 

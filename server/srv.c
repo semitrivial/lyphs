@@ -1940,6 +1940,7 @@ HANDLER( do_all_lyphs )
   details.suppress_correlations = 1;
   details.count_correlations = 0;
   details.buf = NULL;
+  details.show_children = 0;
 
   speciesstr = get_param( params, "species" );
 

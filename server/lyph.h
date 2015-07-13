@@ -244,6 +244,7 @@ struct LYPH_TO_JSON_DETAILS
   int show_annots;
   int suppress_correlations;
   int count_correlations;
+  int show_children;
   lyph **buf;
 };
 
