@@ -1912,25 +1912,23 @@ int has_param( url_param **params, char *key )
   return 0;
 }
 
-void populate_lyphs_by_species( trie *species, lyph ***ptr, trie *t, int include_null_species )
+void populate_lyphs_by_species( trie *species, lyph ***ptr, int include_null_species )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->species == species || ( is_null_species(e) && include_null_species ) )
     {
       **ptr = e;
       (*ptr)++;
     }
   }
-
-  TRIE_RECURSE( populate_lyphs_by_species( species, ptr, *child, include_null_species ) );
 }
 
 HANDLER( do_all_lyphs )
 {
-  lyph **lyphs, **ptr;
+  lyph **lyphs, **ptr, *e;
   lyph_to_json_details details;
   trie *species;
   char *speciesstr;
@@ -1952,14 +1950,20 @@ HANDLER( do_all_lyphs )
   else if ( !strcmp( speciesstr, "Human" ) )
     include_null_species = 1;
 
+  CREATE( lyphs, lyph *, lyphcnt + 1 );
+  ptr = lyphs;
+
   if ( !strcmp( speciesstr, "any" ) )
-    lyphs = (lyph**)datas_to_array( lyph_ids );
+  {
+    for ( e = first_lyph; e; e = e->next )
+      *ptr++ = e;
+
+    *ptr = NULL;
+  }
   else
   {
     species = trie_strdup( speciesstr, metadata );
-    CREATE( lyphs, lyph *, lyphcnt + 1 );
-    ptr = lyphs;
-    populate_lyphs_by_species( species, &ptr, lyph_ids, include_null_species );
+    populate_lyphs_by_species( species, &ptr, include_null_species );
     *ptr = NULL;
   }
 

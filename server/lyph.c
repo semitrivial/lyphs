@@ -10,7 +10,7 @@ trie *new_lyph_id(lyph *e);
 lyphnode *lyphnode_by_id_or_new( char *id );
 trie *parse_lyph_name_field( char *namebuf, lyph *e );
 lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
-lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr );
+lyph *find_duplicate_lyph_worker( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr );
 trie *new_lyphnode_id(lyphnode *n);
 lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
@@ -18,6 +18,7 @@ int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
 char *lyphnode_to_json_brief( lyphnode *n );
 void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t );
+void save_one_lyph( lyph *e, FILE *fp );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -118,7 +119,7 @@ void strip_lyphplates_from_graph( void )
     }
   }
 }
-//bookmark
+
 void free_all_lyphs( void )
 {
   /*
@@ -258,46 +259,40 @@ int is_lyphnode_located_in_lyphs( lyphnode *n, lyph **ebuf )
   return 0;
 }
 
-void get_lyphs_partly_located_in_recursive( lyph **ebuf, lyph_wrapper **head, lyph_wrapper **tail, trie *t, int *cnt )
+void maybe_get_lyph_partly_located_in( lyph **ebuf, lyph_wrapper **head, lyph_wrapper **tail, lyph *in, int *cnt )
 {
-  if ( t->data )
+  if ( in->from->location || in->to->location )
   {
-    lyph *in = (lyph*)t->data;
+    int answer;
 
-    if ( in->from->location || in->to->location )
+    if ( in->from->location == in->to->location )
+      answer = is_lyphnode_located_in_lyphs( in->from, ebuf );
+    else
     {
-      int answer;
+      answer = (in->from->location && is_lyphnode_located_in_lyphs( in->from, ebuf ) );
+      answer = answer || (in->to->location && is_lyphnode_located_in_lyphs( in->to, ebuf ) );
+    }
 
-      if ( in->from->location == in->to->location )
-        answer = is_lyphnode_located_in_lyphs( in->from, ebuf );
-      else
-      {
-        answer = (in->from->location && is_lyphnode_located_in_lyphs( in->from, ebuf ) );
-        answer = answer || (in->to->location && is_lyphnode_located_in_lyphs( in->to, ebuf ) );
-      }
+    if ( answer )
+    {
+      lyph_wrapper *w;
 
-      if ( answer )
-      {
-        lyph_wrapper *w;
-
-        CREATE( w, lyph_wrapper, 1 );
-        w->e = in;
-        LINK( w, *head, *tail, next );
-        (*cnt)++;
-      }
+      CREATE( w, lyph_wrapper, 1 );
+      w->e = in;
+      LINK( w, *head, *tail, next );
+      (*cnt)++;
     }
   }
-
-  TRIE_RECURSE( get_lyphs_partly_located_in_recursive( ebuf, head, tail, *child, cnt ) );
 }
 
 lyph **get_lyphs_partly_located_in( lyph **ebuf )
 {
-  lyph **buf, **bptr, **ebptr;
+  lyph **buf, **bptr, **ebptr, *e;
   lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
   int cnt = 0;
 
-  get_lyphs_partly_located_in_recursive( ebuf, &head, &tail, lyph_ids, &cnt );
+  for ( e = first_lyph; e; e = e->next )
+    maybe_get_lyph_partly_located_in( ebuf, &head, &tail, e, &cnt );
 
   CREATE( buf, lyph *, cnt + VOIDLEN( ebuf ) + 1 );
   bptr = buf;
@@ -1038,6 +1033,7 @@ int load_lyphs( void )
 void save_lyphs( void )
 {
   FILE *fp;
+  lyph *e;
 
   if ( configs.readonly )
     return;
@@ -1050,72 +1046,67 @@ void save_lyphs( void )
     return;
   }
 
-  save_lyphs_recurse( lyph_ids, fp );
+  for ( e = first_lyph; e; e = e->next )
+    save_one_lyph( e, fp );
+
   save_lyphnode_locs( lyphnode_ids, fp );
 
   fclose( fp );
 }
 
-void save_lyphs_recurse( trie *t, FILE *fp )
+void save_one_lyph( lyph *e, FILE *fp )
 {
-  char *encoded;
+  char *encoded, *fmastr;
 
-  if ( t->data )
+  fprintf( fp, "%s\t", trie_to_static( e->id ) );
+
+  if ( e->fma )
   {
-    lyph *e = (lyph *)t->data;
-    char *fmastr;
+    char *ptr;
 
-    fprintf( fp, "%s\t", trie_to_static( e->id ) );
+    fmastr = trie_to_static( e->fma );
+    for ( ptr = fmastr; *ptr; ptr++ )
+      if ( *ptr != ' ' )
+        break;
 
-    if ( e->fma )
-    {
-      char *ptr;
-
-      fmastr = trie_to_static( e->fma );
-      for ( ptr = fmastr; *ptr; ptr++ )
-        if ( *ptr != ' ' )
-          break;
-      if ( !*ptr )
-        fmastr = "(nofma)";
-    }
-    else
+    if ( !*ptr )
       fmastr = "(nofma)";
+  }
+  else
+    fmastr = "(nofma)";
 
-    fprintf( fp, "%d\t%s\t", e->type, fmastr );
-    fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
-    fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
+  fprintf( fp, "%d\t%s\t", e->type, fmastr );
+  fprintf( fp, "%s\t", trie_to_static( e->from->id ) );
+  fprintf( fp, "%s\t", trie_to_static( e->to->id ) );
 
-    if ( e->pubmed && *e->pubmed )
-    {
-      encoded = url_encode( e->pubmed );
-      fprintf( fp, "pubmed:%s ", encoded );
-      free( encoded );
-    }
-
-    if ( e->projection_strength && *e->projection_strength )
-    {
-      encoded = url_encode( e->projection_strength );
-      fprintf( fp, "proj_str:%s ", encoded );
-      free( encoded );
-    }
-
-    if ( e->lyphplt )
-      fprintf( fp, "lyphplate:%s ", trie_to_static( e->lyphplt->id ) );
-
-    if ( *e->constraints )
-      fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
-
-    if ( e->species )
-    {
-      encoded = url_encode( trie_to_static( e->species ) );
-      fprintf( fp, "species:%s ", encoded );
-      free( encoded );
-    }
-
-    fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
+  if ( e->pubmed && *e->pubmed )
+  {
+    encoded = url_encode( e->pubmed );
+    fprintf( fp, "pubmed:%s ", encoded );
+    free( encoded );
   }
 
-  TRIE_RECURSE( save_lyphs_recurse( *child, fp ) );
+  if ( e->projection_strength && *e->projection_strength )
+  {
+    encoded = url_encode( e->projection_strength );
+    fprintf( fp, "proj_str:%s ", encoded );
+    free( encoded );
+  }
+
+  if ( e->lyphplt )
+    fprintf( fp, "lyphplate:%s ", trie_to_static( e->lyphplt->id ) );
+
+  if ( *e->constraints )
+    fprintf( fp, "constraints:%s ", constraints_comma_list( e->constraints ) );
+
+  if ( e->species )
+  {
+    encoded = url_encode( trie_to_static( e->species ) );
+    fprintf( fp, "species:%s ", encoded );
+    free( encoded );
+  }
+
+  fprintf( fp, "%s\n", e->name ? trie_to_static( e->name ) : "(noname)" );
 }
 
 void save_lyphnode_locs( trie *t, FILE *fp )
@@ -2817,15 +2808,15 @@ lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L,
   else
     species_tr = NULL;
 
-  return find_duplicate_lyph_recurse( lyph_ids, type, from, to, L, fma, name, pubmedstr, projstr, species_tr );
+  return find_duplicate_lyph_worker( type, from, to, L, fma, name, pubmedstr, projstr, species_tr );
 }
 
-lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr )
+lyph *find_duplicate_lyph_worker( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->name == name
     &&   e->type == type
     &&   e->from == from
@@ -2838,26 +2829,15 @@ lyph *find_duplicate_lyph_recurse( trie *t, int type, lyphnode *from, lyphnode *
       return e;
   }
 
-  TRIE_RECURSE
-  (
-    lyph *e = find_duplicate_lyph_recurse( *child, type, from, to, L, fma, name, pubmedstr, projstr, species_tr );
-
-    if ( e )
-      return e;
-  );
-
   return NULL;
 }
 
-void lyphs_unset_bits( int bits, trie *t )
+void lyphs_unset_bits( int bits )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
-    REMOVE_BIT( e->flags, bits );
-  }
+  lyph *e;
 
-  TRIE_RECURSE( lyphs_unset_bits( bits, *child ) );
+  for ( e = first_lyph; e; e = e->next )
+    REMOVE_BIT( e->flags, bits );
 }
 
 void lyphplates_unset_bits( int bits, trie *t )
@@ -3247,12 +3227,12 @@ layer *clone_layer( layer *lyr )
   return dest;
 }
 
-void populate_lyphs_by_templates( lyph ***bptr, lyphplate **Lbuf, trie *t )
+void populate_lyphs_by_templates( lyph ***bptr, lyphplate **Lbuf )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->lyphplt )
     {
       lyphplate **Lbptr;
@@ -3268,8 +3248,6 @@ void populate_lyphs_by_templates( lyph ***bptr, lyphplate **Lbuf, trie *t )
       }
     }
   }
-
-  TRIE_RECURSE( populate_lyphs_by_templates( bptr, Lbuf, *child ) );
 }
 
 lyph **lyphs_by_term( const char *term )
@@ -3295,7 +3273,7 @@ lyph **lyphs_by_term( const char *term )
   CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
-  populate_lyphs_by_templates( &bptr, Lbuf, lyph_ids );
+  populate_lyphs_by_templates( &bptr, Lbuf );
   free( Lbuf );
 
   *bptr = NULL;
@@ -3435,30 +3413,16 @@ void calc_nodes_directly_in_lyph_buf( lyph *e, lyphnode_wrapper **head, lyphnode
   calc_nodes_directly_in_lyph_buf_recurse( e, head, tail, buf, lyphnode_ids );
 }
 
-void get_children_recurse( lyph *e, trie *t, lyph ***bptr )
-{
-  if ( t->data )
-  {
-    lyph *child = (lyph*)t->data;
-
-    if ( child->from->location == e && child->to->location == e )
-    {
-      **bptr = child;
-      (*bptr)++;
-    }
-  }
-
-  TRIE_RECURSE( get_children_recurse( e, *child, bptr ) );
-}
-
 lyph **get_children( lyph *e )
 {
-  lyph **buf, **bptr;
+  lyph **buf, **bptr, *child;
 
   CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
-  get_children_recurse( e, lyph_ids, &bptr );
+  for ( child = first_lyph; child; child = child->next )
+    if ( child->from->location == e && child->to->location == e )
+      *bptr++ = child;
 
   *bptr = NULL;
   return buf;
@@ -3657,38 +3621,23 @@ HANDLER( do_connections )
   free( nodepaths );  
 }
 
-lyph *lyph_by_name_recurse( const char *name, trie *t )
+lyph *lyph_by_name( const char *name )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
     if ( !strcmp( name, trie_to_static( e->name ) ) )
       return e;
-  }
-
-  TRIE_RECURSE
-  (
-    lyph *e = lyph_by_name_recurse( name, *child );
-
-    if ( e )
-      return e;
-  );
 
   return NULL;
 }
 
-lyph *lyph_by_name( const char *name )
+void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *species, int include_null_species, int include_any_species )
 {
-  return lyph_by_name_recurse( name, lyph_ids );
-}
+  lyph *e;
 
-void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t, trie *species, int include_null_species, int include_any_species )
-{
-  if ( t->data )
+  for ( e = first_lyph; e; e = e->next )
   {
-    lyph *e = (lyph*)t->data;
-
     if ( include_any_species
     ||   e->species == species
     || ( is_null_species(e) && include_null_species ) )
@@ -3705,8 +3654,6 @@ void populate_lyphs_by_prefix( char *prefix, lyph ***bptr, trie *t, trie *specie
       }
     }
   }
-
-  TRIE_RECURSE( populate_lyphs_by_prefix( prefix, bptr, *child, species, include_null_species, include_any_species ) );
 }
 
 HANDLER( do_lyphs_by_prefix )
@@ -3740,7 +3687,7 @@ HANDLER( do_lyphs_by_prefix )
   CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
-  populate_lyphs_by_prefix( prefix, &bptr, lyph_ids, species, include_null_species, include_any_species );
+  populate_lyphs_by_prefix( prefix, &bptr, species, include_null_species, include_any_species );
 
   *bptr = NULL;
 

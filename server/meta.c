@@ -146,30 +146,6 @@ int annotate_lyph( lyph *e, trie *pred, trie *obj, pubmed *pubmed )
   return 1;
 }
 
-void populate_lyph_annot_list_by_pred( trie *pred, lyph_annot_wrapper **head, lyph_annot_wrapper **tail, int *cnt, trie *t )
-{
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
-    lyph_annot **a;
-
-    for ( a = e->annots; *a; a++ )
-    {
-      if ( (*a)->pred == pred )
-      {
-        lyph_annot_wrapper *w;
-
-        CREATE( w, lyph_annot_wrapper, 1 );
-        w->a = *a;
-        LINK( w, *head, *tail, next );
-        (*cnt)++;
-      }
-    }
-  }
-
-  TRIE_RECURSE( populate_lyph_annot_list_by_pred( pred, head, tail, cnt, *child ) );
-}
-
 HANDLER( do_annotate )
 {
   lyph **lyphs, **lptr;
@@ -222,46 +198,40 @@ HANDLER( do_annotate )
   send_ok( req );
 }
 
-void save_lyph_annotations_recurse( FILE *fp, trie *t )
+void save_lyph_annotations_one_lyph( FILE *fp, lyph *e )
 {
-  if ( t->data )
+  if ( *e->annots )
   {
-    lyph *e = (lyph *) t->data;
+    lyph_annot **a;
 
-    if ( *e->annots )
+    for ( a = e->annots; *a; a++ )
     {
-      lyph_annot **a;
+      char *subj = url_encode( trie_to_static( e->id ) );
+      char *pred;
+      char *obj = url_encode( trie_to_static( (*a)->obj ) );
+      char *pubmed;
 
-      for ( a = e->annots; *a; a++ )
-      {
-        char *subj = url_encode( trie_to_static( t ) );
-        char *pred;
-        char *obj = url_encode( trie_to_static( (*a)->obj ) );
-        char *pubmed;
+      if ( (*a)->pred )
+        pred = url_encode( trie_to_static( (*a)->pred ) );
+      else
+        pred = url_encode( "none" );
 
-        if ( (*a)->pred )
-          pred = url_encode( trie_to_static( (*a)->pred ) );
-        else
-          pred = url_encode( "none" );
+      if ( (*a)->pubmed )
+        pubmed = url_encode( (*a)->pubmed->id );
+      else
+        pubmed = url_encode( "none" );
 
-        if ( (*a)->pubmed )
-          pubmed = url_encode( (*a)->pubmed->id );
-        else
-          pubmed = url_encode( "none" );
+      fprintf( fp, "Annot %s %s %s %s\n", subj, pred, obj, pubmed );
 
-        fprintf( fp, "Annot %s %s %s %s\n", subj, pred, obj, pubmed );
-
-        MULTIFREE( subj, pred, obj, pubmed );
-      }
+      MULTIFREE( subj, pred, obj, pubmed );
     }
   }
-
-  TRIE_RECURSE( save_lyph_annotations_recurse( fp, *child ) );
 }
 
 void save_lyph_annotations( void )
 {
   FILE *fp;
+  lyph *e;
 
   if ( configs.readonly )
     return;
@@ -274,7 +244,8 @@ void save_lyph_annotations( void )
     return;
   }
 
-  save_lyph_annotations_recurse( fp, lyph_ids );
+  for ( e = first_lyph; e; e = e->next )
+    save_lyph_annotations_one_lyph( fp, e );
 
   fclose(fp);
 
@@ -1044,12 +1015,12 @@ int has_all_clinical_indices( lyph *e, clinical_index **cis )
   return 1;
 }
 
-void calc_lyphs_with_indices( trie *t, lyph ***bptr, clinical_index **cis, int type )
+void calc_lyphs_with_indices( lyph ***bptr, clinical_index **cis, int type )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( ( type == CLINICAL_INDEX_SEARCH_UNION && has_some_clinical_index( e, cis ) )
     ||   ( type == CLINICAL_INDEX_SEARCH_IX && has_all_clinical_indices( e, cis ) ) )
     {
@@ -1057,8 +1028,6 @@ void calc_lyphs_with_indices( trie *t, lyph ***bptr, clinical_index **cis, int t
       (*bptr)++;
     }
   }
-
-  TRIE_RECURSE( calc_lyphs_with_indices( *child, bptr, cis, type ) );
 }
 
 HANDLER( do_has_clinical_index )
@@ -1098,7 +1067,7 @@ HANDLER( do_has_clinical_index )
   CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
-  calc_lyphs_with_indices( lyph_ids, &bptr, cis, type );
+  calc_lyphs_with_indices( &bptr, cis, type );
 
   free( cis );
 
@@ -2034,34 +2003,20 @@ int correlation_count( lyph *e, lyph **children )
   return cnt;
 }
 
-lyph *get_random_lyph_recurse( trie *t, int *cnt )
-{
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
-
-    if ( !(rand() % (*cnt) ) )
-      return e;
-    else
-      (*cnt)--;
-  }
-
-  TRIE_RECURSE
-  (
-    lyph *e = get_random_lyph_recurse( *child, cnt );
-
-    if ( e )
-      return e;
-  );
-
-  return NULL;
-}
-
 lyph *get_random_lyph( void )
 {
+  lyph *e;
   int cnt = lyphcnt;
 
-  return get_random_lyph_recurse( lyph_ids, &cnt );
+  for ( e = first_lyph; e; e = e->next )
+  {
+    if ( !(rand() % cnt ) )
+      return e;
+    else
+      cnt--;
+  }
+
+  return NULL;
 }
 
 const char *get_random_quality( void )

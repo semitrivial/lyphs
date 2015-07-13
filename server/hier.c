@@ -12,11 +12,12 @@ int should_add_super_by_layers( lyphplate *sup, lyphplate *sub );
 
 #endif
 
-int can_node_fit_in_lyph_recurse( lyphnode *n, lyph *e, trie *t )
+int can_node_fit_in_lyph( lyphnode *n, lyph *e )
 {
-  if ( t->data )
+  lyph *d;
+
+  for ( d = first_lyph; d; d = d->next )
   {
-    lyph *d = (lyph*)t->data;
     lyphnode_wrapper *head, *tail, *w, *w_next;
     int fMatch;
 
@@ -46,18 +47,7 @@ int can_node_fit_in_lyph_recurse( lyphnode *n, lyph *e, trie *t )
     }
   }
 
-  TRIE_RECURSE
-  (
-    if ( !can_node_fit_in_lyph_recurse( n, e, *child ) )
-      return 0;
-  );
-
   return 1;
-}
-
-int can_node_fit_in_lyph( lyphnode *n, lyph *e )
-{
-  return can_node_fit_in_lyph_recurse( n, e, lyph_ids );
 }
 
 #ifdef PRE_LAYER_CHANGE
@@ -564,7 +554,7 @@ void calc_nodes_in_lyph( lyph *L, lyphnode_wrapper **head, lyphnode_wrapper **ta
 {
   calc_nodes_in_lyph_recurse( L, head, tail, lyphnode_ids );
 
-  lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH | LYPHNODE_CURRENTLY_CALCULATING, lyph_ids );
+  lyphs_unset_bits( LYPH_DEFINITELY_IN_LYPH | LYPH_DEFINITELY_OUT_LYPH | LYPHNODE_CURRENTLY_CALCULATING );
   lyphnodes_unset_bits( LYPHNODE_DEFINITELY_IN_LYPH | LYPHNODE_DEFINITELY_OUT_LYPH | LYPHNODE_CURRENTLY_CALCULATING, lyphnode_ids );
 }
 

@@ -935,20 +935,19 @@ HANDLER( do_delete_lyphs )
   send_ok( req );
 }
 
-int remove_lyphs_with_doomed_nodes( trie *t )
+int remove_lyphs_with_doomed_nodes( void )
 {
+  lyph *e, *e_next;
   int fAnnot = 0;
 
-  if ( t->data )
+  for ( e = first_lyph; e; e = e_next )
   {
-    lyph *e = (lyph *)t->data;
+    e_next = e->next;
 
     if ( e->from->flags == LYPHNODE_BEING_DELETED
     ||   e->to->flags   == LYPHNODE_BEING_DELETED )
       fAnnot = delete_lyph( e );
   }
-
-  TRIE_RECURSE( fAnnot |= remove_lyphs_with_doomed_nodes( *child ) );
 
   return fAnnot;
 }
@@ -985,7 +984,7 @@ HANDLER( do_delete_nodes )
       (*nptr)->flags = LYPHNODE_BEING_DELETED;
   }
 
-  remove_lyphs_with_doomed_nodes( lyph_ids );
+  remove_lyphs_with_doomed_nodes( );
 
   if ( remove_doomed_items_from_views() )
     save_lyphviews();
@@ -1006,13 +1005,13 @@ HANDLER( do_delete_nodes )
 #define LYPHPLATE_BEING_DELETED 1
 #define LAYER_BEING_DELETED_THICKNESS -2
 
-int remove_doomed_lyphplates_from_lyphs( trie *t )
+int remove_doomed_lyphplates_from_lyphs( void )
 {
+  lyph *e;
   int fMatch = 0;
 
-  if ( t->data )
+  for ( e = first_lyph; e; e = e->next )
   {
-    lyph *e = (lyph *)t->data;
     lyphplate **c;
 
     if ( e->lyphplt && e->lyphplt->flags == LYPHPLATE_BEING_DELETED )
@@ -1046,8 +1045,6 @@ int remove_doomed_lyphplates_from_lyphs( trie *t )
       fMatch = 1;
     }
   }
-
-  TRIE_RECURSE( fMatch |= remove_doomed_lyphplates_from_lyphs( *child ) );
 
   return fMatch;
 }
@@ -1136,24 +1133,18 @@ void delete_doomed_lyphplates( trie *t )
   TRIE_RECURSE( delete_doomed_lyphplates( *child ) );
 }
 
-int doomed_lyphplates_already_in_use_by_lyph( char **where, trie *t )
+int doomed_lyphplates_already_in_use_by_lyph( char **where )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
-    
+  lyph *e;
+
+  for ( e = first_lyph; e; e = e->next )
+  {    
     if ( e->lyphplt && e->lyphplt->flags == LYPHPLATE_BEING_DELETED )
     {
       *where = strdupf( "Lyph %s", trie_to_static( e->id ) );
       return 1;
     }
   }
-  
-  TRIE_RECURSE
-  (
-    if ( doomed_lyphplates_already_in_use_by_lyph( where, *child ) )
-      return 1;
-  );
   
   return 0;
 }
@@ -1248,7 +1239,7 @@ int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t, layer_wrap
 
 int doomed_lyphplates_already_in_use( char **where, layer_wrapper **head, layer_wrapper **tail )
 {
-  if ( doomed_lyphplates_already_in_use_by_lyph( where, lyph_ids ) )
+  if ( doomed_lyphplates_already_in_use_by_lyph( where ) )
     return 1;
     
   if ( doomed_lyphplates_already_in_use_by_lyphplate( where, lyphplate_ids ) )
@@ -1297,7 +1288,7 @@ HANDLER( do_delete_templates )
     while ( spread_lyphplate_doom( lyphplate_ids ) )
       ;
 
-    if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
+    if ( remove_doomed_lyphplates_from_lyphs( ) )
       save_lyphs();
 
     delete_doomed_layers( layer_ids );
@@ -1456,7 +1447,7 @@ HANDLER( do_delete_layers )
   while ( spread_lyphplate_doom( lyphplate_ids ) )
     ;
 
-  if ( remove_doomed_lyphplates_from_lyphs( lyph_ids ) )
+  if ( remove_doomed_lyphplates_from_lyphs( ) )
     save_lyphs();
 
   delete_doomed_layers( layer_ids );
@@ -1603,11 +1594,12 @@ int template_involves_any_of( lyphplate *L, lyphplate **parts )
   }
 }
 
-void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
+void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt )
 {
-  if ( t->data )
+  lyph *e;
+
+  for ( e = first_lyph; e; e = e->next )
   {
-    lyph *e = (lyph *)t->data;
     lyphplate **parts;
 
     CREATE( parts, lyphplate *, 2 );
@@ -1626,8 +1618,6 @@ void calc_involves_template( lyphplate *L, lyph_wrapper **head, lyph_wrapper **t
 
     free( parts );
   }
-
-  TRIE_RECURSE( calc_involves_template( L, head, tail, cnt, *child ) );
 }
 
 HANDLER( do_involves_template )
@@ -1647,7 +1637,7 @@ HANDLER( do_involves_template )
 
   cnt = 0;
 
-  calc_involves_template( L, &head, &tail, &cnt, lyph_ids );
+  calc_involves_template( L, &head, &tail, &cnt );
 
   lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
 
@@ -1671,13 +1661,13 @@ HANDLER( do_involves_template )
   free( buf );
 }
 
-void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt, trie *t )
+void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt )
 {
 #ifdef PRE_LAYER_CHANGE
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->lyphplt && is_superlyphplate( L, e->lyphplt ) )
     {
       lyph_wrapper *w;
@@ -1689,8 +1679,6 @@ void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, 
       (*cnt)++;
     }
   }
-
-  TRIE_RECURSE( find_instances_of( L, head, tail, cnt, *child ) );
 #endif
 }
 
@@ -1712,7 +1700,7 @@ HANDLER( do_instances_of )
 
   cnt = 0;
 
-  find_instances_of( L, &head, &tail, &cnt, lyph_ids );
+  find_instances_of( L, &head, &tail, &cnt );
 
   CREATE( buf, lyph *, cnt + 1 );
   bptr = buf;
@@ -1907,20 +1895,18 @@ void **get_numbered_args_r( url_param **params, char *base, char * (*fnc) (void 
   return get_numbered_args_( params, base, NULL, fnc, data, err, size );
 }
 
-void find_lyphs_with_template( lyphplate *L, lyph ***bptr, trie *t )
+void find_lyphs_with_template( lyphplate *L, lyph ***bptr )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->lyphplt == L )
     {
       **bptr = e;
       (*bptr)++;
     }
   }
-
-  TRIE_RECURSE( find_lyphs_with_template( L, bptr, *child ) );
 }
 
 HANDLER( do_has_template )
@@ -1939,7 +1925,7 @@ HANDLER( do_has_template )
   CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
-  find_lyphs_with_template( L, &bptr, lyph_ids );
+  find_lyphs_with_template( L, &bptr );
   *bptr = NULL;
 
   send_response( req, JS_ARRAY( lyph_to_json, buf ) );
@@ -1947,23 +1933,18 @@ HANDLER( do_has_template )
   free( buf );
 }
 
-int index_is_used( clinical_index *ci, trie *t )
+int index_is_used( clinical_index *ci )
 {
-  if ( t->data )
+  lyph *e;
+
+  for ( e = first_lyph; e; e = e->next )
   {
-    lyph *e = (lyph *)t->data;
     lyph_annot **a;
 
     for ( a = e->annots; *a; a++ )
       if ( (*a)->obj == ci->index )
         return 1;
   }
-
-  TRIE_RECURSE
-  (
-    if ( index_is_used( ci, *child ) )
-      return 1;
-  );
 
   return 0;
 }
@@ -1980,7 +1961,7 @@ HANDLER( do_unused_indices )
   bptr = buf;
 
   for ( ci = first_clinical_index; ci; ci = ci->next )
-    if ( !index_is_used( ci, lyph_ids ) )
+    if ( !index_is_used( ci ) )
       *bptr++ = ci;
 
   *bptr = NULL;

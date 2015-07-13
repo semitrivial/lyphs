@@ -495,12 +495,12 @@ void add_nif_lyph( lyph *x, lyph *y, char *species, char *proj, char *pubmed, ch
   make_lyph( LYPH_NIF, xn, yn, NULL, NULL, name, pubmed, proj, species );
 }
 
-void populate_by_human_fma( lyph ***bptr, char *fma, trie *t )
+void populate_by_human_fma( lyph ***bptr, char *fma )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( is_human_species(e) )
     {
       if ( e->fma && !strcmp( fma, trie_to_static( e->fma ) ) )
@@ -510,8 +510,6 @@ void populate_by_human_fma( lyph ***bptr, char *fma, trie *t )
       }
     }
   }
-
-  TRIE_RECURSE( populate_by_human_fma( bptr, fma, *child ) );
 }
 
 HANDLER( do_renif )
@@ -533,7 +531,7 @@ HANDLER( do_renif )
   CREATE( xbuf, lyph *, lyphcnt+1 );
   xbufptr = xbuf;
 
-  populate_by_human_fma( &xbufptr, xstr, lyph_ids );
+  populate_by_human_fma( &xbufptr, xstr );
 
   if ( !*xbuf )
   {
@@ -544,7 +542,7 @@ HANDLER( do_renif )
   CREATE( ybuf, lyph *, lyphcnt+1 );
   ybufptr = ybuf;
 
-  populate_by_human_fma( &ybufptr, ystr, lyph_ids );
+  populate_by_human_fma( &ybufptr, ystr );
 
   if ( !*ybuf )
   {

@@ -292,12 +292,18 @@ void parse_fma_file_for_parts( char *file )
   }
 }
 
-lyph *lyph_by_fma_recurse( fma *f, trie *t )
+lyph *lyph_by_fma( fma *f )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph*)t->data;
+  lyph *e;
+  char buf[2048];
 
+  sprintf( buf, "FMA_%lu", f->id );
+
+  if ( !trie_search( buf, lyph_fmas ) )
+    return NULL;
+
+  for ( e = first_lyph; e; e = e->next )
+  {
     if ( e->fma )
     {
       char *fmastr = trie_to_static( e->fma );
@@ -312,27 +318,7 @@ lyph *lyph_by_fma_recurse( fma *f, trie *t )
     }
   }
 
-  TRIE_RECURSE
-  (
-    lyph *e = lyph_by_fma_recurse( f, *child );
-
-    if ( e )
-      return e;
-  );
-
   return NULL;
-}
-
-lyph *lyph_by_fma( fma *f )
-{
-  char buf[2048];
-
-  sprintf( buf, "FMA_%lu", f->id );
-
-  if ( !trie_search( buf, lyph_fmas ) )
-    return NULL;
-
-  return lyph_by_fma_recurse( f, lyph_ids );
 }
 
 void fma_append_nifling( fma *f, nifling *n )
