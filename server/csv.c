@@ -518,7 +518,6 @@ HANDLER( do_renif )
 {
   lyph **xbuf, **xbufptr, **ybuf, **ybufptr;
   char *xstr, *ystr, *projstr, *pubmedstr, *speciesstr, *name;
-  int cnt;
 
   TRY_PARAM( xstr, "fma1", "You did not specify an 'fma1'" );
   TRY_PARAM( ystr, "fma2", "You did not specify an 'fma2'" );
@@ -531,9 +530,7 @@ HANDLER( do_renif )
   memcpy( xstr, "FMA_", strlen("FMA_") );
   memcpy( ystr, "FMA_", strlen("FMA_") );
 
-  cnt = count_nontrivial_members( lyph_ids );
-
-  CREATE( xbuf, lyph *, cnt+1 );
+  CREATE( xbuf, lyph *, lyphcnt+1 );
   xbufptr = xbuf;
 
   populate_by_human_fma( &xbufptr, xstr, lyph_ids );
@@ -544,7 +541,7 @@ HANDLER( do_renif )
     HND_ERR( "There were no human lyphs corresponding to FMA1" );
   }
 
-  CREATE( ybuf, lyph *, cnt+1 );
+  CREATE( ybuf, lyph *, lyphcnt+1 );
   ybufptr = ybuf;
 
   populate_by_human_fma( &ybufptr, ystr, lyph_ids );

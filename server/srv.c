@@ -1956,7 +1956,7 @@ HANDLER( do_all_lyphs )
   else
   {
     species = trie_strdup( speciesstr, metadata );
-    CREATE( lyphs, lyph *, count_nontrivial_members( lyph_ids ) + 1 );
+    CREATE( lyphs, lyph *, lyphcnt + 1 );
     ptr = lyphs;
     populate_lyphs_by_species( species, &ptr, lyph_ids, include_null_species );
     *ptr = NULL;

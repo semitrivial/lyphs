@@ -723,6 +723,7 @@ void delete_correlations_involving_lyph( lyph *e )
 int delete_lyph( lyph *e )
 {
   int fAnnot;
+  lyph *prev;
 
   if ( *e->annots )
     fAnnot = 1;
@@ -730,6 +731,35 @@ int delete_lyph( lyph *e )
     fAnnot = 0;
 
   e->id->data = NULL;
+
+  if ( e == first_lyph )
+  {
+    if ( e == last_lyph )
+      last_lyph = NULL;
+
+    first_lyph = e->next;
+  }
+  else
+  {
+    for ( prev = first_lyph; prev; prev = prev->next )
+      if ( prev->next == e )
+        break;
+
+    if ( prev )
+    {
+      prev->next = e->next;
+
+      if ( last_lyph == e )
+        last_lyph = prev;
+    }
+    else
+    {
+      error_messagef( "Fatal error in delete_lyph:  lyph is not first_lyph, and yet has no prev" );
+      EXIT();
+    }
+  }
+
+  lyphcnt--;
 
   free( e->constraints );
   free( e->annots );
@@ -1898,7 +1928,6 @@ HANDLER( do_has_template )
   lyphplate *L;
   lyph **buf, **bptr;
   char *tmpltid;
-  int cnt;
 
   TRY_PARAM( tmpltid, "template", "You did not specify a template" );
 
@@ -1907,9 +1936,7 @@ HANDLER( do_has_template )
   if ( !L )
     HND_ERR( "The indicated template was not recognized" );
 
-  cnt = count_nontrivial_members( lyph_ids );
-
-  CREATE( buf, lyph *, cnt + 1 );
+  CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
   find_lyphs_with_template( L, &bptr, lyph_ids );

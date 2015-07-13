@@ -29,6 +29,7 @@ lyph *null_rect = &null_rect_ptr;
 
 lyph *first_lyph;
 lyph *last_lyph;
+int lyphcnt;
 
 lyphview **views;
 lyphview obsolete_lyphview;
@@ -819,6 +820,7 @@ void load_lyphviews( void )
                 e->pubmed = strdup("");
                 e->projection_strength = strdup("");
                 LINK( e, first_lyph, last_lyph, next );
+                lyphcnt++;
 
                 maybe_update_top_id( &top_lyph_id, left );
               }
@@ -1240,6 +1242,7 @@ int load_lyphs_one_line( char *line, char **err )
     e->pubmed = strdup("");
     e->projection_strength = strdup("");
     LINK( e, first_lyph, last_lyph, next );
+    lyphcnt++;
 
     maybe_update_top_id( &top_lyph_id, lyphidbuf );
 
@@ -2736,6 +2739,7 @@ lyph *make_lyph_( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fm
   e->projection_strength = projstr ? strdup( projstr ) : strdup("");
 
   LINK( e, first_lyph, last_lyph, next );
+  lyphcnt++;
 
   if ( speciesstr )
     e->species = trie_strdup( speciesstr, metadata );
@@ -3145,6 +3149,7 @@ lyph *clone_lyph( lyph *e )
   d->id = new_lyph_id(d);
 
   LINK( d, first_lyph, last_lyph, next );
+  lyphcnt++;
 
   name = strdupf( "Clone of %s", trie_to_static( e->id ) );
   d->name = trie_strdup( name, lyph_names );
@@ -3277,7 +3282,7 @@ lyph **lyphs_by_term( const char *term )
   if ( !Lbuf )
     return NULL;
 
-  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) );
+  CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
   populate_lyphs_by_templates( &bptr, Lbuf, lyph_ids );
@@ -3440,7 +3445,7 @@ lyph **get_children( lyph *e )
 {
   lyph **buf, **bptr;
 
-  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) + 1 );
+  CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
   get_children_recurse( e, lyph_ids, &bptr );
@@ -3722,7 +3727,7 @@ HANDLER( do_lyphs_by_prefix )
 
   species = trie_strdup( speciesstr, metadata );
 
-  CREATE( buf, lyph *, count_nontrivial_members( lyph_ids ) + 1);
+  CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
   populate_lyphs_by_prefix( prefix, &bptr, lyph_ids, species, include_null_species, include_any_species );

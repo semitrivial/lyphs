@@ -1067,7 +1067,7 @@ HANDLER( do_has_clinical_index )
   lyph **buf, **bptr;
   lyph_to_json_details details;
   char *cistr, *typestr, *err;
-  int cnt, type;
+  int type;
 
   typestr = get_param( params, "type" );
 
@@ -1095,9 +1095,7 @@ HANDLER( do_has_clinical_index )
       HND_ERR( "One of the indicated clinical indices was unrecognized" );
   }
 
-  cnt = count_nontrivial_members( lyph_ids );
-
-  CREATE( buf, lyph *, cnt + 1 );
+  CREATE( buf, lyph *, lyphcnt + 1 );
   bptr = buf;
 
   calc_lyphs_with_indices( lyph_ids, &bptr, cis, type );
@@ -2060,7 +2058,7 @@ lyph *get_random_lyph_recurse( trie *t, int *cnt )
 
 lyph *get_random_lyph( void )
 {
-  int cnt = count_nontrivial_members( lyph_ids );
+  int cnt = lyphcnt;
 
   return get_random_lyph_recurse( lyph_ids, &cnt );
 }

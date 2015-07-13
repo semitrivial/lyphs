@@ -456,6 +456,10 @@ extern located_measure *last_located_measure;
 extern lyph null_rect_ptr;
 extern lyph *null_rect;
 
+extern lyph *first_lyph;
+extern lyph *last_lyph;
+extern int lyphcnt;
+
 extern trie *human_species_lowercase;
 extern trie *human_species_uppercase;
 
