@@ -27,6 +27,9 @@ trie *blank_nodes;
 lyph null_rect_ptr;
 lyph *null_rect = &null_rect_ptr;
 
+lyph *first_lyph;
+lyph *last_lyph;
+
 lyphview **views;
 lyphview obsolete_lyphview;
 int top_view;
@@ -99,24 +102,22 @@ int new_lyphview_id(void)
   return top_view+1;
 }
 
-void strip_lyphplates_from_graph( trie *t )
+void strip_lyphplates_from_graph( void )
 {
-  if ( t->data )
-  {
-    lyph *e = (lyph *)t->data;
+  lyph *e;
 
+  for ( e = first_lyph; e; e = e->next )
+  {
     e->lyphplt = NULL;
 
-    if ( *e->constraints )
+    if ( e->constraints )
     {
       free( e->constraints );
       e->constraints = (lyphplate**)blank_void_array();
     }
   }
-
-  TRIE_RECURSE( strip_lyphplates_from_graph( *child ) );
 }
-
+//bookmark
 void free_all_lyphs( void )
 {
   /*
@@ -151,7 +152,7 @@ void free_all_lyphplates( void )
   top_lyphplate_id = 0;
   top_layer_id = 0;
 
-  strip_lyphplates_from_graph( lyph_ids );
+  strip_lyphplates_from_graph();
   save_lyphs();
 }
 
@@ -817,6 +818,7 @@ void load_lyphviews( void )
                 e->annots = (lyph_annot**)blank_void_array();
                 e->pubmed = strdup("");
                 e->projection_strength = strdup("");
+                LINK( e, first_lyph, last_lyph, next );
 
                 maybe_update_top_id( &top_lyph_id, left );
               }
@@ -1237,6 +1239,7 @@ int load_lyphs_one_line( char *line, char **err )
     etr->data = (trie **)e;
     e->pubmed = strdup("");
     e->projection_strength = strdup("");
+    LINK( e, first_lyph, last_lyph, next );
 
     maybe_update_top_id( &top_lyph_id, lyphidbuf );
 
@@ -2732,6 +2735,8 @@ lyph *make_lyph_( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fm
   e->pubmed = pubmedstr ? strdup( pubmedstr ) : strdup("");
   e->projection_strength = projstr ? strdup( projstr ) : strdup("");
 
+  LINK( e, first_lyph, last_lyph, next );
+
   if ( speciesstr )
     e->species = trie_strdup( speciesstr, metadata );
   else
@@ -3138,7 +3143,9 @@ lyph *clone_lyph( lyph *e )
   
   CREATE( d, lyph, 1 );
   d->id = new_lyph_id(d);
-  
+
+  LINK( d, first_lyph, last_lyph, next );
+
   name = strdupf( "Clone of %s", trie_to_static( e->id ) );
   d->name = trie_strdup( name, lyph_names );
   free( name );

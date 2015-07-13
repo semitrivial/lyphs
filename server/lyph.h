@@ -211,6 +211,7 @@ struct LYPHNODE_WRAPPER
 
 struct LYPH
 {
+  lyph *next;
   trie *id;
   trie *name;
   trie *species;
