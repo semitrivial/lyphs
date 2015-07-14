@@ -398,6 +398,7 @@ struct FMA
   fma **parents;
   fma **children;
   fma **superclasses;
+  fma **subclasses;
   nifling **niflings;
   int flags;
   int is_up;

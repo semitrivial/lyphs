@@ -10,10 +10,26 @@ nifling *last_nifling;
 trie *fmacheck;
 
 fma *brain;
+fma *seg_of_brain;
 
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
+
+char *label_by_fma( const fma *f )
+{
+  trie *t;
+  char buf[2048];
+
+  sprintf( buf, "FMA_%lu", f->id );
+
+  t = trie_search( buf, iri_to_labels );
+
+  if ( t && t->data && t->data[0] )
+    return trie_to_json( t->data[0] );
+
+  return NULL;
+}
 
 fma *fma_by_trie( trie *id )
 {
@@ -85,6 +101,7 @@ void add_raw_fma_term( unsigned long id )
   f->children = (fma**)blank_void_array();
   f->niflings = (nifling**)blank_void_array();
   f->superclasses = (fma**)blank_void_array();
+  f->subclasses = (fma**)blank_void_array();
   f->flags = 0;
   f->is_up = 0;
   f->lyph = NULL;
@@ -111,6 +128,7 @@ void parse_fma_for_terms_one_word( char *word )
 void init_brain( void )
 {
   brain = fma_by_ul( 50801 );
+  seg_of_brain = fma_by_ul( 55676 );
 
   if ( !brain )
   {
@@ -201,6 +219,7 @@ void add_fma_sub( unsigned long id1, unsigned long id2 )
     return;
 
   maybe_fma_append( &sub->superclasses, super );
+  maybe_fma_append( &super->subclasses, sub );
 }
 
 void add_fma_part( unsigned long id1, unsigned long id2 )
@@ -758,51 +777,6 @@ void dotfile_handle( fma *f, FILE *fp )
   }
 }
 
-/*
- * The following was a presumably one-time use plugin requested by BdB.
- * Currently disabled in tables.c
- */
-HANDLER( do_dotfile )
-{
-  FILE *fp = fopen( "dotfile.txt", "w" );
-  fma *f;
-  int hash, cluster = 0;
-
-  if ( !fp )
-    HND_ERR( "!fp" );
-
-  fprintf( fp, "digraph\n"
-               "{\n" );
-
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-  {
-    if ( !is_bdbpart_brain(f) )
-      continue;
-
-    if ( f->flags & 1 )
-      continue;
-
-    if ( !f->parents[0] && !f->children[0] )
-      continue;
-
-    fprintf( fp, "  subgraph cluster_%d\n"
-                 "  {\n", cluster );
-
-    cluster++;
-
-    dotfile_handle( f, fp );
-
-    fprintf( fp, "  }\n\n" );
-  }
-
-  fprintf( fp, "}" );
-
-  fclose( fp );
-
-  send_ok( req );
-}
-
 fma *common_ancestor( fma **arr )
 {
   fma *anc, **ptr, *retval;
@@ -969,6 +943,175 @@ HANDLER( do_create_fmalyphs )
     create_fma_lyphs( 0 );
 
   save_lyphs();
+
+  send_ok( req );
+}
+
+void mark_brain_part( fma *f, fma ***bptr )
+{
+  if ( f->flags == 1 )
+    return;
+
+  **bptr = f;
+  (*bptr)++;
+  f->flags = 1;
+}
+
+void close_brain_markings_upward( fma **buf, fma ***bptr )
+{
+  fma **ptr;
+
+  for ( ptr = buf; *ptr; ptr++ )
+  {
+    fma **parents;
+
+    for ( parents = (*ptr)->parents; *parents; parents++ )
+    {
+      if ( (*parents)->flags == 1 )
+        continue;
+
+      mark_brain_part( *parents, bptr );
+    }
+
+    for ( parents = (*ptr)->superclasses; *parents; parents++ )
+    {
+      if ( (*parents)->flags == 1 )
+        continue;
+
+      mark_brain_part( *parents, bptr );
+    }
+  }
+}
+
+void close_brain_markings_downward( fma **buf, fma ***bptr )
+{
+  fma **ptr;
+
+  for ( ptr = buf; *ptr; ptr++ )
+  {
+    fma **children;
+
+    for ( children = (*ptr)->children; *children; children++ )
+    {
+      if ( (*children)->flags == 1 )
+        continue;
+
+      mark_brain_part( *children, bptr );
+    }
+
+    for ( children = (*ptr)->subclasses; *children; children++ )
+    {
+      if ( (*children)->flags == 1 )
+        continue;
+
+      mark_brain_part( *children, bptr );
+    }
+  }
+}
+
+void mark_brain_stuff( void )
+{
+  fma *buf[1000000], **bptr = buf;
+
+  mark_brain_part( brain, &bptr );
+  mark_brain_part( seg_of_brain, &bptr );
+
+  close_brain_markings_downward( buf, &bptr );
+
+  close_brain_markings_upward( buf, &bptr );  
+}
+
+void unmark_brain_stuff( void )
+{
+  fma *f;
+  int hash;
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+    f->flags = 0;
+}
+
+/*
+ * The following was a presumably one-time use plugin requested by BdB.
+ * Currently disabled in tables.c
+ */
+HANDLER( do_dotfile )
+{
+  FILE *fp = fopen( "dotfile.txt", "w" );
+  fma *f;
+  int hash;
+
+  if ( !fp )
+    HND_ERR( "!fp" );
+
+  mark_brain_stuff();
+
+  fprintf( fp, "digraph\n{\n" );
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+  {
+    char *color, *label;
+
+    if ( f->flags != 1 )
+      continue;
+
+    label = label_by_fma( f );
+
+    if ( f == brain || f == seg_of_brain )
+      color = "red";
+    else if ( strstr( label, "left" ) || strstr( label, "Left" ) )
+      color = "greenyellow";
+    else if ( strstr( label, "right" ) || strstr( label, "Right" ) )
+      color = "gold";
+    else
+      color = NULL;
+
+    if ( color )
+      fprintf( fp, "  %s [label=\"%lu\", style=filled, fillcolor=%s];\n", label, f->id, color );
+    else
+      fprintf( fp, "  %s [label=\"%lu\"];\n", label, f->id );
+  }
+
+  fprintf( fp, "  subgraph cluster_0\n  {\n" );
+
+  for ( hash = 0; hash < FMA_HASH; hash++ )
+  for ( f = first_fma[hash]; f; f = f->next )
+  {
+    fma **ptr;
+    char *label;
+
+    if ( f->flags != 1 )
+      continue;
+
+    label = label_by_fma( f );
+
+    for ( ptr = f->children; *ptr; ptr++ )
+    {
+      if ( (*ptr)->flags != 1 )
+        continue;
+
+      fprintf( fp, "    %s -> ", label );
+      fprintf( fp, "%s [color=pink];\n", label_by_fma( *ptr ) );
+    }
+
+    for ( ptr = f->subclasses; *ptr; ptr++ )
+    {
+      if ( (*ptr)->flags != 1 )
+        continue;
+
+      fprintf( fp, "    %s -> ", label );
+      fprintf( fp, "%s; [color=purple];\n", label_by_fma( *ptr ) );
+    }
+  }
+
+  fprintf( fp, "  }\n" );
+
+  fprintf( fp, "}\n" );
+
+  fclose( fp );
+
+  unmark_brain_stuff();
 
   send_ok( req );
 }
