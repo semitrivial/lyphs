@@ -1101,7 +1101,7 @@ HANDLER( do_dotfile )
         continue;
 
       fprintf( fp, "    %s -> ", label );
-      fprintf( fp, "%s; [color=purple];\n", label_by_fma( *ptr ) );
+      fprintf( fp, "%s [color=purple];\n", label_by_fma( *ptr ) );
     }
   }
 
