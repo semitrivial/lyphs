@@ -16,6 +16,7 @@ trie *human_species_lowercase;
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
 char *correlation_jsons_by_located_measure( const located_measure *m );
+char *next_clindex_index( void );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -687,23 +688,9 @@ HANDLER( do_make_clinical_index )
 {
   clinical_index *ci;
   pubmed **pubmeds;
-  char *index, *label, *pubmedsstr;
+  char *label, *pubmedsstr, *index;
 
-  TRY_PARAM( index, "index", "You did not specify an 'index' for this clinical index" );
   TRY_PARAM( label, "label", "You did not specify a 'label' for this clinical index" );
-
-  ci = clinical_index_by_index( index );
-
-  if ( ci )
-  {
-    if ( !strcmp( label, trie_to_static( ci->label ) ) )
-    {
-      send_response( req, clinical_index_to_json_full( ci ) );
-      return;
-    }
-    else
-      HND_ERR( "There is already a clinical index with that index" );
-  }
 
   pubmedsstr = get_param( params, "pubmeds" );
 
@@ -727,6 +714,8 @@ HANDLER( do_make_clinical_index )
   }
   else
     pubmeds = (pubmed**)blank_void_array();
+
+  index = next_clindex_index();
 
   CREATE( ci, clinical_index, 1 );
   ci->index = trie_strdup( index, metadata );
@@ -2178,4 +2167,28 @@ int is_human_species( lyph *e )
     || e->species == human_species_uppercase
     || e->species == human_species_lowercase
   );
+}
+
+char *next_clindex_index( void )
+{
+  static char buf[2048];
+  clinical_index *ci;
+  int max = 0;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+  {
+    char *idstr = trie_to_static( ci->index );
+    int id;
+
+    if ( !str_begins( idstr, "CLINDEX_" ) )
+      continue;
+
+    id = strtoul( idstr + strlen( "CLINDEX_" ), NULL, 10 );
+
+    if ( id > max )
+      max = id;
+  }
+
+  sprintf( buf, "CLINDEX_%d", max + 1 );
+  return buf;
 }
