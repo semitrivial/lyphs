@@ -3,6 +3,17 @@
 
 #define FMA_HASH 65536
 
+#define ITERATE_FMAS( code )\
+do\
+{\
+  for ( hash = 0; hash < FMA_HASH; hash++ )\
+  for ( f = first_fma[hash]; f; f = f->next )\
+  {\
+    code ;\
+  }\
+}\
+while(0)
+
 fma *first_fma[FMA_HASH];
 fma *last_fma[FMA_HASH];
 nifling *first_nifling;
@@ -15,6 +26,7 @@ fma *seg_of_brain;
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
+void generate_inferred_dotfile( void );
 
 char *label_by_fma( const fma *f )
 {
@@ -102,6 +114,8 @@ void add_raw_fma_term( unsigned long id )
   f->niflings = (nifling**)blank_void_array();
   f->superclasses = (fma**)blank_void_array();
   f->subclasses = (fma**)blank_void_array();
+  f->inferred_parts = (fma**)blank_void_array();
+  f->inferred_parents = (fma**)blank_void_array();
   f->flags = 0;
   f->is_up = 0;
   f->lyph = NULL;
@@ -845,13 +859,9 @@ void flatten_fmas( void )
 
   log_string( "Flattening FMA from DAG into tree..." );
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-    flatten_fma( f );
+  ITERATE_FMAS( flatten_fma( f ) );
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-    f->flags = 0;
+  ITERATE_FMAS( f->flags = 0 );
 }
 
 void create_fma_lyph( fma *f, int brain_only )
@@ -915,20 +925,15 @@ void create_fma_lyphs( int brain_only )
   fma *f;
   int hash;
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  {
-    for ( f = first_fma[hash]; f; f = f->next )
-    {
-      if ( brain_only && !is_bdbpart_brain( f ) )
-        continue;
+  ITERATE_FMAS
+  (
+    if ( brain_only && !is_bdbpart_brain( f ) )
+      continue;
 
-      create_fma_lyph( f, brain_only );
-    }
-  }
+    create_fma_lyph( f, brain_only );
+  );
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-    f->flags = 0;
+  ITERATE_FMAS( f->flags = 0 );
 }
 
 HANDLER( do_create_fmalyphs )
@@ -1026,9 +1031,28 @@ void unmark_brain_stuff( void )
   fma *f;
   int hash;
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-    f->flags = 0;
+  ITERATE_FMAS( f->flags = 0 );
+}
+
+void fprintf_dotfile_vertex( fma *f, FILE *fp )
+{
+  char *label, *color;
+
+  label = label_by_fma( f );
+
+  if ( f == brain || f == seg_of_brain )
+    color = "red";
+  else if ( strstr( label, "left" ) || strstr( label, "Left" ) )
+    color = "greenyellow";
+  else if ( strstr( label, "right" ) || strstr( label, "Right" ) )
+    color = "gold";
+  else
+    color = NULL;
+
+  if ( color )
+    fprintf( fp, "  %s [label=\"%lu\", style=filled, fillcolor=%s];\n", label, f->id, color );
+  else
+    fprintf( fp, "  %s [label=\"%lu\"];\n", label, f->id );
 }
 
 /*
@@ -1037,47 +1061,50 @@ void unmark_brain_stuff( void )
  */
 HANDLER( do_dotfile )
 {
-  FILE *fp = fopen( "dotfile.txt", "w" );
+  FILE *fp, *csv;
   fma *f;
   int hash;
+
+  if ( get_param( params, "inferred" ) )
+  {
+    generate_inferred_dotfile();
+    send_ok( req );
+  }
+
+  fp = fopen( "dotfile.txt", "w" );
+  csv = fopen( "dotcsv.csv", "w" );
 
   if ( !fp )
     HND_ERR( "!fp" );
 
   mark_brain_stuff();
 
-  fprintf( fp, "digraph\n{\n" );
+  fprintf( csv, "FMA ID,RDFS:label\n" );
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-  {
-    char *color, *label;
-
+  ITERATE_FMAS
+  (
     if ( f->flags != 1 )
       continue;
 
-    label = label_by_fma( f );
+    fprintf( csv, "%lu,%s\n", f->id, label_by_fma(f) );
+  );
 
-    if ( f == brain || f == seg_of_brain )
-      color = "red";
-    else if ( strstr( label, "left" ) || strstr( label, "Left" ) )
-      color = "greenyellow";
-    else if ( strstr( label, "right" ) || strstr( label, "Right" ) )
-      color = "gold";
-    else
-      color = NULL;
+  fclose( csv );
 
-    if ( color )
-      fprintf( fp, "  %s [label=\"%lu\", style=filled, fillcolor=%s];\n", label, f->id, color );
-    else
-      fprintf( fp, "  %s [label=\"%lu\"];\n", label, f->id );
-  }
+  fprintf( fp, "digraph\n{\n" );
+
+  ITERATE_FMAS
+  (
+    if ( f->flags != 1 )
+      continue;
+
+    fprintf_dotfile_vertex( f, fp );
+  );
 
   fprintf( fp, "  subgraph cluster_0\n  {\n" );
 
-  for ( hash = 0; hash < FMA_HASH; hash++ )
-  for ( f = first_fma[hash]; f; f = f->next )
-  {
+  ITERATE_FMAS
+  (
     fma **ptr;
     char *label;
 
@@ -1103,7 +1130,7 @@ HANDLER( do_dotfile )
       fprintf( fp, "    %s -> ", label );
       fprintf( fp, "%s [color=purple];\n", label_by_fma( *ptr ) );
     }
-  }
+  );
 
   fprintf( fp, "  }\n" );
 
@@ -1114,4 +1141,142 @@ HANDLER( do_dotfile )
   unmark_brain_stuff();
 
   send_ok( req );
+}
+
+int is_oriented( fma *f, char **side )
+{
+  static char *left = "left", *right = "right";
+  char *label = label_by_fma( f );
+
+  if ( strstr( label, "left" ) || strstr( label, "Left" ) )
+  {
+    if ( side )
+      *side = left;
+
+    return 1;
+  }
+
+  if ( strstr( label, "right" ) || strstr( label, "Right" ) )
+  {
+    if ( side )
+      *side = right;
+
+    return 1;
+  }
+
+  return 0;
+}
+
+void infer_inferred_parts( fma *abstract, fma *parent, char *side )
+{
+  fma **subs;
+  char *subside;
+  int fMatch = 0;
+
+  for ( subs = abstract->children; *subs; subs++ )
+  {
+    if ( !is_oriented( *subs, &subside ) )
+      continue;
+
+    if ( subside == side )
+    {
+      maybe_fma_append( &parent->inferred_parts, *subs );
+      maybe_fma_append( &(*subs)->inferred_parents, parent );
+    }
+
+    fMatch = 1;
+  }
+
+  if ( !fMatch )
+  {
+    fma **parts;
+
+    for ( parts = abstract->children; *parts; parts++ )
+    {
+      if ( *parts == abstract )
+        continue;
+
+      infer_inferred_parts( *parts, parent, side );
+    }
+  }
+}
+
+void compute_inferred_parts( void )
+{
+  fma *f, **supers, **parts;
+  char *side;
+  int hash;
+
+  log_string( "Computing inferred parts of brain..." );
+
+  mark_brain_stuff();
+
+  ITERATE_FMAS
+  (
+    if ( f->flags != 1 )
+      continue;
+
+    if ( !is_oriented( f, &side ) )
+      continue;
+
+    for ( supers = f->superclasses; *supers; supers++ )
+    for ( parts = (*supers)->children; *parts; parts++ )
+      infer_inferred_parts( *parts, f, side );
+
+    for ( parts = f->children; *parts; parts++ )
+    {
+      maybe_fma_append( &f->inferred_parts, *parts );
+      maybe_fma_append( &(*parts)->inferred_parents, f );
+    }
+  );
+
+  unmark_brain_stuff();
+
+  return;
+}
+
+void generate_inferred_dotfile( void )
+{
+  FILE *fp = fopen( "inf_dotfile.txt", "w" );
+  fma *f;
+  int hash;
+
+  if ( !fp )
+    return;
+
+  fprintf( fp, "digraph\n{\n" );
+
+  mark_brain_stuff();
+
+  ITERATE_FMAS
+  (
+    if ( !*f->inferred_parents
+    &&   !*f->inferred_parts
+    && ( f->flags != 1 || !is_oriented( f, NULL ) ) )
+      continue;
+
+    fprintf_dotfile_vertex( f, fp );
+  );
+
+  fprintf( fp, "  subgraph cluster_0\n  {\n" );
+
+  ITERATE_FMAS
+  (
+    fma **infs;
+    char *label;
+
+    if ( !*f->inferred_parts )
+      continue;
+
+    label = label_by_fma( f );
+
+    for ( infs = f->inferred_parts; *infs; infs++ )
+      fprintf( fp, "    %s -> %s;\n", label, label_by_fma( *infs ) );
+  );
+
+  unmark_brain_stuff();
+
+  fprintf( fp, "  }\n}\n" );
+
+  fclose( fp );
 }

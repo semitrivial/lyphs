@@ -399,6 +399,8 @@ struct FMA
   fma **children;
   fma **superclasses;
   fma **subclasses;
+  fma **inferred_parts;
+  fma **inferred_parents;
   nifling **niflings;
   int flags;
   int is_up;
@@ -686,6 +688,7 @@ char *clinical_index_to_json_full( clinical_index *ci );
 /*
  * fma.c
  */
+void compute_inferred_parts( void );
 void flatten_fmas( void );
 void parse_nifling_file( void );
 void parse_fma_file( void );
