@@ -1014,16 +1014,32 @@ void close_brain_markings_downward( fma **buf, fma ***bptr )
   }
 }
 
+int count_fmas( void )
+{
+  fma *f;
+  int hash, cnt = 0;
+
+  ITERATE_FMAS( cnt++ );
+
+  return cnt;
+}
+
 void mark_brain_stuff( void )
 {
-  fma *buf[1000000], **bptr = buf;
+  fma **buf, **bptr;
+  int cnt = count_fmas();
+
+  CREATE( buf, fma *, cnt + 1 );
+  bptr = buf;
 
   mark_brain_part( brain, &bptr );
   mark_brain_part( seg_of_brain, &bptr );
 
   close_brain_markings_downward( buf, &bptr );
 
-  close_brain_markings_upward( buf, &bptr );  
+  close_brain_markings_upward( buf, &bptr );
+
+  free( buf );
 }
 
 void unmark_brain_stuff( void )
