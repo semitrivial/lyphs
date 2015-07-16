@@ -324,3 +324,4 @@ HANDLER( do_renif );
 HANDLER( do_gen_random_correlations );
 HANDLER( do_dotfile );
 HANDLER( do_create_fmalyphs );
+HANDLER( do_import_lateralized_brain );

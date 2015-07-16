@@ -864,30 +864,33 @@ void flatten_fmas( void )
   ITERATE_FMAS( f->flags = 0 );
 }
 
-void create_fma_lyph( fma *f, int brain_only )
+void create_fma_lyph( fma *f, int recursive, int brain_only )
 {
   fma *parent;
   lyph *e;
   lyphnode *from, *to;
 
-  if ( IS_SET( f->flags, 1 ) )
-    return;
+  if ( recursive )
+  {
+    if ( IS_SET( f->flags, 1 ) )
+      return;
 
-  SET_BIT( f->flags, 1 );
+    SET_BIT( f->flags, 1 );
 
-  if ( !f->parents[0] )
-    parent = NULL;
-  else if ( brain_only && !is_bdbpart_brain( f->parents[0] ) )
-    parent = NULL;
-  else
-    parent = f->parents[0];
+    if ( !f->parents[0] )
+      parent = NULL;
+    else if ( brain_only && !is_bdbpart_brain( f->parents[0] ) )
+      parent = NULL;
+    else
+      parent = f->parents[0];
+  }
 
   from = make_lyphnode();
   to = make_lyphnode();
 
-  if ( parent )
+  if ( recursive && parent )
   {
-    create_fma_lyph( parent, brain_only );
+    create_fma_lyph( parent, 1, brain_only );
     from->location = parent->lyph;
     from->loctype = LOCTYPE_INTERIOR;
     to->location = parent->lyph;
@@ -930,7 +933,7 @@ void create_fma_lyphs( int brain_only )
     if ( brain_only && !is_bdbpart_brain( f ) )
       continue;
 
-    create_fma_lyph( f, brain_only );
+    create_fma_lyph( f, 1, brain_only );
   );
 
   ITERATE_FMAS( f->flags = 0 );
@@ -1302,4 +1305,33 @@ void generate_inferred_dotfile( void )
   fprintf( fp, "  }\n}\n" );
 
   fclose( fp );
+}
+
+/*
+ * The following should presumably be a one-time use plugin BdB requested
+ */
+HANDLER( do_import_lateralized_brain )
+{
+  fma *f;
+  int hash;
+
+  mark_brain_stuff();
+
+  ITERATE_FMAS
+  (
+    if ( f->flags != 1 )
+      continue;
+
+    if ( !is_oriented( f, NULL ) )
+      continue;
+
+    if ( lyph_by_fma( f ) )
+      continue;
+
+    create_fma_lyph( f, 0, 1 );
+  );
+
+  save_lyphs();
+
+  send_ok( req );
 }

@@ -90,7 +90,8 @@ void init_command_table(void)
   add_handler( "renif", do_renif, CMD_READWRITE );
   //add_handler( "gen_random_correlations", do_gen_random_correlations, CMD_READWRITE );
   add_handler( "dotfile", do_dotfile, CMD_READONLY );
-  add_handler( "create_fmalyphs", do_create_fmalyphs, CMD_READWRITE );
+  //add_handler( "create_fmalyphs", do_create_fmalyphs, CMD_READWRITE );
+  add_handler( "import_lateralized_brain", do_import_lateralized_brain, CMD_READWRITE );
 }
 
 void add_handler( char *cmd, do_function *fnc, int read_write_state )
