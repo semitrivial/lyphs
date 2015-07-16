@@ -1322,7 +1322,7 @@ HANDLER( do_import_lateralized_brain )
     if ( f->flags != 1 )
       continue;
 
-    if ( !is_oriented( f, NULL ) )
+    if ( !is_oriented( f, NULL ) && !*f->inferred_parents && !*f->inferred_parts )
       continue;
 
     if ( lyph_by_fma( f ) )
@@ -1330,6 +1330,8 @@ HANDLER( do_import_lateralized_brain )
 
     create_fma_lyph( f, 0, 1 );
   );
+
+  unmark_brain_stuff();
 
   save_lyphs();
 

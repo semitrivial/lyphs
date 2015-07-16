@@ -574,6 +574,7 @@ layer *layer_by_description( char *name, lyphplate **materials, int thickness );
 lyphnode *lyphnode_by_id( char *id );
 lyphnode *lyphnode_by_id_or_new( char *id );
 lyph *lyph_by_id( const char *id );
+lyph *lyph_by_id_or_fmastr( const char *id );
 lyph *lyph_by_template_or_id_or_null( char *id, char *species );
 lyph *lyph_by_template_or_id( char *id, char *species );
 lyph *lyph_by_name( const char *name );

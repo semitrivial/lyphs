@@ -1788,7 +1788,7 @@ HANDLER( do_lyph )
   lyph_to_json_details details;
   char *err;
 
-  e = (lyph**) PARSE_LIST(request, lyph_by_id, "lyph", &err);
+  e = (lyph**) PARSE_LIST(request, lyph_by_id_or_fmastr, "lyph", &err);
 
   if ( !e )
   {

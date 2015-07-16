@@ -2215,6 +2215,26 @@ lyph *lyph_by_template_or_id( char *id, char *species )
   return e;
 }
 
+lyph *lyph_by_id_or_fmastr( const char *id )
+{
+  lyph *e = lyph_by_id( id );
+  trie *t;
+
+  if ( e )
+    return e;
+
+  t = trie_search( id, lyph_fmas );
+
+  if ( !t )
+    return NULL;
+
+  for ( e = first_lyph; e; e = e->next )
+    if ( e->fma == t )
+      return e;
+
+  return NULL;
+}
+
 lyph *lyph_by_id( const char *id )
 {
   trie *t = trie_search( id, lyph_ids );
