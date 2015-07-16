@@ -2468,6 +2468,15 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
   return retval;
 }
 
+char *lyph_to_json_brief( const lyph *e )
+{
+  return JSON
+  (
+    "id": trie_to_json( e->id ),
+    "name": trie_to_json( e->name )
+  );
+}
+
 char *lyphpath_to_json( lyph **path )
 {
   return JSON

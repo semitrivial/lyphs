@@ -1931,16 +1931,11 @@ HANDLER( do_all_lyphs )
   lyph **lyphs, **ptr, *e;
   lyph_to_json_details details;
   trie *species;
-  char *speciesstr;
+  char *speciesstr, *briefstr;
   int include_null_species = 0;
 
-  details.show_annots = 1;
-  details.suppress_correlations = 1;
-  details.count_correlations = 0;
-  details.buf = NULL;
-  details.show_children = 0;
-
   speciesstr = get_param( params, "species" );
+  briefstr = get_param( params, "brief" );
 
   if ( !speciesstr )
   {
@@ -1967,7 +1962,18 @@ HANDLER( do_all_lyphs )
     *ptr = NULL;
   }
 
-  send_response( req, JS_ARRAY_R( lyph_to_json_r, lyphs, &details ) );
+  if ( briefstr )
+    send_response( req, JS_ARRAY( lyph_to_json_brief, lyphs ) );
+  else
+  {
+    details.show_annots = 1;
+    details.suppress_correlations = 1;
+    details.count_correlations = 0;
+    details.buf = NULL;
+    details.show_children = 0;
+
+    send_response( req, JS_ARRAY_R( lyph_to_json_r, lyphs, &details ) );
+  }
 
   free( lyphs );
 }

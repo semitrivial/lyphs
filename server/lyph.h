@@ -567,6 +567,7 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );
 char *lyphnode_to_json( lyphnode *n );
 char *lyph_to_json( lyph *e );
 char *lyph_to_json_r( lyph *e, lyph_to_json_details *details );
+char *lyph_to_json_brief( const lyph *e );
 char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
