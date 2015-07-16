@@ -1077,6 +1077,8 @@ void fprintf_dotfile_vertex( fma *f, FILE *fp )
     fprintf( fp, ", shape=box" );
   else if ( !f->inferred_parents[0] && f->inferred_parts[0] )
     fprintf( fp, ", shape=diamond" );
+  else if ( !f->inferred_parents[0] && !f->inferred_parts[0] )
+    fprintf( fp, ", shape=egg" );
 
   fprintf( fp, "];\n" );
 }
