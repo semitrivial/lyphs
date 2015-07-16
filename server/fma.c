@@ -1065,10 +1065,17 @@ void fprintf_dotfile_vertex( fma *f, FILE *fp )
   else
     color = NULL;
 
+  fprintf( fp, "  %s [label=\"%lu\"", label, f->id );
+
   if ( color )
-    fprintf( fp, "  %s [label=\"%lu\", style=filled, fillcolor=%s];\n", label, f->id, color );
-  else
-    fprintf( fp, "  %s [label=\"%lu\"];\n", label, f->id );
+    fprintf( fp, ", style=filled, fillcolor=%s", color );
+
+  if ( f->inferred_parents[0] && f->inferred_parents[1] )
+    fprintf( fp, ", shape=box" );
+  else if ( !f->inferred_parents[0] && f->inferred_parts[0] )
+    fprintf( fp, ", shape=diamond" );
+
+  fprintf( fp, "];\n" );
 }
 
 /*
