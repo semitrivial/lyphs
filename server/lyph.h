@@ -31,6 +31,7 @@
 #define NIFLING_FILE "nifs.dat"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
+#define FMA_HASH 65536
 
 /*
  * Typedefs
@@ -466,6 +467,9 @@ extern int lyphcnt;
 
 extern trie *human_species_lowercase;
 extern trie *human_species_uppercase;
+
+extern fma *first_fma[FMA_HASH];
+extern fma *last_fma[FMA_HASH];
 
 /*
  * Function prototypes

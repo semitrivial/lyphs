@@ -225,4 +225,15 @@ while(0)
 
 #define PARSE_LIST_R( list, fnc, data, name, err ) parse_list_r( (list), (void * (*) (char*,void*))(fnc), (void*)(data), (name), (err) );
 
+#define ITERATE_FMAS( code )\
+do\
+{\
+  for ( hash = 0; hash < FMA_HASH; hash++ )\
+  for ( f = first_fma[hash]; f; f = f->next )\
+  {\
+    code ;\
+  }\
+}\
+while(0)
+
 #endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD

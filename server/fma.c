@@ -1,19 +1,6 @@
 #include "lyph.h"
 #include "srv.h"
 
-#define FMA_HASH 65536
-
-#define ITERATE_FMAS( code )\
-do\
-{\
-  for ( hash = 0; hash < FMA_HASH; hash++ )\
-  for ( f = first_fma[hash]; f; f = f->next )\
-  {\
-    code ;\
-  }\
-}\
-while(0)
-
 fma *first_fma[FMA_HASH];
 fma *last_fma[FMA_HASH];
 nifling *first_nifling;

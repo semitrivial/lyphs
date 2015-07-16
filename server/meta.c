@@ -2192,3 +2192,32 @@ char *next_clindex_index( void )
   sprintf( buf, "CLINDEX_%d", max + 1 );
   return buf;
 }
+
+HANDLER( do_stats )
+{
+  lyph *e;
+  fma *f;
+  int distinct_fmas = 0, hash;
+
+  for ( e = first_lyph; e; e = e->next )
+  {
+    if ( e->fma )
+    {
+      f = fma_by_trie( e->fma );
+
+      if ( f && !f->flags )
+      {
+        f->flags = 1;
+        distinct_fmas++;
+      }
+    }
+  }
+
+  ITERATE_FMAS( f->flags = 0 );
+
+  send_response( req, JSON
+  (
+    "lyphcnt": int_to_json( lyphcnt ),
+    "distinct fmas": int_to_json( distinct_fmas )
+  ));
+}

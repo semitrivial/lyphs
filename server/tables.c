@@ -51,6 +51,7 @@ void init_command_table(void)
   add_handler( "lyphpath", do_lyphpath, CMD_READONLY );
   add_handler( "connections", do_connections, CMD_READONLY );
   add_handler( "reset_db", do_reset_db, CMD_READWRITE );
+  add_handler( "stats", do_stats, CMD_READONLY );
   add_handler( "uclsyntax", do_ucl_syntax, CMD_READONLY );
   add_handler( "ucl_syntax", do_ucl_syntax, CMD_READONLY );
   add_handler( "ucl-syntax", do_ucl_syntax, CMD_READONLY );
