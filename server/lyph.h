@@ -694,7 +694,7 @@ char *clinical_index_to_json_full( clinical_index *ci );
 /*
  * fma.c
  */
-void compute_inferred_parts( void );
+void compute_inferred_parts( fma **seeds );
 void flatten_fmas( void );
 void parse_nifling_file( void );
 void parse_fma_file( void );

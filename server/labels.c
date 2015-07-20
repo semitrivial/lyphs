@@ -42,7 +42,7 @@ void init_labels(FILE *fp)
   parse_fma_file();
   parse_nifling_file();
   //flatten_fmas();
-  compute_inferred_parts();
+  compute_inferred_parts( NULL );
 
   return;
 }

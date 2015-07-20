@@ -1,6 +1,9 @@
 #include "lyph.h"
 #include "srv.h"
 
+#define INF_DOTFILE "inf_dotfile.txt"
+#define DOTFILE "dotfile.txt"
+
 fma *first_fma[FMA_HASH];
 fma *last_fma[FMA_HASH];
 nifling *first_nifling;
@@ -13,7 +16,7 @@ fma *seg_of_brain;
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
-void generate_inferred_dotfile( void );
+void generate_inferred_dotfile( fma **seeds );
 char *fma_to_json( const fma *f );
 char *fma_to_json_brief( const fma *f );
 
@@ -1016,7 +1019,7 @@ int count_fmas( void )
   return cnt;
 }
 
-void mark_brain_stuff( void )
+void mark_brain_stuff( fma **seeds )
 {
   fma **buf, **bptr;
   int cnt = count_fmas();
@@ -1024,8 +1027,14 @@ void mark_brain_stuff( void )
   CREATE( buf, fma *, cnt + 1 );
   bptr = buf;
 
-  mark_brain_part( brain, &bptr );
-  mark_brain_part( seg_of_brain, &bptr );
+  if ( seeds )
+    while ( *seeds )
+      mark_brain_part( *seeds++, &bptr );
+  else
+  {
+    mark_brain_part( brain, &bptr );
+    mark_brain_part( seg_of_brain, &bptr );
+  }
 
   close_brain_markings_downward( buf, &bptr );
 
@@ -1079,22 +1088,44 @@ void fprintf_dotfile_vertex( fma *f, FILE *fp )
 HANDLER( do_dotfile )
 {
   FILE *fp, *csv;
-  fma *f;
+  fma *f, **seeds;
+  char *seedstr, *file;
   int hash;
+
+  seedstr = get_param( params, "seeds" );
+
+  if ( seedstr )
+  {
+    seeds = (fma**)PARSE_LIST( seedstr, fma_by_str, "fma", NULL );
+
+    if ( !seeds )
+      HND_ERR( "One of the indicated FMA terms was unrecognized" );
+  }
+  else
+    seeds = NULL;
 
   if ( get_param( params, "inferred" ) )
   {
-    generate_inferred_dotfile();
-    send_ok( req );
+    generate_inferred_dotfile( seeds );
+    free( seeds );
+
+    file = load_file( INF_DOTFILE );
+
+    if ( !file )
+      HND_ERR( "Something went wrong, and the dotfile was not generated" );
+
+    send_response_with_type( req, "200", file, "text/plain" );
+    free( file );
+    return;
   }
 
-  fp = fopen( "dotfile.txt", "w" );
+  fp = fopen( DOTFILE, "w" );
   csv = fopen( "dotcsv.csv", "w" );
 
   if ( !fp )
     HND_ERR( "!fp" );
 
-  mark_brain_stuff();
+  mark_brain_stuff( seeds );
 
   fprintf( csv, "FMA ID,RDFS:label\n" );
 
@@ -1157,7 +1188,9 @@ HANDLER( do_dotfile )
 
   unmark_brain_stuff();
 
-  send_ok( req );
+  file = load_file( DOTFILE );
+  send_response_with_type( req, "200", file, "text/plain" );
+  free( file );
 }
 
 int is_oriented( fma *f, char **side )
@@ -1218,7 +1251,23 @@ void infer_inferred_parts( fma *abstract, fma *parent, char *side )
   }
 }
 
-void compute_inferred_parts( void )
+void recompute_inferred_parts( fma **seeds )
+{
+  fma *f;
+  int hash;
+
+  ITERATE_FMAS
+  (
+    free( f->inferred_parts );
+    free( f->inferred_parents );
+    f->inferred_parts = (fma**)blank_void_array();
+    f->inferred_parents = (fma**)blank_void_array();
+  );
+
+  compute_inferred_parts( seeds );
+}
+
+void compute_inferred_parts( fma **seeds )
 {
   fma *f, **supers, **parts;
   char *side;
@@ -1226,7 +1275,7 @@ void compute_inferred_parts( void )
 
   log_string( "Computing inferred parts of brain..." );
 
-  mark_brain_stuff();
+  mark_brain_stuff( seeds );
 
   ITERATE_FMAS
   (
@@ -1252,9 +1301,9 @@ void compute_inferred_parts( void )
   return;
 }
 
-void generate_inferred_dotfile( void )
+void generate_inferred_dotfile( fma **seeds )
 {
-  FILE *fp = fopen( "inf_dotfile.txt", "w" );
+  FILE *fp = fopen( INF_DOTFILE, "w" );
   fma *f;
   int hash;
 
@@ -1263,7 +1312,9 @@ void generate_inferred_dotfile( void )
 
   fprintf( fp, "digraph\n{\n" );
 
-  mark_brain_stuff();
+  recompute_inferred_parts( seeds );
+
+  mark_brain_stuff( seeds );
 
   ITERATE_FMAS
   (
@@ -1296,6 +1347,8 @@ void generate_inferred_dotfile( void )
   fprintf( fp, "  }\n}\n" );
 
   fclose( fp );
+
+  recompute_inferred_parts( NULL );
 }
 
 /*
@@ -1306,7 +1359,7 @@ HANDLER( do_import_lateralized_brain )
   fma *f;
   int hash;
 
-  mark_brain_stuff();
+  mark_brain_stuff( NULL );
 
   ITERATE_FMAS
   (
