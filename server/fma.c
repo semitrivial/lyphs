@@ -1107,7 +1107,9 @@ HANDLER( do_dotfile )
   if ( get_param( params, "inferred" ) )
   {
     generate_inferred_dotfile( seeds );
-    free( seeds );
+
+    if ( seeds )
+      free( seeds );
 
     file = load_file( INF_DOTFILE );
 
@@ -1187,6 +1189,9 @@ HANDLER( do_dotfile )
   fclose( fp );
 
   unmark_brain_stuff();
+
+  if ( seeds )
+    free( seeds );
 
   file = load_file( DOTFILE );
   send_response_with_type( req, "200", file, "text/plain" );
