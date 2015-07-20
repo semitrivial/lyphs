@@ -258,6 +258,7 @@ HANDLER( do_layer );
 HANDLER( do_lyph );
 HANDLER( do_lyphnode );
 HANDLER( do_lyphview );
+HANDLER( do_fma );
 HANDLER( do_all_templates );
 HANDLER( do_all_lyphs );
 HANDLER( do_all_lyphnodes );

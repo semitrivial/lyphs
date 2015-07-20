@@ -14,6 +14,8 @@ void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
 void generate_inferred_dotfile( void );
+char *fma_to_json( const fma *f );
+char *fma_to_json_brief( const fma *f );
 
 char *label_by_fma( const fma *f )
 {
@@ -1325,4 +1327,44 @@ HANDLER( do_import_lateralized_brain )
   save_lyphs();
 
   send_ok( req );
+}
+
+HANDLER( do_fma )
+{
+  fma *f;
+
+  f = fma_by_str( request );
+
+  if ( !f )
+    HND_ERR( "The indicated FMA term was unrecognized" );
+
+  send_response( req, fma_to_json( f ) );
+}
+
+char *fma_to_json_brief( const fma *f )
+{
+  char *label = label_by_fma( f );
+
+  return JSON
+  (
+    "id": ul_to_json( f->id ),
+    "label": label
+  );
+}
+
+char *fma_to_json( const fma *f )
+{
+  char *label = label_by_fma( f );
+
+  return JSON
+  (
+    "id": ul_to_json( f->id ),
+    "label": label,
+    "parents": JS_ARRAY( fma_to_json_brief, f->parents ),
+    "children": JS_ARRAY( fma_to_json_brief, f->children ),
+    "superclasses": JS_ARRAY( fma_to_json_brief, f->superclasses ),
+    "subclasses": JS_ARRAY( fma_to_json_brief, f->subclasses ),
+    "inferred_parents": JS_ARRAY( fma_to_json_brief, f->inferred_parents ),
+    "inferred_parts": JS_ARRAY( fma_to_json_brief, f->inferred_parts )
+  );
 }

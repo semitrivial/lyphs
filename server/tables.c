@@ -60,6 +60,7 @@ void init_command_table(void)
   add_handler( "lyph", do_lyph, CMD_READONLY );
   add_handler( "lyphnode", do_lyphnode, CMD_READONLY );
   add_handler( "lyphview", do_lyphview, CMD_READONLY );
+  add_handler( "fma", do_fma, CMD_READONLY );
   add_handler( "subtemplates", do_subtemplates, CMD_READONLY );
   add_handler( "instances_of", do_instances_of, CMD_READONLY );
   add_handler( "involves_template", do_involves_template, CMD_READONLY );
