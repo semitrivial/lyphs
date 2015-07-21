@@ -54,12 +54,37 @@ void int_from_doc( Document &d, const char *key, int *dest )
 
 void clinical_index_from_js( clinical_index *ci, Value &v )
 {
+  clinical_index **parents;
+
   ci->index = trie_strdup( v["index"].GetString(), metadata );
   ci->label = trie_strdup( v["label"].GetString(), metadata );
+  ci->flags = 0;
   ci->pubmeds = (pubmed**)array_from_doc( v, "pubmeds", CST(pubmed_by_id_or_create) );
 
   if ( v.HasMember("claimed") && v["claimed"].IsString() )
     ci->claimed = strdup( v["claimed"].GetString() );
+
+  if ( v.HasMember("parents") && v["parents"].IsString() )
+  {
+    clinical_index **pptr;
+    char *parentstr = strdup( v["parents"].GetString() );
+
+    parents = (clinical_index**)PARSE_LIST( parentstr, clinical_index_by_index, NULL, NULL );
+    free( parentstr );
+
+    if ( !parents )
+    {
+      error_messagef( "Clinical index [%s]: has at least one unrecognized parent.  Making parentless.", v["index"].GetString() );
+      parents = (clinical_index**)blank_void_array();
+    }
+    else
+      for ( pptr = parents; *pptr; pptr++ )
+        add_clinical_index_to_array( ci, &((*pptr)->children) );
+  }
+  else
+    parents = (clinical_index**)blank_void_array();
+
+  ci->parents = parents;
 }
 
 extern "C" void clinical_indices_from_js( const char *js )

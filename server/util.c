@@ -414,7 +414,12 @@ void **parse_list_worker( char *list, void * (*non_reentrant) (char *), void * (
           free( buf );
 
           if ( err )
-            *err = strdupf( "There was no %s with id '%s' in the database", name, left );
+          {
+            if ( name )
+              *err = strdupf( "There was no %s with id '%s' in the database", name, left );
+            else
+              *err = strdupf( "There was no match for '%s'", left );
+          }
 
           return NULL;
         }

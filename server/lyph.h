@@ -269,6 +269,9 @@ struct CLINICAL_INDEX
   trie *label;
   pubmed **pubmeds;
   char *claimed;
+  clinical_index **parents;
+  clinical_index **children;
+  int flags;
 };
 
 #define CLINICAL_INDEX_SEARCH_UNION 1
@@ -690,6 +693,7 @@ char *pubmed_to_json_brief( pubmed *p );
 char *pubmed_to_json_full( pubmed *p );
 char *clinical_index_to_json_brief( clinical_index *ci );
 char *clinical_index_to_json_full( clinical_index *ci );
+void add_clinical_index_to_array( clinical_index *ci, clinical_index ***arr );
 
 /*
  * fma.c

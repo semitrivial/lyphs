@@ -17,6 +17,7 @@ clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed )
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
 char *correlation_jsons_by_located_measure( const located_measure *m );
 char *next_clindex_index( void );
+void remove_clindex_from_array( clinical_index *ci, clinical_index ***arr );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -435,6 +436,26 @@ void save_pubmeds( void )
   fclose( fp );
 }
 
+void fprintf_one_clinical_index( FILE *fp, clinical_index *ci, int *fFirst )
+{
+  clinical_index **pptr;
+
+  if ( ci->flags == 1 )
+    return;
+
+  ci->flags = 1;
+
+  for ( pptr = ci->parents; *pptr; pptr++ )
+    fprintf_one_clinical_index( fp, *pptr, fFirst );
+
+  if ( *fFirst )
+    fprintf( fp, "," );
+  else
+    *fFirst = 1;
+
+  fprintf( fp, "%s", clinical_index_to_json_full( ci ) );
+}
+
 void save_clinical_indices( void )
 {
   FILE *fp;
@@ -455,14 +476,10 @@ void save_clinical_indices( void )
   fprintf( fp, "[" );
 
   for ( c = first_clinical_index; c; c = c->next )
-  {
-    if ( fFirst )
-      fprintf( fp, "," );
-    else
-      fFirst = 1;
+    fprintf_one_clinical_index( fp, c, &fFirst );
 
-    fprintf( fp, "%s", clinical_index_to_json_full( c ) );
-  }
+  for ( c = first_clinical_index; c; c = c->next )
+    c->flags = 0;
 
   fprintf( fp, "]" );
   fclose( fp );
@@ -563,6 +580,9 @@ void load_clinical_indices_deprecated( void )
     ci->label = label_tr;
     ci->pubmeds = pubmeds;
     ci->claimed = NULL;
+    ci->parents = (clinical_index**)blank_void_array();
+    ci->children = (clinical_index**)blank_void_array();
+    ci->flags = 0;
     LINK( ci, first_clinical_index, last_clinical_index, next );
   }
 
@@ -686,9 +706,9 @@ char *pubmed_to_json_brief( pubmed *p )
 
 HANDLER( do_make_clinical_index )
 {
-  clinical_index *ci;
+  clinical_index *ci, **parents, **pptr;
   pubmed **pubmeds;
-  char *label, *pubmedsstr, *index;
+  char *label, *pubmedsstr, *index, *parentstr;
 
   TRY_PARAM( label, "label", "You did not specify a 'label' for this clinical index" );
 
@@ -715,6 +735,25 @@ HANDLER( do_make_clinical_index )
   else
     pubmeds = (pubmed**)blank_void_array();
 
+  parentstr = get_param( params, "parents" );
+
+  if ( parentstr )
+  {
+    char *err = NULL;
+
+    parents = (clinical_index **) PARSE_LIST( parentstr, clinical_index_by_index, "clinical index", &err );
+
+    if ( !parents )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated clinical indices was unrecognized" );
+    }
+  }
+  else
+    parents = (clinical_index**)blank_void_array();
+
   index = next_clindex_index();
 
   CREATE( ci, clinical_index, 1 );
@@ -722,7 +761,13 @@ HANDLER( do_make_clinical_index )
   ci->label = trie_strdup( label, metadata );
   ci->pubmeds = pubmeds;
   ci->claimed = NULL;
+  ci->children = (clinical_index**)blank_void_array();
+  ci->parents = parents;
+  ci->flags = 0;
   LINK( ci, first_clinical_index, last_clinical_index, next );
+
+  for ( pptr = parents; *pptr; pptr++ )
+    add_clinical_index_to_array( ci, &((*pptr)->children) );
 
   save_clinical_indices();
 
@@ -736,7 +781,9 @@ char *clinical_index_to_json_full( clinical_index *ci )
     "index": trie_to_json( ci->index ),
     "label": trie_to_json( ci->label ),
     "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds ),
-    "claimed": ci->claimed ? ci->claimed : js_suppress
+    "claimed": ci->claimed ? ci->claimed : js_suppress,
+    "parents": JS_ARRAY( clinical_index_to_json_brief, ci->parents ),
+    "children": JS_ARRAY( clinical_index_to_json_brief, ci->children )
   );
 }
 
@@ -758,6 +805,9 @@ clinical_index *clinical_index_by_index_or_create( const char *ind )
   ci->label = ci->index;
   ci->pubmeds = (pubmed**)blank_void_array();
   ci->claimed = NULL;
+  ci->children = (clinical_index**)blank_void_array();
+  ci->parents = (clinical_index**)blank_void_array();
+  ci->flags = 0;
 
   LINK( ci, first_clinical_index, last_clinical_index, next );
 
@@ -788,6 +838,9 @@ clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pbmd )
   CREATE( ci, clinical_index, 1 );
   ci->index = ind_tr;
   ci->label = ind_tr;
+  ci->parents = (clinical_index**)blank_void_array();
+  ci->children = (clinical_index**)blank_void_array();
+  ci->flags = 0;
   CREATE( ci->pubmeds, pubmed *, 2 );
   ci->pubmeds[0] = pbmd;
   ci->pubmeds[1] = NULL;
@@ -812,9 +865,9 @@ clinical_index *clinical_index_by_trie( trie *ind_tr )
 
 HANDLER( do_edit_clinical_index )
 {
-  clinical_index *ci;
+  clinical_index *ci, **parents;
   pubmed **pubmeds;
-  char *indexstr, *label, *pubmedsstr, *claimedstr;
+  char *indexstr, *label, *pubmedsstr, *claimedstr, *parentstr;
 
   TRY_PARAM( indexstr, "index", "You did not specify which clinical index ('index') to edit" );
 
@@ -849,8 +902,38 @@ HANDLER( do_edit_clinical_index )
     ci->pubmeds = pubmeds;
   }
 
+  parentstr = get_param( params, "parents" );
+
+  if ( parentstr )
+  {
+    clinical_index **pptr;
+    char *err;
+
+    parents = (clinical_index**)PARSE_LIST( parentstr, clinical_index_by_index, "clinical index", &err );
+
+    if ( !parents )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated parent clinical indices was not recognized" );
+    }
+
+    for ( pptr = ci->parents; *pptr; pptr++ )
+      remove_clindex_from_array( ci, &((*pptr)->children) );
+
+    for ( pptr = parents; *pptr; pptr++ )
+      add_clinical_index_to_array( ci, &((*pptr)->children) );
+  }
+
   if ( label )
     ci->label = trie_strdup( label, metadata );
+
+  if ( parentstr )
+  {
+    free( ci->parents );
+    ci->parents = parents;
+  }
 
   if ( claimedstr )
   {
@@ -2220,4 +2303,50 @@ HANDLER( do_stats )
     "lyphcnt": int_to_json( lyphcnt ),
     "distinct fmas": int_to_json( distinct_fmas )
   ));
+}
+
+void add_clinical_index_to_array( clinical_index *ci, clinical_index ***arr )
+{
+  clinical_index **buf, **ptr;
+  int len;
+
+  for ( ptr = *arr; *ptr; ptr++ )
+    if ( *ptr == ci )
+      return;
+
+  len = VOIDLEN( *arr );
+
+  CREATE( buf, clinical_index *, len + 2 );
+  memcpy( buf, *arr, len * sizeof( clinical_index * ) );
+  buf[len] = ci;
+  buf[len+1] = NULL;
+
+  free( arr );
+  *arr = buf;
+}
+
+void remove_clindex_from_array( clinical_index *ci, clinical_index ***arr )
+{
+  clinical_index **ptr, **buf, **bptr;
+  int matches = 0, len;
+
+  for ( ptr = *arr; *ptr; ptr++ )
+    if ( *ptr == ci )
+      matches++;
+
+  if ( !matches )
+    return;
+
+  len = VOIDLEN( *arr );
+
+  CREATE( buf, clinical_index *, len + 1 - matches );
+  bptr = buf;
+
+  for ( ptr = *arr; *ptr; ptr++ )
+    if ( (*ptr) != ci )
+      *bptr++ = *ptr;
+
+  *bptr = NULL;
+  free( *arr );
+  *arr = buf;
 }
