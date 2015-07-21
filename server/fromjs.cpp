@@ -64,13 +64,12 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
   if ( v.HasMember("claimed") && v["claimed"].IsString() )
     ci->claimed = strdup( v["claimed"].GetString() );
 
-  if ( v.HasMember("parents") && v["parents"].IsString() )
+  if ( v.HasMember("parents") && v["parents"].IsArray() )
   {
+printf("Debug: found a parents\n");
     clinical_index **pptr;
-    char *parentstr = strdup( v["parents"].GetString() );
 
-    parents = (clinical_index**)PARSE_LIST( parentstr, clinical_index_by_index, NULL, NULL );
-    free( parentstr );
+    parents = (clinical_index**)array_from_value( v["parents"], CST(clinical_index_by_index) );
 
     if ( !parents )
     {
@@ -85,6 +84,7 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
     parents = (clinical_index**)blank_void_array();
 
   ci->parents = parents;
+  ci->children = (clinical_index**)blank_void_array();
 }
 
 extern "C" void clinical_indices_from_js( const char *js )

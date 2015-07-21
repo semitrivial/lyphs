@@ -863,9 +863,24 @@ clinical_index *clinical_index_by_trie( trie *ind_tr )
   return NULL;
 }
 
+int clindex_has_descendant( clinical_index *anc, clinical_index *des )
+{
+  clinical_index **cptr;
+
+  for ( cptr = anc->children; *cptr; cptr++ )
+    if ( *cptr == des )
+       return 1;
+
+  for ( cptr = anc->children; *cptr; cptr++ )
+    if ( clindex_has_descendant( *cptr, des ) )
+      return 1;
+
+  return 0;
+}
+
 HANDLER( do_edit_clinical_index )
 {
-  clinical_index *ci, **parents;
+  clinical_index *ci, **parents, **pptr;
   pubmed **pubmeds;
   char *indexstr, *label, *pubmedsstr, *claimedstr, *parentstr;
 
@@ -880,33 +895,13 @@ HANDLER( do_edit_clinical_index )
 
   pubmedsstr = get_param( params, "pubmeds" );
   claimedstr = get_param( params, "claimed" );
-
-  if ( !label && !pubmedsstr && !claimedstr )
-    HND_ERR( "You did not specify any changes to make" );
-
-  if ( pubmedsstr )
-  {
-    char *err;
-    int save = 0;
-
-    pubmeds = (pubmed **) PARSE_LIST_R( pubmedsstr, pubmed_by_id_or_create, &save, "pubmed", &err );
-
-    if ( save )
-      save_pubmeds();
-
-    if ( err )
-      HND_ERR_FREE( err );
-    else
-      HND_ERR( "One of the indicated pubmeds was not recognized" );
-
-    ci->pubmeds = pubmeds;
-  }
-
   parentstr = get_param( params, "parents" );
 
-  if ( parentstr )
+  if ( !label && !pubmedsstr && !claimedstr && !parentstr )
+    HND_ERR( "You did not specify any changes to make" );
+
+  if ( parentstr && *parentstr )
   {
-    clinical_index **pptr;
     char *err;
 
     parents = (clinical_index**)PARSE_LIST( parentstr, clinical_index_by_index, "clinical index", &err );
@@ -919,6 +914,46 @@ HANDLER( do_edit_clinical_index )
         HND_ERR( "One of the indicated parent clinical indices was not recognized" );
     }
 
+    for ( pptr = parents; *pptr; pptr++ )
+    {
+      if ( clindex_has_descendant( ci, *pptr ) )
+      {
+        free( parents );
+        HND_ERR( "The indicated parents would induce a loop in the clinical index hierarchy" );
+      }
+    }
+  }
+  else if ( parentstr && !*parentstr )
+    parents = (clinical_index**)blank_void_array();
+  else
+    parents = NULL;
+
+  if ( pubmedsstr )
+  {
+    char *err;
+    int save = 0;
+
+    pubmeds = (pubmed **) PARSE_LIST_R( pubmedsstr, pubmed_by_id_or_create, &save, "pubmed", &err );
+
+    if ( save )
+      save_pubmeds();
+
+    if ( !pubmeds )
+    {
+      if ( parents )
+        free( parents );
+
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the indicated pubmeds was not recognized" );
+    }
+
+    ci->pubmeds = pubmeds;
+  }
+
+  if ( parents )
+  {
     for ( pptr = ci->parents; *pptr; pptr++ )
       remove_clindex_from_array( ci, &((*pptr)->children) );
 
@@ -2321,7 +2356,7 @@ void add_clinical_index_to_array( clinical_index *ci, clinical_index ***arr )
   buf[len] = ci;
   buf[len+1] = NULL;
 
-  free( arr );
+  free( *arr );
   *arr = buf;
 }
 
