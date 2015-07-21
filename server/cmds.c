@@ -174,10 +174,7 @@ HANDLER( do_editlyph )
   namestr = get_param( params, "name" );
   fmastr = get_param( params, "fma" );
 
-  if ( fmastr && !*fmastr )
-    fmastr = NULL;
-
-  if ( fmastr && strcmp( fmastr, "none" ) )
+  if ( fmastr && *fmastr )
     fma = trie_strdup( fmastr, lyph_fmas );
   else
     fma = NULL;
@@ -315,7 +312,7 @@ HANDLER( do_editlyph )
 
   if ( fma )
     e->fma = fma;
-  else if ( fmastr && !strcmp( fmastr, "none" ) )
+  else if ( fmastr && !*fmastr )
     e->fma = NULL;
 
   if ( from )
