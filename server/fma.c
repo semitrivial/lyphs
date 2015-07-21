@@ -87,15 +87,20 @@ fma *fma_by_str( const char *str )
 void add_raw_fma_term( unsigned long id )
 {
   fma *f;
+  trie *t;
+  static trie *marker = NULL;
   char buf[1024];
   int hash;
 
   sprintf( buf, "%ld", id );
 
-  if ( trie_search( buf, fmacheck ) )
+  t = trie_search( buf, fmacheck );
+
+  if ( t && t->data )
     return;
 
-  trie_strdup( buf, fmacheck );
+  t = trie_strdup( buf, fmacheck );
+  t->data = &marker;
 
   hash = id % FMA_HASH;
 
