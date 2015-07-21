@@ -177,7 +177,7 @@ HANDLER( do_editlyph )
   if ( fmastr && !*fmastr )
     fmastr = NULL;
 
-  if ( fmastr )
+  if ( fmastr && strcmp( fmastr, "none" ) )
     fma = trie_strdup( fmastr, lyph_fmas );
   else
     fma = NULL;
@@ -315,6 +315,8 @@ HANDLER( do_editlyph )
 
   if ( fma )
     e->fma = fma;
+  else if ( fmastr && !strcmp( fmastr, "none" ) )
+    e->fma = NULL;
 
   if ( from )
   {
