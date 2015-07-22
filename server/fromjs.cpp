@@ -66,7 +66,6 @@ void clinical_index_from_js( clinical_index *ci, Value &v )
 
   if ( v.HasMember("parents") && v["parents"].IsArray() )
   {
-printf("Debug: found a parents\n");
     clinical_index **pptr;
 
     parents = (clinical_index**)array_from_value( v["parents"], CST(clinical_index_by_index) );
