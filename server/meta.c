@@ -737,7 +737,7 @@ HANDLER( do_make_clinical_index )
 
   parentstr = get_param( params, "parents" );
 
-  if ( parentstr )
+  if ( parentstr && *parentstr )
   {
     char *err = NULL;
 
