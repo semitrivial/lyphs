@@ -34,7 +34,7 @@ public class Convert
     OWLOntologyLoaderConfiguration config = new OWLOntologyLoaderConfiguration();
     config.setMissingOntologyHeaderStrategy(OWLOntologyLoaderConfiguration.MissingOntologyHeaderStrategy.IMPORT_GRAPH);
 
-    File kbfile;
+    File kbFile;
     OWLOntology ont;
 
     if ( args.length != 2 )
@@ -47,8 +47,8 @@ public class Convert
 
     try
     {
-      kbfile = new File(args[0]);
-      ont = manager.loadOntologyFromOntologyDocument(new FileDocumentSource(kbfile),config);
+      kbFile = new File(args[0]);
+      ont = manager.loadOntologyFromOntologyDocument(new FileDocumentSource(kbFile),config);
     }
     catch(Exception e)
     {
@@ -84,7 +84,7 @@ public class Convert
 
       for ( OWLClass c : classes )
       {
-        String cID = prepare_class_id(c.toString());
+        String cID = prepareClassID(c.toString());
         boolean fLabel = false;
 
         Set<OWLAnnotation> annots = c.getAnnotations(o, df.getRDFSLabel() );
@@ -109,7 +109,7 @@ public class Convert
           if ( sub.isOWLNothing() )
             continue;
 
-          writer.print( prepare_class_id(sub.toString()) + " <http://www.w3.org/2000/01/rdf-schema#subClassOf> " + cID + " .\n" );
+          writer.print( prepareClassID(sub.toString()) + " <http://www.w3.org/2000/01/rdf-schema#subClassOf> " + cID + " .\n" );
         }
       }
     }
@@ -119,7 +119,7 @@ public class Convert
     return;
   }
 
-  String prepare_class_id(String id)
+  String prepareClassID(String id)
   {
     String retval = id.trim();
 
@@ -165,4 +165,3 @@ public class Convert
     return sb.toString();
   }
 }
-
