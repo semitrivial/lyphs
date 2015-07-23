@@ -226,6 +226,7 @@ struct LYPH
   trie *fma;
   char *pubmed;
   char *projection_strength;
+  long long modified;
 };
 
 typedef enum
@@ -512,6 +513,7 @@ int count_nontrivial_members( trie *t );
 /*
  * util.c
  */
+long long longtime( void );
 char *ul_to_json( unsigned long n );
 void log_string( char *txt );
 void log_stringf( char *fmt, ... );

@@ -814,6 +814,7 @@ void load_lyphviews( void )
                 e->annots = (lyph_annot**)blank_void_array();
                 e->pubmed = strdup("");
                 e->projection_strength = strdup("");
+                e->modified = 0;
                 LINK( e, first_lyph, last_lyph, next );
                 lyphcnt++;
 
@@ -1086,6 +1087,9 @@ void save_one_lyph( lyph *e, FILE *fp )
     free( encoded );
   }
 
+  if ( e->modified )
+    fprintf( fp, "mod:%lld ", e->modified );
+
   if ( e->projection_strength && *e->projection_strength )
   {
     encoded = url_encode( e->projection_strength );
@@ -1232,6 +1236,7 @@ int load_lyphs_one_line( char *line, char **err )
     etr->data = (trie **)e;
     e->pubmed = strdup("");
     e->projection_strength = strdup("");
+    e->modified = 0;
     LINK( e, first_lyph, last_lyph, next );
     lyphcnt++;
 
@@ -1324,6 +1329,9 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e )
 
     e->pubmed = strdup( preamble );
   }
+
+  if ( parse_name_preamble( &namebuf, "mod:", &preamble ) )
+    e->modified = strtoul( preamble, NULL, 10 );
 
   if ( parse_name_preamble( &namebuf, "proj_str:", &preamble ) )
   {
@@ -2459,7 +2467,8 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "pubmed": e->pubmed && *e->pubmed ? str_to_json(e->pubmed) : js_suppress,
     "correlations": correlations,
     "correlation count": correlation_cnt,
-    "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress
+    "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress,
+    "modified": ul_to_json( e->modified )
   );
 
   free( children );
@@ -2767,6 +2776,7 @@ lyph *make_lyph_( int type, lyphnode *from, lyphnode *to, lyphplate *L, char *fm
   e->flags = 0;
   e->pubmed = pubmedstr ? strdup( pubmedstr ) : strdup("");
   e->projection_strength = projstr ? strdup( projstr ) : strdup("");
+  e->modified = longtime();
 
   LINK( e, first_lyph, last_lyph, next );
   lyphcnt++;
@@ -3185,7 +3195,8 @@ lyph *clone_lyph( lyph *e )
   d->fma = e->fma;
   d->pubmed = strdup( e->pubmed );
   d->projection_strength = strdup( e->projection_strength );
-  
+  d->modified = longtime();
+
   return d;
 }
 

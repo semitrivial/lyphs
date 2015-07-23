@@ -38,7 +38,7 @@ char *int_to_json( int x );
 * due to limitations in the preprocessor. For our purposes
 * here, eight arguments will suffice.
 */
-#define FOR_EACH_MAX_ARGS 12
+#define FOR_EACH_MAX_ARGS 17
 #define FOR_EACH_1(what, x, ...) what(x)
 #define FOR_EACH_2(what, x, ...)\
 what(x)\
@@ -85,11 +85,14 @@ FOR_EACH_14(what, __VA_ARGS__)
 #define FOR_EACH_16(what, x, ...)\
 what(x)\
 FOR_EACH_15(what, __VA_ARGS__)
+#define FOR_EACH_17(what, x, ...)\
+what(x)\
+FOR_EACH_16(what, __VA_ARGS__)
 
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
-#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, N, ...) N
-#define FOR_EACH_RSEQ_N() 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, N, ...) N
+#define FOR_EACH_RSEQ_N() 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 #define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
 #define CONCATENATE1(arg1, arg2) CONCATENATE2(arg1, arg2)
 #define CONCATENATE2(arg1, arg2) arg1##arg2

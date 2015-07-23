@@ -572,3 +572,10 @@ char *ul_to_json( unsigned long n )
 
   return str_to_json( buf );
 }
+
+long long longtime( void )
+{
+  double d = difftime( time(NULL), 0 );
+
+  return (long long) d;
+}

@@ -354,6 +354,8 @@ HANDLER( do_editlyph )
     e->species = trie_strdup( speciesstr, metadata );
   }
 
+  e->modified = longtime();
+
   save_lyphs();
 
   send_response( req, lyph_to_json( e ) );
