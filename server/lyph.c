@@ -16,6 +16,7 @@ lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
 int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
+void load_lyphplate_modified( char *subj_full, char *modifiedstr );
 char *lyphnode_to_json_brief( lyphnode *n );
 void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t );
 void save_one_lyph( lyph *e, FILE *fp );
@@ -1454,6 +1455,8 @@ void got_lyphplate_triple( char *subj, char *pred, char *obj )
     load_lyphplate_type( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#has_length" ) )
     load_lyphplate_length( s, o );
+  else if ( !strcmp( p, "http://open-physiology.org/lyph#last_modified" ) )
+    load_lyphplate_modified( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#misc_materials" ) )
     load_misc_materials( s, o );
   else if ( !strcmp( p, "http://open-physiology.org/lyph#ont_term" ) )
@@ -1510,6 +1513,20 @@ void load_misc_materials( char *subj_full, char *misc_materials_str )
   L->misc_material = (lyphplate **) strdup( misc_materials_str );
 }
 
+void load_lyphplate_modified( char *subj_full, char *modifiedstr )
+{
+  lyphplate *L;
+  char *subj = get_url_shortform( subj_full );
+  trie *iri = trie_search( subj, lyphplate_ids );
+
+  if ( !iri || !iri->data )
+    return;
+
+  L = (lyphplate*)iri->data;
+
+  L->modified = strtoll( modifiedstr, NULL, 10 );
+}
+
 void load_lyphplate_length( char *subj_full, char *length_str )
 {
   lyphplate *L;
@@ -1558,6 +1575,7 @@ void load_lyphplate_label( char *subj_full, char *label )
     if ( !iri->data )
     {
       CREATE( L, lyphplate, 1 );
+      L->modified = 0;
       L->id = iri;
       L->length = strdup("unspecified");
       L->type = LYPHPLATE_MISSING;
@@ -1643,6 +1661,7 @@ lyphplate *create_or_find_lyphplate( char *id )
 
   CREATE( L, lyphplate, 1 );
 
+  L->modified = longtime();
   L->id = trie_strdup( id, lyphplate_ids );
   L->length = strdup("unspecified");
   L->id->data = (void *)L;
@@ -1854,6 +1873,9 @@ void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
     fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
     free( ch );
 
+    if ( L->modified )
+      fprintf( fp, "%s <http://open-physiology.org/lyph#last_modified> \"%lld\" .\n", id, L->modified );
+
     if ( L->misc_material && *L->misc_material )
     {
       lyphplate **materials;
@@ -1959,6 +1981,7 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
     return NULL;
 
   CREATE( L, lyphplate, 1 );
+  L->modified = longtime();
   L->name = trie_strdup( name, lyphplate_names );
   L->id = assign_new_lyphplate_id( L );
   L->type = type;
@@ -2120,6 +2143,7 @@ lyphplate *lyphplate_by_id( const char *id )
     CREATE( L, lyphplate, 1 );
 
     L->type = LYPHPLATE_BASIC;
+    L->modified = longtime();
 
     if ( !strcmp( trieloc, "terms" ) )
     {
@@ -2289,7 +2313,8 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
     "layers": JS_ARRAY( layer_to_json, L->layers ),
     "misc_materials": JS_ARRAY( lyphplate_to_json_brief, L->misc_material ),
     "common_materials": common_mats,
-    "length": str_to_json( L->length )
+    "length": str_to_json( L->length ),
+    "modified": ll_to_json( L->modified )
   );
 }
 
@@ -2468,7 +2493,7 @@ char *lyph_to_json_r( lyph *e, lyph_to_json_details *details )
     "correlations": correlations,
     "correlation count": correlation_cnt,
     "projection_strength": e->projection_strength && *e->projection_strength ? str_to_json( e->projection_strength ) : js_suppress,
-    "modified": ul_to_json( e->modified )
+    "modified": ll_to_json( e->modified )
   );
 
   free( children );
@@ -3211,6 +3236,7 @@ lyphplate *clone_template( lyphplate *L )
   M->misc_material = L->misc_material ? (lyphplate**)COPY_VOID_ARRAY( L->misc_material ) : NULL;
   M->supers = L->supers ? (lyphplate**)COPY_VOID_ARRAY( L->supers ) : NULL;
   M->subs = L->subs ? (lyphplate**)COPY_VOID_ARRAY( L->subs ) : NULL;
+  M->modified = longtime();
 
   if ( L->layers )
   {  

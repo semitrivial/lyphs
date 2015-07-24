@@ -568,6 +568,7 @@ HANDLER( do_edit_template )
     printf( "..." );
 #endif
 
+  L->modified = longtime();
   save_lyphplates();
 
   send_response( req, lyphplate_to_json( L ) );
@@ -2030,6 +2031,7 @@ HANDLER( do_layer_from_template )
   free( L->layers );
   L->layers = buf;
 
+  L->modified = longtime();
   save_lyphplates();
 
   send_response( req, lyphplate_to_json( L ) );
@@ -2103,6 +2105,7 @@ HANDLER( do_layer_to_template )
   free( L->layers );
   L->layers = buf;
 
+  L->modified = longtime();
   save_lyphplates();
 
   send_response( req, lyphplate_to_json( L ) );

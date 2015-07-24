@@ -564,6 +564,15 @@ int str_has_substring( const char *hay, const char *needle )
   return 0;
 }
 
+char *ll_to_json( long long n )
+{
+  char buf[1024];
+
+  sprintf( buf, "%lld", n );
+
+  return str_to_json( buf );
+}
+
 char *ul_to_json( unsigned long n )
 {
   char buf[1024];

@@ -927,7 +927,10 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
        p = *pathsptr;
 
       for ( pptr = p; *pptr; pptr++ )
+      {
         (*pptr)->lyphplt = L;
+        (*pptr)->modified = longtime();
+      }
     }
 
     save_lyphs();
@@ -983,6 +986,7 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
         c[len+1] = NULL;
         free( e->constraints );
         e->constraints = c;
+        e->modified = longtime();
       }
     }
   }
@@ -1604,6 +1608,7 @@ HANDLER( do_lyphconstrain )
 
   free( e->constraints );
   e->constraints = c;
+  e->modified = longtime();
 
   save_lyphs();
 
