@@ -825,6 +825,7 @@ int remove_doomed_items_from_views( void )
       lyphnode **buf, **bptr;
 
       fMatch = 1;
+      v->modified = longtime();
 
       for ( nptr = v->nodes, size = 0; *nptr; nptr++ )
         if ( (*nptr)->flags != LYPHNODE_BEING_DELETED )
@@ -1019,6 +1020,7 @@ int remove_doomed_lyphplates_from_lyphs( void )
     if ( e->lyphplt && e->lyphplt->flags == LYPHPLATE_BEING_DELETED )
     {
       e->lyphplt = NULL;
+      e->modified = longtime();
       fMatch = 1;
     }
 
@@ -1044,6 +1046,7 @@ int remove_doomed_lyphplates_from_lyphs( void )
       *newcptr = NULL;
       free( e->constraints );
       e->constraints = newc;
+      e->modified = longtime();
       fMatch = 1;
     }
   }
@@ -1514,6 +1517,7 @@ HANDLER( do_lyphs_from_view )
   *bptr = NULL;
   free( v->rects );
   v->rects = buf;
+  v->modified = longtime();
 
   for ( lptr = lyphs; *lptr; lptr++ )
     REMOVE_BIT( (*lptr)->flags, LYPH_TO_BE_REMOVED );

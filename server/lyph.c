@@ -51,6 +51,7 @@ lyphview *create_new_view( lyphnode **nodes, char **xs, char **ys, lyph **lyphs,
   v->nodes = nodes;
   v->id = new_lyphview_id();
   v->name = name;
+  v->modified = longtime();
 
   CREATE( coords, char *, (ncnt * 2) + 1 );
 
@@ -489,7 +490,8 @@ char *lyphview_to_json( lyphview *v )
     "id": int_to_json( v->id ),
     "name": v->name,
     "nodes": JS_ARRAY( viewed_node_to_json, vn ),
-    "lyphs": JS_ARRAY_R( lv_rect_to_json_r, v->rects, v )
+    "lyphs": JS_ARRAY_R( lv_rect_to_json_r, v->rects, v ),
+    "modified": ll_to_json( v->modified )
   );
 
   for ( vnptr = vn; *vnptr; vnptr++ )
@@ -545,6 +547,9 @@ void save_one_lyphview( lyphview *v, FILE *fp )
 
   if ( v->name )
     fprintf( fp, "Name %s\n", v->name );
+
+  if ( v->modified )
+    fprintf( fp, "Modified %lld\n", v->modified );
 
   fprintf( fp, "Nodes %zd\n", VOIDLEN( v->nodes ) );
 
@@ -702,6 +707,7 @@ void load_lyphviews( void )
       v->rects = NULL;
       v->coords = NULL;
       v->name = NULL;
+      v->modified = 0;
 
       views[id] = v;
       continue;
@@ -767,6 +773,19 @@ void load_lyphviews( void )
       nodes = views[id]->nodes;
       coords = views[id]->coords;
 
+      continue;
+    }
+
+    if ( str_begins( buf, "Modified " ) )
+    {
+      if ( prev_view_index == -1 )
+      {
+        log_string( "lyphviews.dat: Mismatched Modified line -- aborting" );
+        log_linenum( line );
+        EXIT();
+      }
+
+      views[id]->modified = strtoll( buf + strlen( "Modified " ), NULL, 10 );
       continue;
     }
 

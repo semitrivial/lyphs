@@ -356,6 +356,7 @@ struct LYPHVIEW
   lyphnode **nodes;
   char **coords;
   lv_rect **rects;
+  long long modified;
 };
 
 typedef enum

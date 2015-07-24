@@ -1521,7 +1521,10 @@ void makeview_worker( char *request, http_request *req, url_param **params, int 
   }
 
   if ( fChange || type == MAKEVIEW_WORKER_EDITVIEW )
+  {
+    v->modified = longtime();
     save_lyphviews();
+  }
 
   send_response( req, lyphview_to_json( v ) );
 }
@@ -1659,7 +1662,10 @@ HANDLER( do_assign_template )
   }
 
   for ( e = lyphs; *e; e++ )
+  {
     (*e)->lyphplt = L;
+    (*e)->modified = longtime();
+  }
 
   free( lyphs );
 
