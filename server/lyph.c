@@ -2526,7 +2526,8 @@ char *lyph_to_json_brief( const lyph *e )
   return JSON
   (
     "id": trie_to_json( e->id ),
-    "name": trie_to_json( e->name )
+    "name": trie_to_json( e->name ),
+    "modified": ll_to_json( e->modified )
   );
 }
 
