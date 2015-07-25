@@ -440,7 +440,7 @@ void add_spaces( char **ptr, int count )
 
 int next_nonwhitespace_is( const char *ptr, char c, const char **where )
 {
-  const char *rightptr = &ptr[1];
+  const char *rightptr;
 
   for ( rightptr = &ptr[1]; *rightptr && *rightptr != c; rightptr++ )
   {

@@ -1564,7 +1564,9 @@ int template_involves_any_of( lyphplate *L, lyphplate **parts )
       switch( L->type )
       {
         case LYPHPLATE_BASIC:
-          answer = 0;
+          /*
+           * answer will be set to 0 after break
+           */
           break;
         case LYPHPLATE_SHELL:
         case LYPHPLATE_MIX:
