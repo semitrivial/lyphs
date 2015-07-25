@@ -532,7 +532,7 @@ int is_number( const char *arg );
 void error_message( char *err );
 void error_messagef( const char *fmt, ... );
 char *strdupf( const char *fmt, ... );
-char *jsonf( int paircnt, ... );;
+char *jsonf( int paircnt, ... );
 void json_gc( void );
 size_t voidlen( void **x );
 char *constraints_comma_list( lyphplate **constraints );
