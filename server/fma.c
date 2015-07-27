@@ -4,6 +4,12 @@
 #define INF_DOTFILE "inf_dotfile.txt"
 #define DOTFILE "dotfile.txt"
 
+typedef struct FMA_LYPH_PAIR
+{
+  fma *f;
+  lyph *e;
+} fma_lyph_pair;
+
 fma *first_fma[FMA_HASH];
 fma *last_fma[FMA_HASH];
 nifling *first_nifling;
@@ -1364,15 +1370,63 @@ void generate_inferred_dotfile( fma **seeds )
   recompute_inferred_parts( NULL );
 }
 
+char *fma_lyph_pair_to_json( const fma_lyph_pair *p )
+{
+  return JSON
+  (
+    "fma": ul_to_json( p->f->id ),
+    "fma label": label_by_fma( p->f ),
+    "lyph": trie_to_json( p->e->id ),
+    "lyph fma": p->e->fma ? trie_to_json( p->e->fma ) : NULL
+  );
+}
+
+lyph *highlight_fma_lyph_conflict( const fma *f )
+{
+  lyph *e;
+  char *label = label_by_fma( f ), fmastr[1024];
+
+  if ( !label )
+    label = "";
+
+  sprintf( fmastr, "FMA_%lu", f->id );
+
+  for ( e = first_lyph; e; e = e->next )
+  {
+    char *efmastr = (e->fma ? strdup(trie_to_static(e->fma)) : "");
+    char *ename = (e->name ? trie_to_static( e->name ) : "");
+
+    if ( ( strcmp( label, ename ) && !strcmp( efmastr, fmastr ) )
+    ||   (!strcmp( label, ename ) &&  strcmp( efmastr, fmastr ) ) )
+    {
+      if ( e->fma )
+        free( efmastr );
+
+      return e;
+    }
+
+    free( efmastr );
+  }
+
+  return NULL;
+}
+
 /*
  * The following should presumably be a one-time use plugin BdB requested
  */
 HANDLER( do_import_lateralized_brain )
 {
   fma *f;
-  int hash;
+  fma_lyph_pair **buf, **bptr, *p;
+  lyph *e;
+  int hash, cnt = 0;
 
   mark_brain_stuff( NULL );
+
+  ITERATE_FMAS( cnt++ );
+
+  CREATE( buf, fma_lyph_pair *, cnt + 1 );
+  bptr = buf;
 
   ITERATE_FMAS
   (
@@ -1382,17 +1436,37 @@ HANDLER( do_import_lateralized_brain )
     if ( !is_oriented( f, NULL ) && !*f->inferred_parents && !*f->inferred_parts )
       continue;
 
+    e = highlight_fma_lyph_conflict( f );
+
+    if ( e )
+    {
+      CREATE( p, fma_lyph_pair, 1 );
+      p->f = f;
+      p->e = e;
+      *bptr++ = p;
+    }
+
     if ( lyph_by_fma( f ) )
       continue;
 
     create_fma_lyph( f, 0, 1 );
   );
 
+  *bptr = NULL;
+
   unmark_brain_stuff();
 
   save_lyphs();
 
-  send_ok( req );
+  send_response( req, JSON1
+  (
+    "conflicts": JS_ARRAY( fma_lyph_pair_to_json, buf )
+  ));
+
+  for ( bptr = buf; *bptr; bptr++ )
+    free( *bptr );
+
+  free( buf );
 }
 
 HANDLER( do_fma )
