@@ -41,6 +41,21 @@ char *label_by_fma( const fma *f )
   return NULL;
 }
 
+char *label_by_fma_nojson( const fma *f )
+{
+  trie *t;
+  char buf[2048];
+
+  sprintf( buf, "FMA_%lu", f->id );
+
+  t = trie_search( buf, iri_to_labels );
+
+  if ( t && t->data && t->data[0] )
+    return strdup( trie_to_static( t->data[0] ) );
+
+  return NULL;
+}
+
 fma *fma_by_trie( trie *id )
 {
   fma *f;
@@ -1384,7 +1399,7 @@ char *fma_lyph_pair_to_json( const fma_lyph_pair *p )
 lyph *highlight_fma_lyph_conflict( const fma *f )
 {
   lyph *e;
-  char *label = label_by_fma( f ), fmastr[1024];
+  char *label = label_by_fma_nojson( f ), fmastr[1024];
 
   if ( !label )
     label = "";
@@ -1402,12 +1417,14 @@ lyph *highlight_fma_lyph_conflict( const fma *f )
       if ( e->fma )
         free( efmastr );
 
+      free( label );
       return e;
     }
 
     free( efmastr );
   }
 
+  free( label );
   return NULL;
 }
 
