@@ -885,7 +885,10 @@ void create_fma_lyph( fma *f, int recursive, int brain_only )
   from = make_lyphnode();
   to = make_lyphnode();
 
-  if ( recursive && parent )
+  /*
+   * Temporarily (?) disable partonomy here
+   */
+  if ( recursive && parent && 0 )
   {
     create_fma_lyph( parent, 1, brain_only );
     from->location = parent->lyph;
