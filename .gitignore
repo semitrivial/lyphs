@@ -1,7 +1,12 @@
+server/data/*.json
+server/data/*.dat
+server/data/log.txt
+server/data/*.parts
+server/dotfile.txt
+server/inf_dotfile.txt
+server/conflicts.csv
 *.o
 *.opp
-*.json
-*.dat
 *.class
 */META-INF/
 */de/
@@ -12,5 +17,6 @@ log4j.properties
 *.nt
 *.dSYM/
 */rapidjson/
-log.txt
 lyph
+.DS_Store
+server/.DS_Store
