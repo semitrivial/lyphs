@@ -897,7 +897,7 @@ HANDLER( do_edit_clinical_index )
   claimedstr = get_param( params, "claimed" );
   parentstr = get_param( params, "parents" );
 
-  if ( !label && !pubmedsstr && !claimedstr && !parentstr )
+  if ( (!label || !*label) && !pubmedsstr && !claimedstr && !parentstr )
     HND_ERR( "You did not specify any changes to make" );
 
   if ( parentstr && *parentstr )
@@ -961,7 +961,7 @@ HANDLER( do_edit_clinical_index )
       add_clinical_index_to_array( ci, &((*pptr)->children) );
   }
 
-  if ( label )
+  if ( label && *label )
     ci->label = trie_strdup( label, metadata );
 
   if ( parentstr )
