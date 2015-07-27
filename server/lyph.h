@@ -33,7 +33,7 @@
 #define LOCATED_MEASURE_FILE DATA_DIR "locmeas.json"
 #define CORRELATION_FILE DATA_DIR "corr.json"
 #define FMA_FILE DATA_DIR "fma.parts"
-#define NIFLING_FILE DATA_DIR "data/nifs.dat"
+#define NIFLING_FILE DATA_DIR "nifs.dat"
 
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
