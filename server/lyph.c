@@ -518,11 +518,11 @@ void save_lyphviews( void )
   if ( !views )
     return;
 
-  fp = fopen( "lyphviews.dat", "w" );
+  fp = fopen( LYPHVIEWS_FILE, "w" );
 
   if ( !fp )
   {
-    log_string( "Error: Could not open lyphviews.dat for writing" );
+    log_string( "Error: Could not open " LYPHVIEWS_FILE " for writing" );
     return;
   }
 
@@ -600,11 +600,11 @@ void load_lyphviews( void )
   char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
   int fread_len;
 
-  fp = fopen( "lyphviews.dat", "r" );
+  fp = fopen( LYPHVIEWS_FILE, "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphviews.dat for reading--no lyph views loaded" );
+    log_string( "Could not open " LYPHVIEWS_FILE " for reading--no lyph views loaded" );
     init_default_lyphviews();
     return;
   }
@@ -991,11 +991,11 @@ int load_lyphs( void )
 
   log_string( "Loading lyphs..." );
 
-  fp = fopen( "lyphs.dat", "r" );
+  fp = fopen( LYPHS_FILE, "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphs.dat for reading" );
+    log_string( "Could not open " LYPHS_FILE " for reading" );
     return 0;
   }
 
@@ -1059,11 +1059,11 @@ void save_lyphs( void )
   if ( configs.readonly )
     return;
 
-  fp = fopen( "lyphs.dat", "w" );
+  fp = fopen( LYPHS_FILE, "w" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphs.dat for writing" );
+    log_string( "Could not open " LYPHS_FILE " for writing" );
     return;
   }
 
@@ -1756,11 +1756,11 @@ void load_lyphplates(void)
   char *err = NULL;
   lyphplate *naked;
 
-  fp = fopen( "lyphplates.dat", "r" );
+  fp = fopen( TEMPLATES_FILE, "r" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphplates.dat for reading" );
+    log_string( "Could not open " TEMPLATES_FILE " for reading" );
     return;
   }
 
@@ -1768,7 +1768,7 @@ void load_lyphplates(void)
 
   if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_lyphplate_triple ) )
   {
-    error_message( strdupf( "Failed to parse the lyphplates-file (lyphplates.dat):\n%s\n", err ? err : "(no error given)" ) );
+    error_message( strdupf( "Failed to parse the lyphplates-file (" TEMPLATES_FILE "):\n%s\n", err ? err : "(no error given)" ) );
     EXIT();
   }
 
@@ -1850,11 +1850,11 @@ void save_lyphplates(void)
   if ( configs.readonly )
     return;
 
-  fp = fopen( "lyphplates.dat", "w" );
+  fp = fopen( TEMPLATES_FILE, "w" );
 
   if ( !fp )
   {
-    log_string( "Could not open lyphplates.dat for writing" );
+    log_string( "Could not open " TEMPLATES_FILE " for writing" );
     return;
   }
 
@@ -3391,12 +3391,12 @@ HANDLER( do_lyphs_located_in_term )
 
 void load_layer_names( void )
 {
-  char *full = load_file( "layernames.dat" ), *id, *name, *ptr;
+  char *full = load_file( LAYERNAMES_FILE ), *id, *name, *ptr;
   int fSpace = 0;
   
   if ( !full )
   {
-    to_logfile( "Could not open layernames.dat for reading" );
+    to_logfile( "Could not open " LAYERNAMES_FILE " for reading" );
     return;
   }
   
@@ -3447,11 +3447,11 @@ void save_layer_names_recurse( trie *t, FILE *fp )
 
 void save_layer_names(void)
 {
-  FILE *fp = fopen( "layernames.dat", "w" );
+  FILE *fp = fopen( LAYERNAMES_FILE, "w" );
 
   if ( !fp )
   {
-    to_logfile( "Couldn't open layernames.dat for writing" );
+    to_logfile( "Couldn't open " LAYERNAMES_FILE " for writing" );
     return;
   }
 

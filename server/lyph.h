@@ -18,17 +18,24 @@
 #define MAX_INT_LEN (strlen("-2147483647"))
 #define MAX_NUMPATHS 16
 
-#define LOG_FILE "log.txt"
-#define LYPH_ANNOTS_FILE "lyph_annots.dat"
-#define PUBMED_FILE "pubmed.json"
+#define DATA_DIR "data/"
+
+#define LYPHS_FILE DATA_DIR "lyphs.dat"
+#define LYPHVIEWS_FILE DATA_DIR "lyphviews.dat"
+#define TEMPLATES_FILE DATA_DIR "lyphplates.dat"
+#define LAYERNAMES_FILE DATA_DIR "layernames.dat"
+#define LOG_FILE DATA_DIR "log.txt"
+#define LYPH_ANNOTS_FILE DATA_DIR "lyph_annots.dat"
+#define PUBMED_FILE DATA_DIR "pubmed.json"
 #define PUBMED_FILE_DEPRECATED "pubmed.dat"
 #define CLINICAL_INDEX_FILE_DEPRECATED "clinical_indices.dat"
-#define CLINICAL_INDEX_FILE "clinical_indices.json"
-#define LOCATED_MEASURE_FILE "locmeas.json"
-#define CORRELATION_FILE "corr.json"
+#define CLINICAL_INDEX_FILE DATA_DIR "clinical_indices.json"
+#define LOCATED_MEASURE_FILE DATA_DIR "locmeas.json"
+#define CORRELATION_FILE DATA_DIR "corr.json"
+#define FMA_FILE DATA_DIR "fma.parts"
+#define NIFLING_FILE DATA_DIR "data/nifs.dat"
+
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
-#define FMA_FILE "fma.parts"
-#define NIFLING_FILE "nifs.dat"
 
 #define RADIOLOGICAL_INDEX_PRED "rdlgc_ind"
 #define FMA_HASH 65536
