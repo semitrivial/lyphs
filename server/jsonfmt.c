@@ -364,6 +364,7 @@ char *json_escape( const char *txt )
     {
       case '"':
       case '\\':
+      case '\n':
         len++;
       default:
         continue;
@@ -381,6 +382,10 @@ char *json_escape( const char *txt )
   {
     switch( *ptr )
     {
+      case '\n':
+        *bptr++ = '\\';
+        *bptr++ = 'n';
+        break;
       case '"':
       case '\\':
         *bptr++ = '\\';
