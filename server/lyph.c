@@ -133,8 +133,6 @@ void free_all_lyphs( void )
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
 
-  top_lyph_id = 0;
-
   free_all_views();
   free_all_located_measures();
   free_all_correlations();
@@ -1067,6 +1065,8 @@ void save_lyphs( void )
     return;
   }
 
+  fprintf( fp, "top_lyph_id %d\n", top_lyph_id );
+
   for ( e = first_lyph; e; e = e->next )
     save_one_lyph( e, fp );
 
@@ -1209,6 +1209,24 @@ int load_lyphnode_location( char *line, char **err )
   return 1;
 }
 
+int load_top_lyph_id( const char *line, char **err )
+{
+  int id = strtoul( line + strlen( "top_lyph_id " ), NULL, 10 );
+
+  if ( id < 0 )
+  {
+    if ( err )
+      *err = "Invalid top_lyph_id: should be a nonnegative integer";
+
+    return 0;
+  }
+
+  if ( id > top_lyph_id )
+    top_lyph_id = id;
+
+  return 1;
+}
+
 int load_lyphs_one_line( char *line, char **err )
 {
   char lyphidbuf[MAX_LYPH_LINE_LEN+1];
@@ -1220,6 +1238,9 @@ int load_lyphs_one_line( char *line, char **err )
   lyph *e;
   lyphnode *from, *to;
   trie *etr, *fromtr, *totr;
+
+  if ( str_begins( line, "top_lyph_id " ) )
+    return load_top_lyph_id( line, err );
 
   #ifdef KEY
   #undef KEY
