@@ -85,7 +85,10 @@ char *json_format( const char *json, int indents, char **errptr )
         last_was_nonspace = 1;
       }
 
-      len += 2; // Shortcut: Don't count length from opening quote until closing quote found
+      /*
+       * Shortcut: Don't count length from opening quote until closing quote found
+       */
+      len += 2;
       continue;
     }
 
@@ -148,7 +151,9 @@ char *json_format( const char *json, int indents, char **errptr )
        */
       case '"':
         fQuote = 1;
-        //len++;  Shortcut: Don't count the length until the quote ends
+        /*
+         * len++;  Shortcut: Don't count the length until the quote ends
+         */
         fContent = 1;
         break;
 

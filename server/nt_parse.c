@@ -10,7 +10,9 @@ int parse_ntriples( FILE *fp, char **err, int max_iri_len, ADD_TRIPLE_FUNCTION *
   static int bufsize;
 
   #ifndef WIN32
-    // Variables for QUICK_GETC
+    /*
+     * Variables for QUICK_GETC
+     */
     char read_buf[READ_BLOCK_SIZE], *read_end = &read_buf[READ_BLOCK_SIZE], *read_ptr = read_end;
     int fread_len;
   #endif

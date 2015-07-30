@@ -1861,6 +1861,7 @@ void handle_loaded_layers( trie *t )
 void save_lyphplates(void)
 {
   FILE *fp;
+  lyphplate *L;
   trie *avoid_dupe_layers;
 
   if ( configs.readonly )
@@ -1876,7 +1877,7 @@ void save_lyphplates(void)
 
   avoid_dupe_layers = blank_trie();
 
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  for ( L = first_lyphplate; L; L = L->next )
     save_one_lyphplate( L, fp, avoid_dupe_layers );
 
   fclose(fp);
@@ -2939,7 +2940,9 @@ void lyphs_unset_bits( int bits )
 
 void lyphplates_unset_bits( int bits )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
     REMOVE_BIT( L->flags, bits );
 }
 
@@ -2956,7 +2959,9 @@ void lyphnodes_unset_bits( int bits, trie *t )
 
 lyphplate *lyphplate_by_ont_term( trie *term )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
     if ( L->ont_term == term )
       return L;
 
@@ -3083,16 +3088,18 @@ void populate_all_lyphplates_L( lyphplate ***bptr, lyphplate *L )
 
 void populate_all_lyphplates( lyphplate ***bptr )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
     populate_all_lyphplates_L( bptr, L );
 }
 
 lyphplate **get_all_lyphplates( void )
 {
-  lyphplate **buf, **bptr;
+  lyphplate *L, **buf, **bptr;
   int cnt = 0;
 
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  for ( L = first_lyphplate; L; L = L->next )
     cnt++;
 
   CREATE( buf, lyphplate *, cnt + 1 );

@@ -131,8 +131,12 @@ struct HTTP_REQUEST
   http_request *prev;
   http_conn *conn;
   char *query;
-  char *callback;  //JSONP support
   int *dead;
+
+  /*
+   * JSONP support
+   */
+  char *callback;
 };
 
 struct HTTP_CONN

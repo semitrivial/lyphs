@@ -127,5 +127,8 @@ FOR_EACH( MAGIC_SPLIT, __VA_ARGS__ )\
 
 #define JSON1(x) json_c_adapter( 1, 1?x, 0?x )
 
-#endif //JSONFMT_INCLUDE_GUARD
+/*
+ * JSONFMT_INCLUDE_GUARD
+ */
+#endif
 

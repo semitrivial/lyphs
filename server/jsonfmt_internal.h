@@ -57,5 +57,8 @@ char *json_enquote( const char *str );
 char *prep_for_json_gc( char *str );
 char *json_array_worker_( char * (*non_reentrant) (void *), char * (*reentrant) (void *, void *), void **array, void *data );
 
-#endif //JSONFMT_INTERNAL_INCLUDE_GUARD
+/*
+ * JSONFMT_INTERNAL_INCLUDE_GUARD
+ */
+#endif
 

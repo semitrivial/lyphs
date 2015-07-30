@@ -197,7 +197,6 @@ do\
 }\
 while(0)
 
-//#define TIMING_RESULT ( (timespec2.tv_sec - timespec1.tv_sec) * 1e+6 + (double) (timespec2.tv_nsec - timespec1.tv_nsec) * 1e-3 )
 #define TIMING_RESULT ( (timespec2.tv_sec - timespec1.tv_sec) + (double) (timespec2.tv_nsec - timespec1.tv_nsec) * 1e-9 )
 
 /*
@@ -236,4 +235,7 @@ do\
 }\
 while(0)
 
-#endif //LYPH_MACRO_DOT_H_INCLUDE_GUARD
+/*
+ * LYPH_MACRO_DOT_H_INCLUDE_GUARD
+ */
+#endif

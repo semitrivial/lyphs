@@ -1056,9 +1056,10 @@ int remove_doomed_lyphplates_from_lyphs( void )
 
 int spread_lyphplate_doom( void )
 {
+  lyphplate *L;
   int fMatch = 0;
 
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  for ( L = first_lyphplate; L; L = L->next )
   {
     if ( L->flags != LYPHPLATE_BEING_DELETED
     && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
@@ -1155,7 +1156,9 @@ int doomed_lyphplates_already_in_use_by_lyph( char **where )
 
 int doomed_lyphplates_already_in_use_by_lyphplate( char **where )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
   {
     if ( L->flags != LYPHPLATE_BEING_DELETED && L->misc_material )
     {
@@ -1175,7 +1178,9 @@ int doomed_lyphplates_already_in_use_by_lyphplate( char **where )
 
 int layer_used_by_non_doomed_lyphplate( layer *lyr )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
   {
     if ( L->flags != LYPHPLATE_BEING_DELETED && L->layers )
     {
@@ -1387,7 +1392,9 @@ HANDLER( do_delete_views )
 
 void spread_lyphplate_doom_from_layers( void )
 {
-  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+  lyphplate *L;
+
+  for ( L = first_lyphplate; L; L = L->next )
   {
     if ( L->flags != LYPHPLATE_BEING_DELETED
     && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
