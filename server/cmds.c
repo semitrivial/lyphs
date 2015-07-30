@@ -1054,14 +1054,12 @@ int remove_doomed_lyphplates_from_lyphs( void )
   return fMatch;
 }
 
-int spread_lyphplate_doom( trie *t )
+int spread_lyphplate_doom( void )
 {
   int fMatch = 0;
 
-  if ( t->data )
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
   {
-    lyphplate *L = (lyphplate *)t->data;
-
     if ( L->flags != LYPHPLATE_BEING_DELETED
     && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
     {
@@ -1080,8 +1078,6 @@ int spread_lyphplate_doom( trie *t )
       }
     }
   }
-
-  TRIE_RECURSE( fMatch |= spread_lyphplate_doom( *child ) );
 
   return fMatch;
 }
@@ -1114,15 +1110,18 @@ void delete_doomed_layers( trie *t )
   TRIE_RECURSE( delete_doomed_layers( *child ) );
 }
 
-void delete_doomed_lyphplates( trie *t )
+void delete_doomed_lyphplates( void )
 {
-  if ( t->data )
+  lyphplate *L, *L_next;
+
+  for ( L = first_lyphplate; L; L = L_next )
   {
-    lyphplate *L = (lyphplate *)t->data;
+    L_next = L->next;
 
     if ( L->flags == LYPHPLATE_BEING_DELETED )
     {
-      t->data = NULL;
+      if ( L->id )
+        L->id->data = NULL;
 
       if ( L->layers )
         free( L->layers );
@@ -1131,11 +1130,11 @@ void delete_doomed_lyphplates( trie *t )
       if ( L->subs )
         free( L->subs );
 
+      UNLINK2( L, first_lyphplate, last_lyphplate, next, prev );
+
       free( L );
     }
   }
-
-  TRIE_RECURSE( delete_doomed_lyphplates( *child ) );
 }
 
 int doomed_lyphplates_already_in_use_by_lyph( char **where )
@@ -1154,12 +1153,10 @@ int doomed_lyphplates_already_in_use_by_lyph( char **where )
   return 0;
 }
 
-int doomed_lyphplates_already_in_use_by_lyphplate( char **where, trie *t )
+int doomed_lyphplates_already_in_use_by_lyphplate( char **where )
 {
-  if ( t->data )
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
   {
-    lyphplate *L = (lyphplate*)t->data;
-    
     if ( L->flags != LYPHPLATE_BEING_DELETED && L->misc_material )
     {
       lyphplate **mats;
@@ -1173,21 +1170,13 @@ int doomed_lyphplates_already_in_use_by_lyphplate( char **where, trie *t )
     }
   }
   
-  TRIE_RECURSE
-  (
-    if ( doomed_lyphplates_already_in_use_by_lyphplate( where, *child ) )
-      return 1;
-  );
-  
   return 0;
 }
 
-int layer_used_by_non_doomed_lyphplate( layer *lyr, trie *t )
+int layer_used_by_non_doomed_lyphplate( layer *lyr )
 {
-  if ( t->data )
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
   {
-    lyphplate *L = (lyphplate*)t->data;
-
     if ( L->flags != LYPHPLATE_BEING_DELETED && L->layers )
     {
       layer **lyrs;
@@ -1197,12 +1186,6 @@ int layer_used_by_non_doomed_lyphplate( layer *lyr, trie *t )
           return 1;
     }
   }
-
-  TRIE_RECURSE
-  (
-    if ( layer_used_by_non_doomed_lyphplate( lyr, *child ) )
-      return 1;
-  );
 
   return 0;
 }
@@ -1217,7 +1200,7 @@ int doomed_lyphplates_already_in_use_by_layer( char **where, trie *t, layer_wrap
     for ( mats = lyr->material; *mats; mats++ )
       if ( (*mats)->flags == LYPHPLATE_BEING_DELETED )
       {
-        if ( !layer_used_by_non_doomed_lyphplate( lyr, lyphplate_ids ) )
+        if ( !layer_used_by_non_doomed_lyphplate( lyr ) )
         {
           layer_wrapper *w;
 
@@ -1247,7 +1230,7 @@ int doomed_lyphplates_already_in_use( char **where, layer_wrapper **head, layer_
   if ( doomed_lyphplates_already_in_use_by_lyph( where ) )
     return 1;
     
-  if ( doomed_lyphplates_already_in_use_by_lyphplate( where, lyphplate_ids ) )
+  if ( doomed_lyphplates_already_in_use_by_lyphplate( where ) )
     return 1;
     
   if ( doomed_lyphplates_already_in_use_by_layer( where, layer_ids, head, tail ) )
@@ -1290,7 +1273,7 @@ HANDLER( do_delete_templates )
     /*
      * Any lyphplate/layer which refers to a doomed lyphplate/layer should also be doomed
      */
-    while ( spread_lyphplate_doom( lyphplate_ids ) )
+    while ( spread_lyphplate_doom( ) )
       ;
 
     if ( remove_doomed_lyphplates_from_lyphs( ) )
@@ -1319,14 +1302,14 @@ HANDLER( do_delete_templates )
 
     if ( already_used )
     {
-      lyphplates_unset_bits( LYPHPLATE_BEING_DELETED, lyphplate_ids );
+      lyphplates_unset_bits( LYPHPLATE_BEING_DELETED );
       HND_ERRF_NORETURN( "One of the indicated lyphplates is already in use (in %s)", err );
       free( err );
       return;
     }
   }
 
-  delete_doomed_lyphplates( lyphplate_ids );
+  delete_doomed_lyphplates( );
 
   save_lyphplates();
 
@@ -1402,12 +1385,10 @@ HANDLER( do_delete_views )
   send_ok( req );
 }
 
-void spread_lyphplate_doom_from_layers( trie *t )
+void spread_lyphplate_doom_from_layers( void )
 {
-  if ( t->data )
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
   {
-    lyphplate *L = (lyphplate *)t->data;
-
     if ( L->flags != LYPHPLATE_BEING_DELETED
     && ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) )
     {
@@ -1421,8 +1402,6 @@ void spread_lyphplate_doom_from_layers( trie *t )
         L->flags = LYPHPLATE_BEING_DELETED;
     }
   }
-
-  TRIE_RECURSE( spread_lyphplate_doom_from_layers( *child ) );
 }
 
 HANDLER( do_delete_layers )
@@ -1447,16 +1426,16 @@ HANDLER( do_delete_layers )
 
   free( lyr );
 
-  spread_lyphplate_doom_from_layers( lyphplate_ids );
+  spread_lyphplate_doom_from_layers( );
 
-  while ( spread_lyphplate_doom( lyphplate_ids ) )
+  while ( spread_lyphplate_doom( ) )
     ;
 
   if ( remove_doomed_lyphplates_from_lyphs( ) )
     save_lyphs();
 
   delete_doomed_layers( layer_ids );
-  delete_doomed_lyphplates( lyphplate_ids );
+  delete_doomed_lyphplates( );
 
   save_lyphplates();
 
@@ -1647,7 +1626,7 @@ HANDLER( do_involves_template )
 
   calc_involves_template( L, &head, &tail, &cnt );
 
-  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE );
 
   CREATE( buf, lyph *, cnt + 1 );
   bptr = buf;

@@ -377,7 +377,7 @@ lyphplate **get_sublyphplates( lyphplate *L, int direct )
   {
     SET_BIT( L->flags, GDSR_ISNT_DSUBLYPHPLATE );
     get_direct_sublyphplates_recurse( L, lyphplate_ids, &bptr );
-    lyphplates_unset_bits( GDSR_ISNT_DSUBLYPHPLATE | GDSR_IS_DSUBLYPHPLATE, lyphplate_ids );
+    lyphplates_unset_bits( GDSR_ISNT_DSUBLYPHPLATE | GDSR_IS_DSUBLYPHPLATE );
   }
   else
     get_sublyphplates_recurse( L, lyphplate_ids, &bptr );
@@ -687,7 +687,7 @@ lyphplate **lyphplates_by_term( const char *ontstr )
   bptr = buf;
 
   populate_with_lyphplates_involving_any_of( basics, &bptr, lyphplate_ids );
-  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_DOES_INVOLVE | LYPHPLATE_DOES_NOT_INVOLVE );
   *bptr = NULL;
 
   MULTIFREE( basics, onts );
@@ -786,7 +786,7 @@ int is_X_built_from_Y( lyphplate *x, void *y )
 {
   int result = is_X_built_from_Y_core( x, y );
 
-  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y );
 
   return result;
 }
@@ -799,7 +799,7 @@ int is_Xs_built_from_Y( lyphplate **xs, void *y )
     if ( is_X_built_from_Y_core( *x, y ) )
       break;
 
-  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_NOT_BUILT_FROM_Y );
 
   return *x ? 1 : 0;
 }

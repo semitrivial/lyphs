@@ -12,7 +12,6 @@ trie *parse_lyph_name_field( char *namebuf, lyph *e );
 lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
 lyph *find_duplicate_lyph_worker( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr );
 trie *new_lyphnode_id(lyphnode *n);
-lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t );
 lyphplate **parse_lyph_constraints( char *str );
 int lyph_passes_filter( lyph *e, lyph_filter *f );
 void load_lyphplate_length( char *subj_full, char *length_str );
@@ -20,6 +19,7 @@ void load_lyphplate_modified( char *subj_full, char *modifiedstr );
 char *lyphnode_to_json_brief( lyphnode *n );
 void calc_nodes_directly_in_lyph_buf_recurse( lyph *e, lyphnode_wrapper **head, lyphnode_wrapper **tail, lyph **buf, trie *t );
 void save_one_lyph( lyph *e, FILE *fp );
+void save_one_lyphplate( lyphplate *L, FILE *fp, trie *avoid_dupes );
 
 int top_layer_id;
 int top_lyphplate_id;
@@ -32,6 +32,9 @@ lyph *null_rect = &null_rect_ptr;
 lyph *first_lyph;
 lyph *last_lyph;
 int lyphcnt;
+
+lyphplate *first_lyphplate;
+lyphplate *last_lyphplate;
 
 lyphview **views;
 lyphview obsolete_lyphview;
@@ -148,6 +151,8 @@ void free_all_lyphplates( void )
    */
   lyphplate_ids = blank_trie();
   lyphplate_names = blank_trie();
+  first_lyphplate = NULL;
+  last_lyphplate = NULL;
   layer_ids = blank_trie();
   save_lyphplates();
 
@@ -1625,6 +1630,7 @@ void load_lyphplate_label( char *subj_full, char *label )
       L->subs = NULL;
       L->ont_term = NULL;
       iri->data = (void *)L;
+      LINK2( L, first_lyphplate, last_lyphplate, next, prev );
     }
     else
       L = (lyphplate *)iri->data;
@@ -1712,6 +1718,7 @@ lyphplate *create_or_find_lyphplate( char *id )
   L->subs = NULL;
   L->ont_term = NULL;
   L->name = NULL;
+  LINK2( L, first_lyphplate, last_lyphplate, next, prev );
 
   return L;
 }
@@ -1745,12 +1752,12 @@ void load_layer_thickness( char *subj_full, char *obj )
   lyr->thickness = strtol( obj, NULL, 10 );
 }
 
-void handle_loading_misc_materials( trie *t )
+void handle_loading_misc_materials( void )
 {
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
+  lyphplate *L;
 
+  for ( L = first_lyphplate; L; L = L->next )
+  {
     if ( L->misc_material )
     {
       lyphplate **misc_mats;
@@ -1767,8 +1774,6 @@ void handle_loading_misc_materials( trie *t )
     else
       L->misc_material = (lyphplate**)blank_void_array();
   }
-
-  TRIE_RECURSE( handle_loading_misc_materials( *child ) );
 }
 
 void load_lyphplates(void)
@@ -1795,9 +1800,9 @@ void load_lyphplates(void)
 
   handle_loaded_layers( blank_nodes );
 
-  handle_loading_misc_materials( lyphplate_ids );
+  handle_loading_misc_materials( );
 
-  if ( (naked=missing_layers( lyphplate_ids )) != NULL )
+  if ( (naked=missing_layers()) != NULL )
   {
     error_message( strdupf( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) ) );
     EXIT();
@@ -1808,23 +1813,13 @@ void load_lyphplates(void)
   load_layer_names();
 }
 
-lyphplate *missing_layers( trie *t )
+lyphplate *missing_layers( void )
 {
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
+  lyphplate *L;
 
+  for ( L = first_lyphplate; L; L = L->next )
     if ( ( L->type == LYPHPLATE_MIX || L->type == LYPHPLATE_SHELL ) && !L->layers )
       return L;
-  }
-
-  TRIE_RECURSE
-  (
-    lyphplate *L = missing_layers( *child );
-
-    if ( L )
-      return L;
-  );
 
   return NULL;
 }
@@ -1881,7 +1876,8 @@ void save_lyphplates(void)
 
   avoid_dupe_layers = blank_trie();
 
-  save_lyphplates_recurse( lyphplate_ids, fp, avoid_dupe_layers );
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+    save_one_lyphplate( L, fp, avoid_dupe_layers );
 
   fclose(fp);
 
@@ -1892,74 +1888,68 @@ void save_lyphplates(void)
   return;
 }
 
-void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes )
+void save_one_lyphplate( lyphplate *L, FILE *fp, trie *avoid_dupes )
 {
   /*
    * Save in N-Triples format for improved interoperability
    */
   static int bnodes;
 
-  if ( t == lyphplate_ids )
+  if ( L == first_lyphplate )
     bnodes = 0;
 
-  if ( t->data )
+  char *ch, *id;
+
+  id = id_as_iri( L->id, NULL );
+  ch = html_encode( trie_to_static( L->name ) );
+
+  fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
+  free( ch );
+
+  if ( L->modified )
+    fprintf( fp, "%s <http://open-physiology.org/lyph#last_modified> \"%lld\" .\n", id, L->modified );
+
+  if ( L->misc_material && *L->misc_material )
   {
-    lyphplate *L = (lyphplate *)t->data;
-    char *ch, *id;
+    lyphplate **materials;
+    int fFirst = 0;
 
-    id = id_as_iri( t, NULL );
-    ch = html_encode( trie_to_static( L->name ) );
+    fprintf( fp, "%s <http://open-physiology.org/lyph#misc_materials> \"", id );
 
-    fprintf( fp, "%s <http://www.w3.org/2000/01/rdf-schema#label> \"%s\" .\n", id, ch );
-    free( ch );
-
-    if ( L->modified )
-      fprintf( fp, "%s <http://open-physiology.org/lyph#last_modified> \"%lld\" .\n", id, L->modified );
-
-    if ( L->misc_material && *L->misc_material )
+    for ( materials = L->misc_material; *materials; materials++ )
     {
-      lyphplate **materials;
-      int fFirst = 0;
+      if ( fFirst )
+        fprintf( fp, "," );
+      else
+        fFirst = 1;
 
-      fprintf( fp, "%s <http://open-physiology.org/lyph#misc_materials> \"", id );
-
-      for ( materials = L->misc_material; *materials; materials++ )
-      {
-        if ( fFirst )
-          fprintf( fp, "," );
-        else
-          fFirst = 1;
-
-        fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
-      }
-
-      fprintf( fp, "\" .\n" );
+      fprintf( fp, "%s", trie_to_static( (*materials)->id ) );
     }
 
-    if ( L->length && strcmp( L->length, "unspecified" ) )
-      fprintf( fp, "%s <http://open-physiology.org/lyph#has_length> \"%s\" .\n", id, L->length );
-        
-    fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyphplate_type_as_char( L ) );
-
-    if ( L->ont_term )
-      fprintf( fp, "%s <http://open-physiology.org/lyph#ont_term> \"%s\" .\n", id, trie_to_static(L->ont_term) );
-
-    if ( L->type == LYPHPLATE_SHELL || L->type == LYPHPLATE_MIX )
-    {
-      layer **lyrs;
-      int cnt = 1;
-
-      fprintf( fp, "%s <http://open-physiology.org/lyph#has_layers> _:node%d .\n", id, ++bnodes );
-      fprintf( fp, "_:node%d <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq> .\n", bnodes );
-
-      for ( lyrs = L->layers; *lyrs; lyrs++ )
-        fprintf_layer( fp, *lyrs, bnodes, cnt++, avoid_dupes );
-    }
-
-    free( id );
+    fprintf( fp, "\" .\n" );
   }
 
-  TRIE_RECURSE( save_lyphplates_recurse( *child, fp, avoid_dupes ) );
+  if ( L->length && strcmp( L->length, "unspecified" ) )
+    fprintf( fp, "%s <http://open-physiology.org/lyph#has_length> \"%s\" .\n", id, L->length );
+        
+  fprintf( fp, "%s <http://open-physiology.org/lyph#lyph_type> \"%s\" .\n", id, lyphplate_type_as_char( L ) );
+
+  if ( L->ont_term )
+    fprintf( fp, "%s <http://open-physiology.org/lyph#ont_term> \"%s\" .\n", id, trie_to_static(L->ont_term) );
+
+  if ( L->type == LYPHPLATE_SHELL || L->type == LYPHPLATE_MIX )
+  {
+    layer **lyrs;
+    int cnt = 1;
+
+    fprintf( fp, "%s <http://open-physiology.org/lyph#has_layers> _:node%d .\n", id, ++bnodes );
+    fprintf( fp, "_:node%d <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq> .\n", bnodes );
+
+    for ( lyrs = L->layers; *lyrs; lyrs++ )
+      fprintf_layer( fp, *lyrs, bnodes, cnt++, avoid_dupes );
+  }
+
+  free( id );
 }
 
 void fprintf_layer( FILE *fp, layer *lyr, int bnodes, int cnt, trie *avoid_dupes )
@@ -2029,6 +2019,7 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
   L->layers = copy_layers( layers );
   L->ont_term = NULL;
   L->supers = NULL;
+  LINK2( L, first_lyphplate, last_lyphplate, next, prev );
 
   if ( misc_material )
     L->misc_material = misc_material;
@@ -2184,6 +2175,7 @@ lyphplate *lyphplate_by_id( const char *id )
 
     L->type = LYPHPLATE_BASIC;
     L->modified = longtime();
+    LINK2( L, first_lyphplate, last_lyphplate, next, prev );
 
     if ( !strcmp( trieloc, "terms" ) )
     {
@@ -2945,15 +2937,10 @@ void lyphs_unset_bits( int bits )
     REMOVE_BIT( e->flags, bits );
 }
 
-void lyphplates_unset_bits( int bits, trie *t )
+void lyphplates_unset_bits( int bits )
 {
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
     REMOVE_BIT( L->flags, bits );
-  }
-
-  TRIE_RECURSE( lyphplates_unset_bits( bits, *child ) );
 }
 
 void lyphnodes_unset_bits( int bits, trie *t )
@@ -2967,30 +2954,11 @@ void lyphnodes_unset_bits( int bits, trie *t )
   TRIE_RECURSE( lyphnodes_unset_bits( bits, *child ) );
 }
 
-/*
- * To do: optimize this
- */
 lyphplate *lyphplate_by_ont_term( trie *term )
 {
-  return lyphplate_by_ont_term_recurse( term, lyphplate_ids );
-}
-
-lyphplate *lyphplate_by_ont_term_recurse( trie *term, trie *t )
-{
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
     if ( L->ont_term == term )
       return L;
-  }
-
-  TRIE_RECURSE
-  (
-    lyphplate *L = lyphplate_by_ont_term_recurse( term, *child );
-
-    if ( L )
-      return L;
-  );
 
   return NULL;
 }
@@ -3113,31 +3081,28 @@ void populate_all_lyphplates_L( lyphplate ***bptr, lyphplate *L )
   SET_BIT( L->flags, LYPHPLATE_ACCOUNTED_FOR );
 }
 
-void populate_all_lyphplates( lyphplate ***bptr, trie *t )
+void populate_all_lyphplates( lyphplate ***bptr )
 {
-  if ( t->data )
-  {
-    lyphplate *L = (lyphplate *)t->data;
-
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
     populate_all_lyphplates_L( bptr, L );
-  }
-
-  TRIE_RECURSE( populate_all_lyphplates( bptr, *child ) );
 }
 
 lyphplate **get_all_lyphplates( void )
 {
   lyphplate **buf, **bptr;
-  int cnt = count_nontrivial_members( lyphplate_ids );
+  int cnt = 0;
+
+  for ( lyphplate *L = first_lyphplate; L; L = L->next )
+    cnt++;
 
   CREATE( buf, lyphplate *, cnt + 1 );
   bptr = buf;
 
-  populate_all_lyphplates( &bptr, lyphplate_ids );
+  populate_all_lyphplates( &bptr );
 
   *bptr = NULL;
 
-  lyphplates_unset_bits( LYPHPLATE_ACCOUNTED_FOR, lyphplate_ids );
+  lyphplates_unset_bits( LYPHPLATE_ACCOUNTED_FOR );
 
   return buf;
 }
@@ -3304,7 +3269,9 @@ lyphplate *clone_template( lyphplate *L )
   M->length = L->length ? strdup( L->length ) : NULL;
   M->type = L->type;
   M->flags = L->flags;
-  
+
+  LINK2( M, first_lyphplate, last_lyphplate, next, prev );
+
   return M;    
 }
 

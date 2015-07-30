@@ -130,6 +130,8 @@ struct AMBIG
 
 struct LYPHPLATE
 {
+  lyphplate *next;
+  lyphplate *prev;
   lyphplate **misc_material;
   lyphplate **supers;
   lyphplate **subs;
@@ -478,6 +480,9 @@ extern lyph *first_lyph;
 extern lyph *last_lyph;
 extern int lyphcnt;
 
+extern lyphplate *first_lyphplate;
+extern lyphplate *last_lyphplate;
+
 extern trie *human_species_lowercase;
 extern trie *human_species_uppercase;
 
@@ -605,7 +610,6 @@ layer **copy_layers( layer **src );
 void sort_layers( layer **layers );
 trie *assign_new_lyphplate_id( lyphplate *L );
 void free_lyphplate_dupe_trie( trie *t );
-void save_lyphplates_recurse( trie *t, FILE *fp, trie *avoid_dupes );
 void save_layer_names( void );
 void load_layer_names( void );
 char *id_as_iri( trie *id, char *prefix );
@@ -619,7 +623,7 @@ void acknowledge_has_layers( char *subj_full, char *bnode_id );
 void load_layer_material( char *subj_full, char *obj_full );
 void load_layer_to_lld( char *bnode, char *obj_full );
 void load_layer_thickness( char *subj_full, char *obj );
-lyphplate *missing_layers( trie *t );
+lyphplate *missing_layers();
 void handle_loaded_layers( trie *t );
 int load_lyphs( void );
 int load_lyphs_one_line( char *line, char **err );
@@ -647,7 +651,7 @@ lyphplate *lyphplate_by_ont_term( trie *term );
 void load_ont_term( char *subj_full, char *ont_term_str );
 char *lyphplate_hierarchy_to_json( void );
 void lyphs_unset_bits( int bits );
-void lyphplates_unset_bits( int bits, trie *t );
+void lyphplates_unset_bits( int bits );
 void lyphnodes_unset_bits( int bits, trie *t );
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err );
 void free_all_views( void );
