@@ -1794,7 +1794,7 @@ void load_lyphplates(void)
 
   if ( !parse_ntriples( fp, &err, MAX_IRI_LEN, got_lyphplate_triple ) )
   {
-    error_message( strdupf( "Failed to parse the lyphplates-file (" TEMPLATES_FILE "):\n%s\n", err ? err : "(no error given)" ) );
+    error_messagef( "Failed to parse the lyphplates-file (" TEMPLATES_FILE "):\n%s\n", err ? err : "(no error given)" );
     EXIT();
   }
 
@@ -1804,7 +1804,7 @@ void load_lyphplates(void)
 
   if ( (naked=missing_layers()) != NULL )
   {
-    error_message( strdupf( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) ) );
+    error_messagef( "Error in lyphplates.dat: template %s has type %s but has no layers\n", trie_to_static( naked->id ), lyphplate_type_as_char( naked ) );
     EXIT();
   }
 
