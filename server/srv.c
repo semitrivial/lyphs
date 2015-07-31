@@ -1861,43 +1861,6 @@ HANDLER( do_layer )
   send_response( req, layer_to_json( lyr ) );
 }
 
-HANDLER( do_ucl_syntax )
-{
-  ucl_syntax *s;
-  char *err = NULL, *maybe_err = NULL, *output;
-  ambig *head = NULL, *tail = NULL;
-
-  s = parse_ucl_syntax( request, &err, &maybe_err, &head, &tail );
-
-  if ( !s )
-  {
-    if ( head )
-      free_ambigs( head );
-    if ( maybe_err )
-      free( maybe_err );
-
-    if ( err )
-      HND_ERR_FREE( err );
-    else
-      HND_ERR( "Malformed UCL Syntax" );
-  }
-
-  output = ucl_syntax_output( s, head, tail, maybe_err );
-
-  send_response( req, output );
-
-  free( output );
-
-  kill_ucl_syntax( s );
-
-  if ( head )
-    free_ambigs( head );
-  if ( maybe_err )
-    free( maybe_err );
-
-  return;
-}
-
 void free_url_params( url_param **buf )
 {
   url_param **ptr;

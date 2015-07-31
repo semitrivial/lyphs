@@ -559,18 +559,7 @@ void **copy_void_array( void **arr );
 void maybe_update_top_id( int *top, const char *idstr );
 int cmp_possibly_null( const char *x, const char *y );
 int str_has_substring( const char *hay, const char *needle );
-
-/*
- * ucl.c
- */
-ucl_syntax *parse_ucl_syntax( char *ucl, char **err, char **maybe_err, ambig **ambig_head, ambig **ambig_tail );
-int str_approx( char *full, char *init );
 int str_begins( const char *full, const char *init );
-char *read_some_relation( char *left, char *right );
-void kill_ucl_syntax( ucl_syntax *s );
-int is_ambiguous( trie **data );
-void free_ambigs( ambig *head );
-char *ucl_syntax_output( ucl_syntax *s, ambig *head, ambig *tail, char *possible_error );
 
 /*
  * lyph.c

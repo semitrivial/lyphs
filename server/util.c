@@ -592,3 +592,26 @@ long long longtime( void )
 
   return (long long) d;
 }
+
+int str_begins( const char *full, const char *init )
+{
+  const char *fptr = full, *iptr = init;
+
+  for (;;)
+  {
+    if ( !*fptr && !*iptr )
+      return 1;
+
+    if ( !*fptr )
+      return 0;
+
+    if ( !*iptr )
+      return 1;
+
+    if ( LOWER( *fptr ) != LOWER( *iptr ) )
+      return 0;
+
+    fptr++;
+    iptr++;
+  }
+}
