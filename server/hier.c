@@ -1,3 +1,8 @@
+/*
+ *  hier.c
+ *  Logic related to various hierarchies within the lyph system
+ *  (much of which is obsoleted template hierarchy stuff)
+ */
 #include "lyph.h"
 #include "srv.h"
 

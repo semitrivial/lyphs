@@ -1,3 +1,7 @@
+/*
+ *  nt_parse.c
+ *  Code for parsing N-Triples files
+ */
 #include "nt_parse_internal.h"
 #include "nt_parse.h"
 

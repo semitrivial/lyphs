@@ -1,3 +1,8 @@
+/*
+ *  csv.c
+ *  CSV parsing; the parse_csv API command; and various CSV-related
+ *  one-time-use plugins BdB requested at various points.
+ */
 #include "lyph.h"
 #include "srv.h"
 

@@ -1,3 +1,8 @@
+/*
+ *  cmds.c
+ *  Various miscelaneous API commands
+ *  (Including the complicated delete/edit commands for core structures)
+ */
 #include "lyph.h"
 #include "srv.h"
 

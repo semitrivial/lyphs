@@ -1,3 +1,8 @@
+/*
+ *  labels.c
+ *  Lyph system initiation function; functions for parsing N-Triples;
+ *  and some miscelaneous ontology-term logic.
+ */
 #include "lyph.h"
 #include "nt_parse.h"
 

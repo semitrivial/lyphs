@@ -1,3 +1,14 @@
+/*
+ *  trie.c
+ *  Code for trie structures ( https://en.wikipedia.org/wiki/Trie )
+ *  The decision to use tries was based on the assumption that the
+ *  lyph system would process much larger amounts of data than ended
+ *  up being the case.  These structures were chosen to conserve RAM
+ *  (in the semantic web, everything is stored as IRIs which are 99%
+ *  redundant, making them hilariously compressible with tries).  It
+ *  turned out this was probably premature optimization, with the
+ *  price of significantly complicating things.
+ */
 #include "lyph.h"
 
 trie *iri_to_labels;

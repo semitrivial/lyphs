@@ -1,3 +1,7 @@
+/*
+ *  util.c
+ *  Various utility functions.
+ */
 #include "lyph.h"
 #include <limits.h>
 #include <ctype.h>

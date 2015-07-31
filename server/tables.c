@@ -1,3 +1,8 @@
+/*
+ *  tables.c
+ *  Maps names of API commands (plain strings) to the API commands
+ *  themselves (function pointers).
+ */
 #include "lyph.h"
 #include "srv.h"
 

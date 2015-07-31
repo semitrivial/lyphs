@@ -1,3 +1,9 @@
+/*
+ *  srv.c
+ *  Bare-bones HTTP server.
+ *  Also contains the first API commands that were written (these should
+ *  probably be migrated to cmds.c or to a new .c file).
+ */
 #include "lyph.h"
 #include "srv.h"
 

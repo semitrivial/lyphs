@@ -1,3 +1,8 @@
+/*
+ *  fma.c
+ *  Logic surrounding the importation, mapping, and usage of
+ *  FMA terms.
+ */
 #include "lyph.h"
 #include "srv.h"
 

@@ -1,3 +1,9 @@
+/*
+ *  lyph.c
+ *  Handles much of the core lyph logic as well as associated constructs like
+ *  templates ("lyphplates" in the code), lyphnodes, lyphviews, etc.
+ *  Handles loading and saving of these constructs.
+ */
 #include "lyph.h"
 #include "srv.h"
 #include "nt_parse.h"

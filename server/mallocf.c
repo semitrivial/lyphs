@@ -1,3 +1,7 @@
+/*
+ *  mallocf.c
+ *  For the strdupf utility function, which is used ubiquitously
+ */
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>

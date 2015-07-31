@@ -1,3 +1,8 @@
+/*
+ *  meta.c
+ *  Logic and API Commands related to various metadata structures, e.g.,
+ *  correlations, clinical indices, etc.
+ */
 #include "lyph.h"
 #include "srv.h"
 #include "nt_parse.h"

@@ -1,3 +1,10 @@
+/*
+ *  ucl.c
+ *  UCL syntax parsing logic.  This is not really related to the lyph system.
+ *  It is actually for the Local Ontology Lookup Service (LOLS).  It is present
+ *  here because the lyph system was originally a plugin for LOLS, before being
+ *  separated into its own separate program.
+ */
 #include "lyph.h"
 
 ucl_syntax *parse_ucl_syntax( char *ucl, char **err, char **maybe_err, ambig **ambig_head, ambig **ambig_tail )
