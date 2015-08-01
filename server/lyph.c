@@ -142,6 +142,9 @@ void free_all_lyphs( void )
   lyph_names = blank_trie();
   lyph_fmas = blank_trie();
 
+  first_lyph = NULL;
+  last_lyph = NULL;
+
   free_all_views();
   free_all_located_measures();
   free_all_correlations();
