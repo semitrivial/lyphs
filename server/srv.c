@@ -1848,7 +1848,10 @@ HANDLER( do_lyphview )
   if ( !v )
     HND_ERR( "No lyphview by that id" );
 
-  send_response( req, lyphview_to_json( v ) );
+  if ( !get_param( params, "brief" ) )
+    send_response( req, lyphview_to_json( v ) );
+  else
+    send_response( req, lyphview_to_json_brief( v ) );
 }
 
 HANDLER( do_layer )
@@ -2000,6 +2003,7 @@ HANDLER( do_all_lyphviews )
   lyphview **v, **vptr, **viewsptr;
   extern lyphview obsolete_lyphview;
   extern lyphview **views;
+  char *briefstr = get_param( params, "brief" );
 
   CREATE( v, lyphview *, VOIDLEN( &views[1] ) + 1 );
   vptr = v;
@@ -2010,7 +2014,10 @@ HANDLER( do_all_lyphviews )
 
   *vptr = NULL;
 
-  send_response( req, JS_ARRAY( lyphview_to_json, v ) );
+  if ( !briefstr )
+    send_response( req, JS_ARRAY( lyphview_to_json, v ) );
+  else
+    send_response( req, JS_ARRAY( lyphview_to_json_brief, v ) );
 
   free( v );
 }

@@ -3789,3 +3789,13 @@ HANDLER( do_lyphs_by_prefix )
 
   free( buf );
 }
+
+char *lyphview_to_json_brief( const lyphview *v )
+{
+  return JSON
+  (
+    "id": int_to_json( v->id ),
+    "name": v->name,
+    "modified": ll_to_json( v->modified )
+  );
+}

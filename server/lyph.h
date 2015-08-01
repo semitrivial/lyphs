@@ -652,6 +652,7 @@ void free_lyphnode_wrappers( lyphnode_wrapper *head );
 lyph *get_lyph_location( lyph *e );
 lyphnode *blank_lyphnode( void );
 layer *clone_layer( layer *lyr );
+char *lyphview_to_json_brief( const lyphview *v );
 
 /*
  * hier.c
