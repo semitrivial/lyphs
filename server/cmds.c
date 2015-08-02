@@ -187,16 +187,7 @@ HANDLER( do_editlyph )
   constraintstr = get_param( params, "constraint" );
 
   if ( constraintstr )
-  {
-#ifdef PRE_LAYER_CHANGE
-    constraint = lyphplate_by_id( constraintstr );
-
-    if ( !constraint )
-      HND_ERR( "The indicated constraint was not found in the database." );
-#else
     HND_ERR( "Constraints are temporarily disabled due to change in layer structure" );
-#endif
-  }
   else
     constraint = NULL;
 
@@ -248,27 +239,6 @@ HANDLER( do_editlyph )
 
   if ( from && to )
     HND_ERR( "Can't edit the edge's 'from' and 'to' with the same command" );
-
-#ifdef PRE_LAYER_CHANGE
-  if ( L && constraint )
-  {
-    if ( !is_superlyphplate( constraint, L ) )
-      HND_ERR( "The indicated template is not a subtemplate of the indicated constraint" );
-  }
-  else if ( L )
-  {
-    lyphplate **c;
-
-    for ( c = e->constraints; *c; c++ )
-      if ( !is_superlyphplate( *c, L ) )
-        HND_ERR( "The indicated template is ruled out by one of the lyph's constraints" );
-  }
-  else if ( constraint )
-  {
-    if ( e->lyphplt && !is_superlyphplate( constraint, e->lyphplt ) )
-      HND_ERR( "The lyph's template is not a subtemplate of the indicated constraint" );
-  }
-#endif
 
   if ( namestr )
   {
@@ -562,17 +532,6 @@ HANDLER( do_edit_template )
     L->ont_term = ont;
   }
 
-#ifdef PRE_LAYER_CHANGE
-  if ( fQualitativeChange )
-    recalculate_lyphplate_hierarchy();
-#else
-  /*
-   * Suppress warning about fQualitativeChange being set but not used
-   */
-  if ( fQualitativeChange && 0 )
-    printf( "..." );
-#endif
-
   L->modified = longtime();
   save_lyphplates();
 
@@ -661,17 +620,6 @@ HANDLER( do_editlayer )
     fQualitativeChange = 1;
     lyr->thickness = thk;
   }
-
-#ifdef PRE_LAYER_CHANGE
-  if ( fQualitativeChange )
-    recalculate_lyphplate_hierarchy();
-#else
-  /*
-   * Suppress compiler warning about variable being set and never used
-   */
-  if ( fQualitativeChange && 0 )
-    printf( "..." );
-#endif
 
   save_lyphplates();
 
@@ -1323,10 +1271,6 @@ HANDLER( do_delete_templates )
 
   save_lyphplates();
 
-#ifdef PRE_LAYER_CHANGE
-  recalculate_lyphplate_hierarchy();
-#endif
-
   send_ok( req );
 }
 
@@ -1450,10 +1394,6 @@ HANDLER( do_delete_layers )
   delete_doomed_lyphplates( );
 
   save_lyphplates();
-
-#ifdef PRE_LAYER_CHANGE
-  recalculate_lyphplate_hierarchy();
-#endif
 
   send_ok( req );
 }
@@ -1660,68 +1600,9 @@ HANDLER( do_involves_template )
   free( buf );
 }
 
-void find_instances_of( lyphplate *L, lyph_wrapper **head, lyph_wrapper **tail, int *cnt )
-{
-#ifdef PRE_LAYER_CHANGE
-  lyph *e;
-
-  for ( e = first_lyph; e; e = e->next )
-  {
-    if ( e->lyphplt && is_superlyphplate( L, e->lyphplt ) )
-    {
-      lyph_wrapper *w;
-
-      CREATE( w, lyph_wrapper, 1 );
-      w->e = e;
-
-      LINK( w, *head, *tail, next );
-      (*cnt)++;
-    }
-  }
-#endif
-}
-
 HANDLER( do_instances_of )
 {
-#ifdef PRE_LAYER_CHANGE
-  lyphplate *L;
-  lyph_wrapper *head = NULL, *tail = NULL, *w, *w_next;
-  lyph **buf, **bptr;
-  char *tmpidstr;
-  int cnt;
-
-  TRY_PARAM( tmpidstr, "template", "Missing argument: 'template': specify a template, X, and instances_of will search for all lyphs that have template Y such that Y is a subtemplate of X." );
-
-  L = lyphplate_by_id( tmpidstr );
-
-  if ( !L )
-    HND_ERR( "There indicated template was not found in the database" );
-
-  cnt = 0;
-
-  find_instances_of( L, &head, &tail, &cnt );
-
-  CREATE( buf, lyph *, cnt + 1 );
-  bptr = buf;
-
-  for ( w = head; w; w = w_next )
-  {
-    w_next = w->next;
-
-    *bptr++ = w->e;
-    free( w );
-  }
-  *bptr = NULL;
-
-  send_response( req, JSON1
-  (
-    "instances": JS_ARRAY( lyph_to_json, buf )
-  ) );
-
-  free( buf );
-#else
   send_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
-#endif
 }
 
 HANDLER( do_nodes_from_view )

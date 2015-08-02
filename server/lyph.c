@@ -2036,11 +2036,6 @@ lyphplate *lyphplate_by_layers( int type, layer **layers, lyphplate **misc_mater
   else
     L->misc_material = (lyphplate**)blank_void_array();
 
-#ifdef PRE_LAYER_CHANGE
-  compute_lyphplate_hierarchy_one_lyphplate( L );
-  add_lyphplate_as_super( L, lyphplate_ids );
-#endif
-
   save_lyphplates();
 
   return L;
@@ -2213,11 +2208,6 @@ lyphplate *lyphplate_by_id( const char *id )
     L->layers = NULL;
     L->supers = NULL;
     L->misc_material = (lyphplate**)blank_void_array();
-
-#ifdef PRE_LAYER_CHANGE
-    compute_lyphplate_hierarchy_one_lyphplate( L );
-    add_lyphplate_as_super( L, lyphplate_ids );
-#endif
 
     L->id->data = (trie **)L;
     L->name->data = (trie **)L;
@@ -3034,43 +3024,12 @@ lyphplate **parse_lyph_constraints( char *str )
 
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
 {
-#ifdef PRE_LAYER_CHANGE
-  lyphplate **c;
-
-  for ( c = e->constraints; *c; c++ )
-  {
-    if ( !is_superlyphplate( *c, L ) )
-    {
-      *err = strdupf( "That lyph is constrained to have template a subtemplate of %s", trie_to_static( (*c)->id ) );
-      return 0;
-    }
-  }
-#endif
-
   return 1;
 }
 
 int lyph_passes_filter( lyph *e, lyph_filter *f )
 {
-#ifdef PRE_LAYER_CHANGE
-  if ( e->lyphplt )
-    return is_superlyphplate( f->sup, e->lyphplt );
-
-  if ( !*e->constraints )
-    return f->accept_na_edges;
-  else
-  {
-    lyphplate **c;
-
-    for ( c = e->constraints; *c; c++ )
-      if ( !is_superlyphplate( f->sup, *c ) )
-        return 0;
-
-    return 1;
-  }
-#else
   return 1;
-#endif
 }
 
 #define LYPHPLATE_ACCOUNTED_FOR 1

@@ -37,10 +37,6 @@ void init_labels(FILE *fp)
   load_located_measures();
   load_correlations();
 
-#ifdef PRE_LAYER_CHANGE
-  compute_lyphplate_hierarchy( lyphplate_ids );
-#endif
-
   human_species_lowercase = trie_strdup( "human", metadata );
   human_species_uppercase = trie_strdup( "Human", metadata );
 

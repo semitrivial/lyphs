@@ -949,30 +949,6 @@ void along_path_abstractor( http_request *req, url_param **params, int along_pat
 
       for ( pptr = p; *pptr; pptr++ )
       {
-#ifdef PRE_LAYER_CHANGE
-        if ( (*pptr)->lyphplate && !is_superlyphplate( L, (*pptr)->lyphplate ) )
-#else
-        if ( 0 )
-#endif
-        {
-          if ( f )
-            free( f );
-
-          for ( pathsptr = paths; *pathsptr; pathsptr++ )
-            free( *pathsptr );
-          free( paths );
-
-          HND_ERR( "One of the lyphs on the path already has a template inconsistent with that constraint" );
-        }
-      }
-    }
-
-    for ( pathsptr = paths; *pathsptr; pathsptr++ )
-    {
-      p = *pathsptr;
-
-      for ( pptr = p; *pptr; pptr++ )
-      {
         lyph *e = *pptr;
         lyphplate **dupe, **c;
         int len;
@@ -1581,50 +1557,7 @@ HANDLER( do_makelayer )
 
 HANDLER( do_lyphconstrain )
 {
-#ifdef PRE_LAYER_CHANGE
-  lyph *e;
-  lyphplate *L, **c;
-  char *lyphid, *tmpltid;
-  int cnt;
-
-  TRY_PARAM( lyphid, "lyph", "You did not specify a lyph." );
-  TRY_PARAM( tmpltid, "template", "You did not specify a template." );
-
-  e = lyph_by_id( lyphid );
-
-  if ( !e )
-    HND_ERR( "The database does not contain a lyph with that ID." );
-
-  L = lyphplate_by_id( tmpltid );
-
-  if ( !L )
-    HND_ERR( "The database does not contain a template with that ID." );
-
-  for ( c = e->constraints; *c; c++ )
-    if ( *c == L )
-      HND_ERR( "The lyph in question already has the constraint in question." );
-
-  if ( e->lyphplate && !is_superlyphplate( L, e->lyphplate ) )
-    HND_ERR( "The lyph in question already has a template that violates this constraint." );
-
-  cnt = VOIDLEN( e->constraints );
-  CREATE( c, lyphplate *, cnt + 2 );
-
-  memcpy( c, e->constraints, cnt * sizeof(lyphplate *) );
-
-  c[cnt] = L;
-  c[cnt+1] = NULL;
-
-  free( e->constraints );
-  e->constraints = c;
-  e->modified = longtime();
-
-  save_lyphs();
-
-  send_ok( req );
-#else
   send_response( req, JSON1( "Response": "Temporarily disabled" ) );
-#endif
 }
 
 HANDLER( do_assign_template )
@@ -1986,11 +1919,7 @@ HANDLER( do_all_templates )
 
 HANDLER( do_template_hierarchy )
 {
-#ifdef PRE_LAYER_CHANGE
-  send_response( req, lyphplate_hierarchy_to_json() );
-#else
   send_response( req, JSON1( "Response": "Temporarily disabled due to layer structure change" ) );
-#endif
 }
 
 HANDLER( do_all_ont_terms )
@@ -2024,40 +1953,7 @@ HANDLER( do_all_lyphviews )
 
 HANDLER( do_subtemplates )
 {
-#ifdef PRE_LAYER_CHANGE
-  lyphplate *L, **subs;
-  char *tmpltstr, *directstr;
-  int direct;
-
-  TRY_PARAM( tmpltstr, "template", "You did not specify a template" );
-
-  L = lyphplate_by_id( tmpltstr );
-
-  if ( !L )
-    HND_ERR( "The indicated template was not found in the database" );
-
-  directstr = get_param( params, "direct" );
-
-  if ( directstr )
-  {
-    if ( !strcmp( directstr, "yes" ) )
-      direct = 1;
-    else if ( !strcmp( directstr, "no" ) )
-      direct = 0;
-    else
-      HND_ERR( "The 'direct' parameter can be 'yes' or 'no'" );
-  }
-  else
-    direct = 0;
-
-  subs = get_sublyphplates( L, direct );
-
-  send_response( req, JS_ARRAY( lyphplate_to_json, subs ) );
-
-  free( subs );
-#else
   send_response( req, JSON1( "Response": "Temporarily disabled" ) );
-#endif
 }
 
 HANDLER( do_all_lyphnodes )
