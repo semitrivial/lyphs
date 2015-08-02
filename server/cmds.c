@@ -341,7 +341,7 @@ HANDLER( do_edit_template )
   lyphplate *L, **misc_mats;
   trie *ont;
   char *tmpltstr, *namestr, *typestr, *ontstr, *miscstr, *movelayerstr, *toposstr, *lengthstr;
-  int type, fQualitativeChange = 0, newpos, oldpos;
+  int type, newpos, oldpos;
 
   TRY_PARAM( tmpltstr, "template", "You did not specify which template to edit" );
 
@@ -466,7 +466,6 @@ HANDLER( do_edit_template )
     free( L->misc_material );
 
     L->misc_material = misc_mats;
-    fQualitativeChange = 1;
   }
 
   if ( movelayerstr && newpos != oldpos )
@@ -501,7 +500,6 @@ HANDLER( do_edit_template )
     *bptr = NULL;
     free( L->layers );
     L->layers = buf;
-    fQualitativeChange = 1;
   }
   
   if ( namestr )
@@ -521,16 +519,10 @@ HANDLER( do_edit_template )
   }
   
   if ( type != -1 )
-  {
-    fQualitativeChange = 1;
     L->type = type;
-  }
 
   if ( ont )
-  {
-    fQualitativeChange = 1;
     L->ont_term = ont;
-  }
 
   L->modified = longtime();
   save_lyphplates();
@@ -543,7 +535,7 @@ HANDLER( do_editlayer )
   layer *lyr;
   lyphplate **mat;
   char *lyrstr, *matstr, *thkstr, *namestr, *mutablestr;
-  int thk, fQualitativeChange = 0;
+  int thk;
 
   TRY_PARAM( lyrstr, "layer", "You did not indicate which layer to edit" );
 
@@ -610,16 +602,10 @@ HANDLER( do_editlayer )
   }
     
   if ( mat )
-  {
-    fQualitativeChange = 1;
     lyr->material = mat;
-  }
 
   if ( thk != -1 )
-  {
-    fQualitativeChange = 1;
     lyr->thickness = thk;
-  }
 
   save_lyphplates();
 
