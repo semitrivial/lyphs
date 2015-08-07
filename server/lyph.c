@@ -2401,6 +2401,7 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
       "exits": JS_ARRAY( exit_to_json, exits ),
       "location": n->location ? trie_to_json( n->location->id ) : NULL,
       "loctype": loctype_to_str( n->loctype ),
+      "layer": int_to_json( n->layer ),
       "x": x,
       "y": y
     );
@@ -2418,7 +2419,8 @@ char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y )
     "x": x,
     "y": y,
     "location": n->location ? trie_to_json( n->location->id ) : NULL,
-    "loctype": loctype_to_str( n->loctype )
+    "loctype": loctype_to_str( n->loctype ),
+    "layer": int_to_json( n->layer )
   );
 }
 
@@ -3022,8 +3024,42 @@ lyphplate **parse_lyph_constraints( char *str )
   return buf;
 }
 
+lyphnode *find_lyphnode_located_in_lyphs_layer( lyph *e, trie *t )
+{
+  lyphnode *n;
+
+  if ( t->data )
+  {
+    n = (lyphnode *) t->data;
+
+    if ( n->location == e && n->layer != -1 )
+      return n;
+  }
+
+  TRIE_RECURSE
+  (
+    n = find_lyphnode_located_in_lyphs_layer( e, *child );
+
+    if ( n )
+      return n;
+  );
+
+  return NULL;
+}
+
 int can_assign_lyphplate_to_lyph( lyphplate *L, lyph *e, char **err )
 {
+  if ( e->lyphplt && e->lyphplt->layers && *e->lyphplt->layers )
+  {
+    lyphnode *n = find_lyphnode_located_in_lyphs_layer( e, lyphnode_ids );
+
+    if ( n )
+    {
+      *err = strdupf( "Node %s would be displaced", trie_to_static( n->id ) );
+      return 0;
+    }
+  }
+
   return 1;
 }
 
@@ -3171,6 +3207,7 @@ lyphnode *blank_lyphnode( void )
   n->exits = (exit_data**)blank_void_array();
   n->incoming = (exit_data**)blank_void_array();
   n->loctype = -1;
+  n->layer = -1;
 
   return n;
 }

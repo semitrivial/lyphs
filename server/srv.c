@@ -995,8 +995,8 @@ HANDLER( do_makelyphnode )
 {
   lyphnode *n;
   lyph *loc;
-  char *locstr, *loctypestr;
-  int loctype;
+  char *locstr, *loctypestr, *lyrstr;
+  int loctype, lyr;
 
   locstr = get_param( params, "location" );
 
@@ -1015,6 +1015,24 @@ HANDLER( do_makelyphnode )
       loctype = LOCTYPE_BORDER;
     else
       HND_ERR( "Valid loctypes are: 'interior', 'border'" );
+
+    lyrstr = get_param( params, "layer" );
+
+    if ( lyrstr && *lyrstr && strcmp( lyrstr, "none" ) )
+    {
+      if ( !loc->lyphplt || !loc->lyphplt->layers || !*loc->lyphplt->layers )
+        HND_ERR( "The indicated location lyph does not have any layers" );
+
+      lyr = strtoul( lyrstr, NULL, 10 );
+
+      if ( lyr < 1 )
+        HND_ERR( "The 'layer' parameter should be a positive integer" );
+
+      if ( lyr > VOIDLEN( loc->lyphplt->layers ) )
+        HND_ERR( "The location lyph does not have that many layers" );
+    }
+    else
+      lyr = -1;
   }
   else
     loc = NULL;
@@ -1028,6 +1046,7 @@ HANDLER( do_makelyphnode )
   {
     n->location = loc;
     n->loctype = loctype;
+    n->layer = lyr;
   }
 
   lyphnode_to_json_flags = LTJ_EXITS;

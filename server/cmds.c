@@ -76,8 +76,8 @@ HANDLER( do_editlyphnode )
 {
   lyphnode *n;
   lyph *loc;
-  char *idstr, *locstr, *loctypestr;
-  int loctype;
+  char *idstr, *locstr, *loctypestr, *lyrstr;
+  int loctype, lyr;
 
   TRY_PARAM( idstr, "node", "You did not specify which lyphnode to edit" );
 
@@ -100,6 +100,24 @@ HANDLER( do_editlyphnode )
 
     if ( !can_node_fit_in_lyph( n, loc ) )
       HND_ERR( "The indicated node cannot be placed in the indicated location because that would place one of its incident edges inside itself" );
+
+    lyrstr = get_param( params, "layer" );
+
+    if ( lyrstr && *lyrstr && strcmp( lyrstr, "none" ) )
+    {
+      if ( !loc->lyphplt || !loc->lyphplt->layers || !*loc->lyphplt->layers )
+        HND_ERR( "The indicated location lyph does not have layers." );
+
+      lyr = strtoul( lyrstr, NULL, 10 );
+
+      if ( lyr < 0 )
+        HND_ERR( "The 'layer' parameter must be a positive integer" );
+
+      if ( lyr > VOIDLEN( loc->lyphplt->layers ) )
+        HND_ERR( "The location lyph does not have that many layers" ); 
+    }
+    else
+      lyr = -1;
   }
   else
     loc = NULL;
@@ -122,7 +140,10 @@ HANDLER( do_editlyphnode )
     HND_ERR( "Please specify a loctype ('interior' or 'border') for the node" );
 
   if ( loc )
+  {
     n->location = loc;
+    n->layer = lyr;
+  }
   else if ( locstr && (!strcmp( locstr, "null" ) || !strcmp( locstr, "none" )) )
     n->location = NULL;
 
@@ -727,6 +748,7 @@ void remove_deleted_lyph_locations( trie *t )
     {
       n->location = NULL;
       n->loctype = -1;
+      n->layer = -1;
     }
   }
 
@@ -1187,6 +1209,8 @@ HANDLER( do_delete_templates )
 {
   char *tmpltstr, *recursivestr, *err;
   lyphplate **L, **Lptr, dupe;
+  lyph *e;
+  lyphnode *obstruction;
 
   TRY_TWO_PARAMS( tmpltstr, "templates", "template", "You did not indicate which templates to delete." );
 
@@ -1198,6 +1222,23 @@ HANDLER( do_delete_templates )
       HND_ERR_FREE( err );
     else
       HND_ERR( "One of the indicated templates could not be found in the database" );
+  }
+
+  for ( Lptr = L; *Lptr; Lptr++ )
+  {
+    for ( e = first_lyph; e; e = e->next )
+    {
+      if ( e->lyphplt != *Lptr )
+        continue;
+
+      obstruction = find_lyphnode_located_in_lyphs_layer( e, lyphnode_ids );
+
+      if ( obstruction )
+      {
+        free( L );
+        HND_ERRF( "Node %s would be displaced", trie_to_static( obstruction->id ) );
+      }
+    }
   }
 
   for ( Lptr = L; *Lptr; Lptr++ )
@@ -1361,6 +1402,34 @@ HANDLER( do_delete_layers )
       HND_ERR_FREE( err );
     else
       HND_ERR( "One of the indicated layers could not be found in the database." );
+  }
+
+  for ( lyrptr = lyr; *lyrptr; lyrptr++ )
+  {
+    lyph *e;
+    lyphnode *obstruction;
+    layer **inlyph;
+
+    for ( e = first_lyph; e; e = e->next )
+    {
+      if ( !e->lyphplt || !e->lyphplt->layers || !*e->lyphplt->layers )
+        continue;
+
+      for ( inlyph = e->lyphplt->layers; *inlyph; inlyph++ )
+        if ( *inlyph == *lyrptr )
+          break;
+
+      if ( !*inlyph )
+        continue;
+
+      obstruction = find_lyphnode_located_in_lyphs_layer( e, lyphnode_ids );
+
+      if ( obstruction )
+      {
+        free( lyr );
+        HND_ERRF( "Node %s would be displaced", trie_to_static( obstruction->id ) );
+      }
+    }
   }
 
   for ( lyrptr = lyr; *lyrptr; lyrptr++ )
@@ -1841,6 +1910,8 @@ HANDLER( do_layer_from_template )
 {
   lyphplate *L;
   layer *lyr, **lyrptr, **buf, **bptr;
+  lyphnode *obstruction;
+  lyph *e;
   char *tmpltstr, *lyrstr, *posstr;
   int pos, n, cnt;
 
@@ -1879,6 +1950,17 @@ HANDLER( do_layer_from_template )
       HND_ERR( "The indicated layer does not occur that many times in the indicated template" );
     else
       HND_ERR( "The indicated layer does not occur in the indicated template" );
+  }
+
+  for ( e = first_lyph; e; e = e->next )
+  {
+    if ( e->lyphplt != L )
+      continue;
+
+    obstruction = find_lyphnode_located_in_lyphs_layer( e, lyphnode_ids );
+
+    if ( obstruction )
+      HND_ERRF( "Node %s would be displaced.", trie_to_static( obstruction->id ) );
   }
 
   cnt = VOIDLEN( L->layers );

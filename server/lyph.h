@@ -192,6 +192,7 @@ struct LYPHNODE
   exit_data **incoming;
   lyph *location;
   int loctype;
+  int layer;
 };
 
 typedef enum
@@ -653,6 +654,7 @@ lyph *get_lyph_location( lyph *e );
 lyphnode *blank_lyphnode( void );
 layer *clone_layer( layer *lyr );
 char *lyphview_to_json_brief( const lyphview *v );
+lyphnode *find_lyphnode_located_in_lyphs_layer( lyph *e, trie *t );
 
 /*
  * hier.c
