@@ -2199,6 +2199,7 @@ lyphplate *lyphplate_by_id( const char *id )
     
     if ( (L2 = lyphplate_by_ont_term( L->ont_term )) != NULL )
     {
+      UNLINK2( L, first_lyphplate, last_lyphplate, next, prev );
       free( L );
       return L2;
     }
