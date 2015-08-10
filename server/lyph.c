@@ -13,7 +13,7 @@ void save_one_lyphview( lyphview *v, FILE *fp );
 int is_duplicate_view( lyphview *v, lyphnode **nodes, char **coords );
 int new_lyphview_id(void);
 trie *new_lyph_id(lyph *e);
-lyphnode *lyphnode_by_id_or_new( char *id );
+lyphnode *lyphnode_by_id_or_new( const char *id );
 trie *parse_lyph_name_field( char *namebuf, lyph *e );
 lyph *find_duplicate_lyph( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, char *namestr, char *pubmedstr, char *projstr, char *speciesstr );
 lyph *find_duplicate_lyph_worker( int type, lyphnode *from, lyphnode *to, lyphplate *L, trie *fma, trie *name, char *pubmedstr, char *projstr, trie *species_tr );
@@ -2221,7 +2221,7 @@ lyphplate *lyphplate_by_id( const char *id )
   return NULL;
 }
 
-lyphnode *lyphnode_by_id( char *id )
+lyphnode *lyphnode_by_id( const char *id )
 {
   trie *t = trie_search( id, lyphnode_ids );
 
@@ -2231,7 +2231,7 @@ lyphnode *lyphnode_by_id( char *id )
   return NULL;
 }
 
-lyphnode *lyphnode_by_id_or_new( char *id )
+lyphnode *lyphnode_by_id_or_new( const char *id )
 {
   if ( !strcmp( id, "new" ) )
     return make_lyphnode();

@@ -17,12 +17,15 @@ located_measure *first_located_measure;
 located_measure *last_located_measure;
 trie *human_species_uppercase;
 trie *human_species_lowercase;
+bop *first_bop;
+bop *last_bop;
 
 clinical_index *clinical_index_by_trie_or_create( trie *ind_tr, pubmed *pubmed );
 located_measure *make_located_measure( char *qualstr, lyph *e, int should_save );
 char *correlation_jsons_by_located_measure( const located_measure *m );
 char *next_clindex_index( void );
 void remove_clindex_from_array( clinical_index *ci, clinical_index ***arr );
+int remove_located_measure_from_bops( const located_measure *m );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -622,6 +625,21 @@ void load_located_measures( void )
   }
 
   located_measures_from_js( js );
+
+  free( js );
+}
+
+void load_bops( void )
+{
+  char *js = load_file( BOPS_FILE );
+
+  if ( !js )
+  {
+    error_messagef( "Couldn't open %s for reading --- no bops loaded", BOPS_FILE );
+    return;
+  }
+
+  bops_from_js( js );
 
   free( js );
 }
@@ -1744,7 +1762,7 @@ HANDLER( do_ontsearch )
   free( buf );
 }
 
-char *located_measure_to_json( located_measure *m )
+char *located_measure_to_json( const located_measure *m )
 {
   return JSON
   (
@@ -1756,7 +1774,18 @@ char *located_measure_to_json( located_measure *m )
   );
 }
 
-located_measure *located_measure_by_id( int id )
+char *located_measure_to_json_brief( const located_measure *m )
+{
+  return JSON
+  (
+    "id": int_to_json( m->id ),
+    "quality": m->quality,
+    "lyph": trie_to_json( m->loc->id ),
+    "lyph name": m->loc->name ? trie_to_json( m->loc->name ) : js_suppress
+  );
+}
+
+located_measure *located_measure_by_int( int id )
 {
   located_measure *m;
 
@@ -1765,6 +1794,11 @@ located_measure *located_measure_by_id( int id )
       return m;
 
   return NULL;
+}
+
+located_measure *located_measure_by_id( const char *id )
+{
+  return located_measure_by_int( strtoul( id, NULL, 10 ) );
 }
 
 HANDLER( do_all_located_measures )
@@ -1838,7 +1872,7 @@ HANDLER( do_located_measure )
   if ( id < 1 )
     HND_ERR( "The indicated located measure was not recognized" );
 
-  m = located_measure_by_id( id );
+  m = located_measure_by_int( id );
 
   if ( !m )
     HND_ERR( "The indicated located measure was not recognized" );
@@ -1940,7 +1974,7 @@ HANDLER( do_delete_located_measure )
 
   id = strtoul( measstr, NULL, 10 );
 
-  m = located_measure_by_id( id );
+  m = located_measure_by_int( id );
 
   if ( !m )
     HND_ERR( "The indicated located measure was not recognized" );
@@ -1953,6 +1987,9 @@ HANDLER( do_delete_located_measure )
 
 void delete_located_measure( located_measure *m )
 {
+  if ( remove_located_measure_from_bops( m ) )
+    save_bops();
+
   if ( m->quality )
     free( m->quality );
 
@@ -2389,4 +2426,386 @@ void remove_clindex_from_array( clinical_index *ci, clinical_index ***arr )
   *bptr = NULL;
   free( *arr );
   *arr = buf;
+}
+
+bop *bop_by_int( int id )
+{
+  bop *b;
+
+  for ( b = first_bop; b; b = b->next )
+    if ( b->id == id )
+      return b;
+
+  return NULL;
+}
+
+bop *bop_by_id( const char *idstr )
+{
+  return bop_by_int( strtoul( idstr, NULL, 10 ) );
+}
+
+char *added_edge_to_json( const added_edge *e )
+{
+  return JSON
+  (
+    "from": trie_to_json( e->from->id ),
+    "to": trie_to_json( e->to->id )
+  );
+}
+
+char *bop_to_json( const bop *b )
+{
+  return JSON
+  (
+    "id": int_to_json( b->id ),
+    "excluded": JS_ARRAY( lyph_to_json_brief, b->excluded ),
+    "added": JS_ARRAY( added_edge_to_json, b->added ),
+    "located measures": JS_ARRAY( located_measure_to_json_brief, b->measures )
+  );
+}
+
+char *bop_to_json_flat( const bop *b )
+{
+  lyph **ex;
+  added_edge **added;
+  located_measure **measures;
+  char *buf, *bptr;
+  int fFirst;
+
+  CREATE( buf, char, strlen( bop_to_json(b) ) + 1 );
+  bptr = buf;
+
+  sprintf( bptr, "{\"id\":%d,\"excluded\":\"", b->id );
+  bptr += strlen( bptr );
+
+  for ( fFirst = 0, ex = b->excluded; *ex; ex++ )
+  {
+    if ( fFirst )
+      *bptr++ = ',';
+    else
+      fFirst = 1;
+
+    sprintf( bptr, "%s", trie_to_static( (*ex)->id ) );
+    bptr += strlen( bptr );
+  }
+
+  sprintf( bptr, "\",\"added\":\"" );
+  bptr += strlen( bptr );
+
+  for ( fFirst = 0, added = b->added; *added; added++ )
+  {
+    if ( fFirst )
+      *bptr++ = ',';
+    else
+      fFirst = 1;
+
+    sprintf( bptr, "%s->", trie_to_static( (*added)->from->id ) );
+    bptr += strlen(bptr);
+    sprintf( bptr, "%s", trie_to_static( (*added)->to->id ) );
+    bptr += strlen(bptr);
+  }
+
+  sprintf( bptr, "\",\"measures\":\"" );
+  bptr += strlen(bptr);
+
+  for ( fFirst = 0, measures = b->measures; *measures; measures++ )
+  {
+    if ( fFirst )
+      *bptr++ = ',';
+    else
+      fFirst = 1;
+
+    sprintf( bptr, "%d", (*measures)->id );
+    bptr += strlen( bptr );
+  }
+
+  sprintf( bptr, "\"}" );
+
+  return buf;
+}
+
+HANDLER( do_all_bops )
+{
+  bop **buf, **bptr, *b;
+  int cnt = 0;
+
+  for ( b = first_bop; b; b = b->next )
+    cnt++;
+
+  CREATE( buf, bop *, cnt + 1 );
+  bptr = buf;
+
+  for ( b = first_bop; b; b = b->next )
+    *bptr++ = b;
+
+  *bptr = NULL;
+
+  send_response( req, JS_ARRAY( bop_to_json, buf ) );
+
+  free( buf );
+}
+
+HANDLER( do_bop )
+{
+  bop *b;
+
+  if ( !*request )
+    HND_ERR( "Which bop do you wish to view?" );
+
+  b = bop_by_id( request );
+
+  if ( !b )
+    HND_ERR( "The indicated bop was not recognized" );
+
+  send_response( req, bop_to_json( b ) );
+}
+
+added_edge *added_edge_by_notation( const char *notation )
+{
+  added_edge *e;
+  lyphnode *from, *to;
+  const char *arrow;
+  char *fromid;
+
+  for ( arrow = notation; *arrow; arrow++ )
+    if ( arrow[0] == '-' && arrow[1] == '>' )
+      break;
+
+  if ( !*arrow )
+    return NULL;
+
+  to = lyphnode_by_id( arrow + strlen("->") );
+
+  if ( !to )
+    return NULL;
+
+  CREATE( fromid, char, arrow - notation + 1 );
+  memcpy( fromid, notation, arrow - notation );
+  fromid[arrow - notation] = '\0';
+
+  from = lyphnode_by_id( fromid );
+  free( fromid );
+
+  if ( !from )
+    return NULL;
+
+  CREATE( e, added_edge, 1 );
+  e->from = from;
+  e->to = to;
+
+  return e;
+}
+
+void save_bops( void )
+{
+  FILE *fp = fopen( BOPS_FILE, "w" );
+  bop *b;
+  int fFirst = 0;
+
+  if ( !fp )
+  {
+    error_messagef( "Could not open %s for writing", BOPS_FILE );
+    return;
+  }
+
+  fprintf( fp, "[" );
+
+  for ( b = first_bop; b; b = b->next )
+  {
+    if ( fFirst )
+      fprintf( fp, "," );
+    else
+      fFirst = 1;
+
+    fprintf( fp, "%s", bop_to_json_flat( b ) );
+  }
+
+  fprintf( fp, "]" );
+
+  fclose( fp );
+}
+
+HANDLER( do_makebop )
+{
+  bop *b;
+  lyph **excluded;
+  added_edge **added;
+  located_measure **measures;
+  char *excludedstr, *addedstr, *locstr, *err = NULL;
+
+  excludedstr = get_param( params, "excluded" );
+  addedstr = get_param( params, "added" );
+  locstr = get_param( params, "locmeas" );
+
+  if ( excludedstr )
+  {
+    excluded = (lyph**)PARSE_LIST( excludedstr, lyph_by_id, "lyph", &err );
+
+    if ( !excluded )
+    {
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the excluded lyphs was not recognized" );
+    }
+  }
+  else
+    excluded = (lyph**)blank_void_array();
+
+  if ( addedstr )
+  {
+    added = (added_edge**)PARSE_LIST( addedstr, added_edge_by_notation, "added edge", &err );
+
+    if ( !added )
+    {
+      free( excluded );
+
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the added edges could not be resolved" );
+    }
+  }
+  else
+    added = (added_edge**)blank_void_array();
+
+  if ( locstr )
+  {
+    measures = (located_measure**)PARSE_LIST( locstr, located_measure_by_id, "located measure", &err );
+
+    if ( !measures )
+    {
+      MULTIFREE( excluded, added );
+
+      if ( err )
+        HND_ERR_FREE( err );
+      else
+        HND_ERR( "One of the located measures could not be recognized" );
+    }
+  }
+  else
+    measures = (located_measure**)blank_void_array();
+
+  CREATE( b, bop, 1 );
+
+  if ( last_bop )
+    b->id = last_bop->id + 1;
+  else
+    b->id = 1;
+
+  b->excluded = excluded;
+  b->added = added;
+  b->measures = measures;
+
+  LINK2( b, first_bop, last_bop, next, prev );
+
+  save_bops();
+
+  send_response( req, bop_to_json( b ) );
+}
+
+int remove_lyphnode_from_bops( const lyphnode *n )
+{
+  bop *b;
+  added_edge **edges, **new_edges, **neptr;
+  int fMatch = 0;
+
+  for ( b = first_bop; b; b = b->next )
+  {
+    int cnt = 0;
+
+    for ( edges = b->added; *edges; edges++ )
+      if ( (*edges)->from == n || (*edges)->to == n )
+        cnt++;
+
+    if ( !cnt )
+      continue;
+
+    fMatch = 1;
+
+    CREATE( new_edges, added_edge *, (edges - b->added) - cnt + 1 );
+    neptr = new_edges;
+
+    for ( edges = b->added; *edges; edges++ )
+    {
+      if ( (*edges)->from != n && (*edges)->to != n )
+        *neptr++ = *edges;
+      else
+        free( *edges );
+    }
+
+    *neptr = NULL;
+    free( b->added );
+    b->added = new_edges;
+  }
+
+  return fMatch;
+}
+
+int remove_lyph_from_bops( const lyph *e )
+{
+  bop *b;
+  lyph **rem, **new_rem, **nrptr;
+  int fMatch = 0;
+
+  for ( b = first_bop; b; b = b->next )
+  {
+    int cnt = 0;
+
+    for ( rem = b->excluded; *rem; rem++ )
+      if ( *rem == e )
+        cnt++;
+
+    if ( !cnt )
+      continue;
+
+    fMatch = 1;
+
+    CREATE( new_rem, lyph *, (rem - b->excluded) - cnt + 1 );
+    nrptr = new_rem;
+
+    for ( rem = b->excluded; *rem; rem++ )
+      if ( *rem != e )
+        *nrptr++ = *rem;
+
+    *nrptr = NULL;
+    free( b->excluded );
+    b->excluded = nrptr;
+  }
+
+  return fMatch;
+}
+
+int remove_located_measure_from_bops( const located_measure *m )
+{
+  bop *b;
+  int fMatch = 0;
+
+  for ( b = first_bop; b; b = b->next )
+  {
+    located_measure **ptr, **remeasures, **reptr;
+    int cnt = 0;
+
+    for ( ptr = b->measures; *ptr; ptr++ )
+      if ( *ptr == m )
+        cnt++;
+
+    if ( !cnt )
+      continue;
+
+    fMatch = 1;
+
+    CREATE( remeasures, located_measure *, (ptr - b->measures) - cnt + 1 );
+    reptr = remeasures;
+
+    for ( ptr = b->measures; *ptr; ptr++ )
+      if ( *ptr != m )
+        *reptr++ = *ptr;
+
+    *reptr = NULL;
+    free( b->measures );
+    b->measures = remeasures;
+  }
+
+  return fMatch;
 }

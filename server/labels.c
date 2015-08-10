@@ -36,6 +36,7 @@ void init_labels(FILE *fp)
 
   load_located_measures();
   load_correlations();
+  load_bops();
 
   human_species_lowercase = trie_strdup( "human", metadata );
   human_species_uppercase = trie_strdup( "Human", metadata );

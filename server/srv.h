@@ -323,6 +323,8 @@ HANDLER( do_delete_located_measure );
 HANDLER( do_get_csv );
 HANDLER( do_nifs );
 HANDLER( do_stats );
+HANDLER( do_bop );
+HANDLER( do_all_bops );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );
@@ -331,3 +333,4 @@ HANDLER( do_gen_random_correlations );
 HANDLER( do_dotfile );
 HANDLER( do_create_fmalyphs );
 HANDLER( do_import_lateralized_brain );
+HANDLER( do_makebop );

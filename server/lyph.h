@@ -34,6 +34,7 @@
 #define CORRELATION_FILE DATA_DIR "corr.json"
 #define FMA_FILE DATA_DIR "fma.parts"
 #define NIFLING_FILE DATA_DIR "nifs.dat"
+#define BOPS_FILE DATA_DIR "bops.dat"
 
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
@@ -74,6 +75,8 @@ typedef struct PUBMED pubmed;
 typedef struct VARIABLE variable;
 typedef struct CORRELATION correlation;
 typedef struct LOCATED_MEASURE located_measure;
+typedef struct ADDED_EDGE added_edge;
+typedef struct BOP bop;
 typedef struct NODEPATH nodepath;
 typedef struct FMA fma;
 typedef struct NIFLING nifling;
@@ -329,6 +332,22 @@ struct LOCATED_MEASURE
   int id;
 };
 
+struct ADDED_EDGE
+{
+  lyphnode *from;
+  lyphnode *to;
+};
+
+struct BOP
+{
+  bop *next;
+  bop *prev;
+  int id;
+  lyph **excluded;
+  added_edge **added;
+  located_measure **measures;
+};
+
 struct NODEPATH
 {
   lyph *start;
@@ -473,6 +492,8 @@ extern correlation *first_correlation;
 extern correlation *last_correlation;
 extern located_measure *first_located_measure;
 extern located_measure *last_located_measure;
+extern bop *first_bop;
+extern bop *last_bop;
 
 extern lyph null_rect_ptr;
 extern lyph *null_rect;
@@ -586,8 +607,8 @@ char *lyphpath_to_json( lyph **path );
 char *exit_to_json( exit_data *x );
 layer *layer_by_id( char *id );
 layer *layer_by_description( char *name, lyphplate **materials, int thickness );
-lyphnode *lyphnode_by_id( char *id );
-lyphnode *lyphnode_by_id_or_new( char *id );
+lyphnode *lyphnode_by_id( const char *id );
+lyphnode *lyphnode_by_id_or_new( const char *id );
 lyph *lyph_by_id( const char *id );
 lyph *lyph_by_id_or_fmastr( const char *id );
 lyph *lyph_by_template_or_id_or_null( char *id, char *species );
@@ -702,6 +723,12 @@ char *pubmed_to_json_full( pubmed *p );
 char *clinical_index_to_json_brief( clinical_index *ci );
 char *clinical_index_to_json_full( clinical_index *ci );
 void add_clinical_index_to_array( clinical_index *ci, clinical_index ***arr );
+int remove_lyphnode_from_bops( const lyphnode *n );
+int remove_lyph_from_bops( const lyph *e );
+added_edge *added_edge_by_notation( const char *notation );
+located_measure *located_measure_by_id( const char *id );
+void save_bops( void );
+void load_bops( void );
 
 /*
  * fma.c
@@ -725,3 +752,4 @@ void correlations_from_js( const char *js );
 void clinical_indices_from_js( const char *js );
 void pubmeds_from_js( const char *js );
 void located_measures_from_js( const char *js );
+void bops_from_js( const char *js );

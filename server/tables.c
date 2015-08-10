@@ -20,6 +20,9 @@ void init_command_table(void)
   add_handler( "all_ont_terms", do_all_ont_terms, CMD_READONLY );
   add_handler( "all_pubmeds", do_all_pubmeds, CMD_READONLY );
   add_handler( "all_clinical_indices", do_all_clinical_indices, CMD_READONLY );
+  add_handler( "all_bops", do_all_bops, CMD_READONLY );
+  add_handler( "bop", do_bop, CMD_READONLY );
+  add_handler( "makebop", do_makebop, CMD_READWRITE );
   add_handler( "clinical_index", do_clinical_index, CMD_READONLY );
   add_handler( "clone", do_clone, CMD_READWRITE );
   add_handler( "correlation", do_correlation, CMD_READONLY );

@@ -245,6 +245,60 @@ void correlation_from_js( Value &v )
   LINK2( c, first_correlation, last_correlation, next, prev );
 }
 
+void bop_from_js( Value &v )
+{
+  bop *b;
+  lyph **excluded;
+  added_edge **added;
+  located_measure **measures;
+  char *excludedstr, *addedstr, *measurestr, *err = NULL;
+  int id;
+
+  excludedstr = strdup( v["excluded"].GetString() );
+  addedstr = strdup( v["added"].GetString() );
+  measurestr = strdup( v["measures"].GetString() );
+  id = v["id"].GetInt();
+
+  excluded = (lyph**)PARSE_LIST( excludedstr, lyph_by_id, NULL, &err );
+
+  if ( !excluded )
+  {
+    error_messagef( "Error loading bop %d: unrecognized excluded lyph(s)", id );
+    excluded = (lyph**)blank_void_array();
+    err = NULL;
+  }
+
+  added = (added_edge**)PARSE_LIST( addedstr, added_edge_by_notation, NULL, &err );
+
+  if ( !added )
+  {
+    error_messagef( "Error loading bop %d: one of the added edges did not resolve", id );
+    added = (added_edge**)blank_void_array();
+    err = NULL;
+  }
+
+  measures = (located_measure**)PARSE_LIST( measurestr, located_measure_by_id, NULL, &err );
+
+  if ( !measures )
+  {
+    error_messagef( "Error loading bop %d: one of the located measures did not resolve", id );
+    measures = (located_measure**)blank_void_array();
+    err = NULL;
+  }
+
+  free( measurestr );
+  free( addedstr );
+  free( excludedstr );
+
+  CREATE( b, bop, 1 );
+  b->id = id;
+  b->measures = measures;
+  b->added = added;
+  b->excluded = excluded;
+
+  LINK2( b, first_bop, last_bop, next, prev );
+}
+
 void located_measure_from_js( Value &v )
 {
   located_measure *m;
@@ -312,4 +366,17 @@ extern "C" void located_measures_from_js( const char *js )
 
   for ( int i = 0; i < size; i++ )
     located_measure_from_js( d[i] );
+}
+
+extern "C" void bops_from_js( const char *js )
+{
+  Document d;
+  int size;
+
+  d.Parse( js );
+
+  size = d.Size();
+
+  for ( int i = 0; i < size; i++ )
+    bop_from_js( d[i] );
 }

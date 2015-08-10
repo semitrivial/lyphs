@@ -687,6 +687,9 @@ int delete_lyph( lyph *e )
   int fAnnot;
   lyph *prev;
 
+  if ( remove_lyph_from_bops( e ) )
+    save_bops();
+
   if ( *e->annots )
     fAnnot = 1;
   else
@@ -918,6 +921,9 @@ int remove_lyphs_with_doomed_nodes( void )
 
 void delete_lyphnode( lyphnode *n )
 {
+  if ( remove_lyphnode_from_bops( n ) )
+    save_bops();
+
   free( n->exits );
   n->id->data = NULL;
   free( n );
