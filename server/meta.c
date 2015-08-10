@@ -26,6 +26,7 @@ char *correlation_jsons_by_located_measure( const located_measure *m );
 char *next_clindex_index( void );
 void remove_clindex_from_array( clinical_index *ci, clinical_index ***arr );
 int remove_located_measure_from_bops( const located_measure *m );
+int clindex_correlation_count( const clinical_index *ci );
 
 char *lyph_to_json_id( lyph *e )
 {
@@ -797,7 +798,7 @@ HANDLER( do_make_clinical_index )
   send_response( req, clinical_index_to_json_full( ci ) );
 }
 
-char *clinical_index_to_json_full( clinical_index *ci )
+char *clinical_index_to_json_full( const clinical_index *ci )
 {
   return JSON
   (
@@ -806,11 +807,12 @@ char *clinical_index_to_json_full( clinical_index *ci )
     "pubmeds": JS_ARRAY( pubmed_to_json_brief, ci->pubmeds ),
     "claimed": ci->claimed ? ci->claimed : js_suppress,
     "parents": JS_ARRAY( clinical_index_to_json_brief, ci->parents ),
-    "children": JS_ARRAY( clinical_index_to_json_brief, ci->children )
+    "children": JS_ARRAY( clinical_index_to_json_brief, ci->children ),
+    "correlation count": int_to_json( clindex_correlation_count( ci ) )
   );
 }
 
-char *clinical_index_to_json_brief( clinical_index *ci )
+char *clinical_index_to_json_brief( const clinical_index *ci )
 {
   return trie_to_json( ci->index );
 }
@@ -2808,4 +2810,23 @@ int remove_located_measure_from_bops( const located_measure *m )
   }
 
   return fMatch;
+}
+
+int clindex_correlation_count( const clinical_index *ci )
+{
+  const correlation *c;
+  variable **v;
+  int cnt = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    for ( v = c->vars; *v; v++ )
+      if ( (*v)->type == VARIABLE_CLINDEX && (*v)->ci == ci )
+        break;
+
+    if ( *v )
+      cnt++;
+  }
+
+  return cnt;
 }
