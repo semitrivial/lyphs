@@ -47,8 +47,6 @@
 typedef struct STR_WRAPPER str_wrapper;
 typedef struct TRIE trie;
 typedef struct TRIE_WRAPPER trie_wrapper;
-typedef struct UCL_SYNTAX ucl_syntax;
-typedef struct AMBIG ambig;
 typedef struct LYPHPLATE lyphplate;
 typedef struct LYPHPLATE_TO_JSON_DETAILS lyphplate_to_json_details;
 typedef struct LAYER layer;
@@ -106,29 +104,6 @@ struct TRIE_WRAPPER
   trie_wrapper *next;
   trie_wrapper *prev;
   trie *t;
-};
-
-struct UCL_SYNTAX
-{
-  int type;
-  ucl_syntax *sub1;
-  ucl_syntax *sub2;
-  char *reln;
-  trie *iri;
-  char *toString;
-};
-
-typedef enum
-{
-  UCL_BLANK, UCL_SYNTAX_BASE, UCL_SYNTAX_PAREN, UCL_SYNTAX_SOME, UCL_SYNTAX_AND, UCL_SYNTAX_OR, UCL_SYNTAX_NOT
-} ucl_syntax_types;
-
-struct AMBIG
-{
-  ambig *next;
-  ambig *prev;
-  trie **data;
-  char *label;
 };
 
 struct LYPHPLATE

@@ -460,27 +460,6 @@ int cmp_trie_data (const void * a, const void * b)
   return len1-len2;
 }
 
-void kill_ucl_syntax( ucl_syntax *s )
-{
-  switch( s->type )
-  {
-    default:
-      break;
-
-    case UCL_SYNTAX_AND:
-    case UCL_SYNTAX_OR:
-      kill_ucl_syntax( s->sub2 );
-
-    case UCL_SYNTAX_PAREN:
-    case UCL_SYNTAX_SOME:
-    case UCL_SYNTAX_NOT:
-      kill_ucl_syntax( s->sub1 );
-  }
-
-  free( s->toString );
-  free( s );
-}
-
 void **datas_to_array( trie *t )
 {
   int cnt = count_nontrivial_members( t );
