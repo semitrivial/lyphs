@@ -272,6 +272,7 @@ struct PUBMED
   pubmed *next;
   char *id;
   char *title;
+  int flags;
 };
 
 struct VARIABLE
