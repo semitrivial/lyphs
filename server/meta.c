@@ -2362,27 +2362,63 @@ HANDLER( do_stats )
   pubmed *p;
   correlation *c;
   variable **v;
+  clinical_index *ci;
   int distinct_fmas = 0, hash;
-  int pubmeds_in_correlations = 0;
   int correlations_with_some_clindex = 0;
   int correlations_with_no_clindex = 0;
+  int lyphs_in_correlations = 0;
+  int clindices_in_correlations = 0;
+  int pubmeds_in_correlations = 0;
+
+  for ( e = first_lyph; e; e = e->next )
+    e->flags = 0;
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+    ci->flags = 0;
 
   for ( p = first_pubmed; p; p = p->next )
     p->flags = 0;
 
   for ( c = first_correlation; c; c = c->next )
   {
-    for ( v = c->vars; *v; v++ )
-      if ( (*v)->type == VARIABLE_CLINDEX )
-        break;
+    int fClindex = 0;
 
-    if ( *v )
+    for ( v = c->vars; *v; v++ )
+    {
+      if ( (*v)->type == VARIABLE_CLINDEX )
+      {
+        fClindex = 1;
+        (*v)->ci->flags = 1;
+      }
+      else if ( (*v)->type == VARIABLE_LOCATED && (*v)->loc )
+        (*v)->loc->flags = 1;
+    }
+
+    if ( fClindex )
       correlations_with_some_clindex++;
     else
       correlations_with_no_clindex++;
 
     if ( c->pbmd )
       c->pbmd->flags = 1;
+  }
+
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+  {
+    if ( ci->flags )
+    {
+      ci->flags = 0;
+      clindices_in_correlations++;
+    }
+  }
+
+  for ( e = first_lyph; e; e = e->next )
+  {
+    if ( e->flags )
+    {
+      e->flags = 0;
+      lyphs_in_correlations++;
+    }
   }
 
   for ( p = first_pubmed; p; p = p->next )
@@ -2414,9 +2450,11 @@ HANDLER( do_stats )
   (
     "lyphcnt": int_to_json( lyphcnt ),
     "distinct fmas": int_to_json( distinct_fmas ),
-    "pubmeds in correlations": int_to_json( pubmeds_in_correlations ),
     "correlations with some clindex": int_to_json( correlations_with_some_clindex ),
-    "correlations with no clindex": int_to_json( correlations_with_no_clindex )
+    "correlations with no clindex": int_to_json( correlations_with_no_clindex ),
+    "pubmeds in correlations": int_to_json( pubmeds_in_correlations ),
+    "lyphs in correlations": int_to_json( lyphs_in_correlations ),
+    "clindices in correlations": int_to_json( clindices_in_correlations )
   ));
 }
 
