@@ -46,7 +46,7 @@ void init_labels(FILE *fp)
   /*
    * flatten_fmas();
    */
-  compute_inferred_parts( NULL );
+  compute_inferred_parts( NULL, 0 );
 
   return;
 }

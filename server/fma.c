@@ -27,7 +27,7 @@ fma *seg_of_brain;
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
-void generate_inferred_dotfile( fma **seeds );
+void generate_inferred_dotfile( fma **seeds, int skip_lat );
 char *fma_to_json( const fma *f );
 char *fma_to_json_brief( const fma *f );
 
@@ -1123,10 +1123,16 @@ HANDLER( do_dotfile )
 {
   FILE *fp, *csv;
   fma *f, **seeds;
-  char *seedstr, *file;
-  int hash;
+  char *seedstr, *file, *lateralized;
+  int hash, skip_lat;
 
   seedstr = get_param( params, "seeds" );
+  lateralized = get_param( params, "lateralized" );
+
+  if ( lateralized && !strcmp( lateralized, "0" ) )
+    skip_lat = 1;
+  else
+    skip_lat = 0;
 
   if ( seedstr )
   {
@@ -1140,7 +1146,7 @@ HANDLER( do_dotfile )
 
   if ( get_param( params, "inferred" ) )
   {
-    generate_inferred_dotfile( seeds );
+    generate_inferred_dotfile( seeds, skip_lat );
 
     if ( seeds )
       free( seeds );
@@ -1256,7 +1262,7 @@ int is_oriented( fma *f, char **side )
   return 0;
 }
 
-void infer_inferred_parts( fma *abstract, fma *parent, char *side )
+void infer_inferred_parts( fma *abstract, fma *parent, char *side, int skip_lat )
 {
   fma **subs;
   char *subside;
@@ -1264,10 +1270,10 @@ void infer_inferred_parts( fma *abstract, fma *parent, char *side )
 
   for ( subs = abstract->children; *subs; subs++ )
   {
-    if ( !is_oriented( *subs, &subside ) )
+    if ( !skip_lat && !is_oriented( *subs, &subside ) )
       continue;
 
-    if ( subside == side )
+    if ( skip_lat || subside == side )
     {
       maybe_fma_append( &parent->inferred_parts, *subs );
       maybe_fma_append( &(*subs)->inferred_parents, parent );
@@ -1285,12 +1291,12 @@ void infer_inferred_parts( fma *abstract, fma *parent, char *side )
       if ( *parts == abstract )
         continue;
 
-      infer_inferred_parts( *parts, parent, side );
+      infer_inferred_parts( *parts, parent, side, skip_lat );
     }
   }
 }
 
-void recompute_inferred_parts( fma **seeds )
+void recompute_inferred_parts( fma **seeds, int skip_lat )
 {
   fma *f;
   int hash;
@@ -1303,10 +1309,10 @@ void recompute_inferred_parts( fma **seeds )
     f->inferred_parents = (fma**)blank_void_array();
   );
 
-  compute_inferred_parts( seeds );
+  compute_inferred_parts( seeds, skip_lat );
 }
 
-void compute_inferred_parts( fma **seeds )
+void compute_inferred_parts( fma **seeds, int skip_lat )
 {
   fma *f, **supers, **parts;
   char *side;
@@ -1321,12 +1327,12 @@ void compute_inferred_parts( fma **seeds )
     if ( f->flags != 1 )
       continue;
 
-    if ( !is_oriented( f, &side ) )
+    if ( !skip_lat && !is_oriented( f, &side ) )
       continue;
 
     for ( supers = f->superclasses; *supers; supers++ )
     for ( parts = (*supers)->children; *parts; parts++ )
-      infer_inferred_parts( *parts, f, side );
+      infer_inferred_parts( *parts, f, side, skip_lat );
 
     for ( parts = f->children; *parts; parts++ )
     {
@@ -1340,7 +1346,7 @@ void compute_inferred_parts( fma **seeds )
   return;
 }
 
-void generate_inferred_dotfile( fma **seeds )
+void generate_inferred_dotfile( fma **seeds, int skip_lat )
 {
   FILE *fp = fopen( INF_DOTFILE, "w" );
   fma *f;
@@ -1351,16 +1357,21 @@ void generate_inferred_dotfile( fma **seeds )
 
   fprintf( fp, "digraph\n{\n" );
 
-  recompute_inferred_parts( seeds );
+  recompute_inferred_parts( seeds, skip_lat );
 
   mark_brain_stuff( seeds );
 
   ITERATE_FMAS
   (
     if ( !*f->inferred_parents
-    &&   !*f->inferred_parts
-    && ( f->flags != 1 || !is_oriented( f, NULL ) ) )
-      continue;
+    &&   !*f->inferred_parts )
+    {
+      if ( f->flags != 1 )
+        continue;
+
+      if ( !skip_lat && !is_oriented( f, NULL ) )
+        continue;
+    }
 
     fprintf_dotfile_vertex( f, fp );
   );
@@ -1387,7 +1398,7 @@ void generate_inferred_dotfile( fma **seeds )
 
   fclose( fp );
 
-  recompute_inferred_parts( NULL );
+  recompute_inferred_parts( NULL, 0 );
 }
 
 char *fma_lyph_pair_to_json( const fma_lyph_pair *p )

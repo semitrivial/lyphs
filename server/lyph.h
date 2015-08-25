@@ -1,3 +1,4 @@
+
 #include "mallocf.h"
 #include "macro.h"
 #include "jsonfmt.h"
@@ -709,7 +710,7 @@ void load_bops( void );
 /*
  * fma.c
  */
-void compute_inferred_parts( fma **seeds );
+void compute_inferred_parts( fma **seeds, int skip_lat );
 void flatten_fmas( void );
 void parse_nifling_file( void );
 void parse_fma_file( void );
