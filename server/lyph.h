@@ -654,6 +654,7 @@ lyphnode *blank_lyphnode( void );
 layer *clone_layer( layer *lyr );
 char *lyphview_to_json_brief( const lyphview *v );
 lyphnode *find_lyphnode_located_in_lyphs_layer( lyph *e, trie *t );
+lyph *get_relative_lyph_loc_buf( lyph *e, lyph **buf );
 
 /*
  * hier.c

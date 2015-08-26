@@ -368,17 +368,25 @@ lyph *get_lyph_location( lyph *e )
 
 lyph *get_relative_lyph_loc_buf( lyph *e, lyph **buf )
 {
-  lyph *house, **bptr;
+  lyph *house, **bptr, *ptr;
 
-  for ( bptr = buf; *bptr; bptr++ )
-    SET_BIT( (*bptr)->flags, 2 );
+  if ( buf )
+    for ( bptr = buf; *bptr; bptr++ )
+      SET_BIT( (*bptr)->flags, 2 );
+  else
+    for ( ptr = first_lyph; ptr; ptr = ptr->next )
+      SET_BIT( ptr->flags, 2 );
 
   for ( house = get_lyph_location( e ); house; house = get_lyph_location( house ) )
     if ( IS_SET( house->flags, 2 ) )
       break;
 
-  for ( bptr = buf; *bptr; bptr++ )
-    REMOVE_BIT( (*bptr)->flags, 2 );
+  if ( buf )
+    for ( bptr = buf; *bptr; bptr++ )
+      REMOVE_BIT( (*bptr)->flags, 2 );
+  else
+    for ( ptr = first_lyph; ptr; ptr = ptr->next )
+      REMOVE_BIT( ptr->flags, 2 );
 
   return house;
 }
