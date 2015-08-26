@@ -1586,9 +1586,23 @@ HANDLER( do_fmamap )
   if ( !fp )
     HND_ERR( "Could not open " FMAMAP_FILE " to write" );
 
+  fprintf( fp, "LyphID\tLyphName\tFMA\tDistance_to_parent_with_FMA\n" );
+
   for ( e = first_lyph; e; e = e->next )
   {
     fprintf( fp, "%s\t", trie_to_static(e->id) );
+
+    if ( !e->name )
+      fprintf( fp, "None\t" );
+    else
+    {
+      char *name = trie_to_static( e->name );
+
+      if ( !*name )
+        fprintf( fp, "(blank)\t" );
+      else
+        fprintf( fp, "%s\t", name );
+    }
 
     if ( e->fma )
     {
