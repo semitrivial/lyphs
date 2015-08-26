@@ -27,7 +27,7 @@ fma *seg_of_brain;
 void parse_fma_file_for_raw_terms( char *file );
 void parse_fma_file_for_parts( char *file );
 char **parse_csv( const char *line, int *cnt );
-void generate_inferred_dotfile( fma **seeds, int skip_lat );
+void generate_inferred_dotfile( fma **seeds, int skip_lat, int raw_nodes, int tabdelim );
 char *fma_to_json( const fma *f );
 char *fma_to_json_brief( const fma *f );
 
@@ -1123,11 +1123,19 @@ HANDLER( do_dotfile )
 {
   FILE *fp, *csv;
   fma *f, **seeds;
-  char *seedstr, *file, *lateralized;
-  int hash, skip_lat;
+  char *seedstr, *file, *lateralized, *tabdelimitedstr, *raw_nodes_str;
+  int hash, skip_lat, tabdelimited, raw_nodes;
 
   seedstr = get_param( params, "seeds" );
   lateralized = get_param( params, "lateralized" );
+  tabdelimitedstr = get_param( params, "tabdelimited" );
+  raw_nodes_str = get_param( params, "rawnodes" );
+
+  tabdelimited = tabdelimitedstr && !strcmp( tabdelimitedstr, "1" );
+  raw_nodes = raw_nodes_str && !strcmp( raw_nodes_str, "1" );
+
+  if ( tabdelimited && !raw_nodes )
+    HND_ERR( "The 'tabdelimited' option is only available in conjunction with the 'rawnodes' option" );
 
   if ( lateralized && !strcmp( lateralized, "0" ) )
     skip_lat = 1;
@@ -1146,7 +1154,7 @@ HANDLER( do_dotfile )
 
   if ( get_param( params, "inferred" ) )
   {
-    generate_inferred_dotfile( seeds, skip_lat );
+    generate_inferred_dotfile( seeds, skip_lat, raw_nodes, tabdelimited );
 
     if ( seeds )
       free( seeds );
@@ -1346,7 +1354,7 @@ void compute_inferred_parts( fma **seeds, int skip_lat )
   return;
 }
 
-void generate_inferred_dotfile( fma **seeds, int skip_lat )
+void generate_inferred_dotfile( fma **seeds, int skip_lat, int raw_nodes, int tabdelim )
 {
   FILE *fp = fopen( INF_DOTFILE, "w" );
   fma *f;
@@ -1355,7 +1363,8 @@ void generate_inferred_dotfile( fma **seeds, int skip_lat )
   if ( !fp )
     return;
 
-  fprintf( fp, "digraph\n{\n" );
+  if ( !raw_nodes )
+    fprintf( fp, "digraph\n{\n" );
 
   recompute_inferred_parts( seeds, skip_lat );
 
@@ -1373,28 +1382,35 @@ void generate_inferred_dotfile( fma **seeds, int skip_lat )
         continue;
     }
 
-    fprintf_dotfile_vertex( f, fp );
+    if ( !tabdelim )
+      fprintf_dotfile_vertex( f, fp );
+    else
+      fprintf( fp, "FMA_%ld\t%s\n", f->id, label_by_fma( f ) );
   );
 
-  fprintf( fp, "  subgraph cluster_0\n  {\n" );
+  if ( !raw_nodes )
+  {
+    fprintf( fp, "  subgraph cluster_0\n  {\n" );
 
-  ITERATE_FMAS
-  (
-    fma **infs;
-    char *label;
+    ITERATE_FMAS
+    (
+      fma **infs;
+      char *label;
 
-    if ( !*f->inferred_parts )
-      continue;
+      if ( !*f->inferred_parts )
+        continue;
 
-    label = label_by_fma( f );
+      label = label_by_fma( f );
 
-    for ( infs = f->inferred_parts; *infs; infs++ )
-      fprintf( fp, "    %s -> %s;\n", label, label_by_fma( *infs ) );
-  );
+      for ( infs = f->inferred_parts; *infs; infs++ )
+        fprintf( fp, "    %s -> %s;\n", label, label_by_fma( *infs ) );
+    );
+  }
 
   unmark_brain_stuff();
 
-  fprintf( fp, "  }\n}\n" );
+  if ( !raw_nodes )
+    fprintf( fp, "  }\n}\n" );
 
   fclose( fp );
 
