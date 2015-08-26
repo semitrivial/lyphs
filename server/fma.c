@@ -1580,16 +1580,27 @@ HANDLER( do_fmamap )
 {
   FILE *fp = fopen( FMAMAP_FILE, "w" );
   lyph *e, *parent;
-  char *txt;
-  int dist;
+  char *txt, *suppress_str;
+  int dist, suppress;
 
   if ( !fp )
     HND_ERR( "Could not open " FMAMAP_FILE " to write" );
 
   fprintf( fp, "LyphID\tLyphName\tFMA\tDistance_to_parent_with_FMA\n" );
 
+  suppress_str = get_param( params, "suppress" );
+  suppress = suppress_str && !strcmp( suppress_str, "1" );
+
   for ( e = first_lyph; e; e = e->next )
   {
+    if ( !e->fma )
+    {
+      parent = nearest_fmad_parent( e, &dist );
+
+      if ( !parent && suppress )
+        continue;
+    }
+
     fprintf( fp, "%s\t", trie_to_static(e->id) );
 
     if ( !e->name )
@@ -1609,8 +1620,6 @@ HANDLER( do_fmamap )
       fprintf( fp, "%s\t0\n", trie_to_static( e->fma ) );
       continue;
     }
-
-    parent = nearest_fmad_parent( e, &dist );
 
     if ( parent )
       fprintf( fp, "%s\t%d\n", trie_to_static( parent->fma ), dist );
