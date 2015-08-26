@@ -1563,7 +1563,7 @@ lyph *nearest_fmad_parent( lyph *e, int *dist )
   lyph *parent;
   int d = 1;
 
-  for ( parent = get_relative_lyph_loc_buf( e, NULL ); parent; parent = get_relative_lyph_loc_buf( e, NULL ) )
+  for ( parent = get_relative_lyph_loc_buf( e, NULL ); parent; parent = get_relative_lyph_loc_buf( parent, NULL ) )
   {
     if ( parent->fma )
     {
