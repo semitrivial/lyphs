@@ -1557,3 +1557,61 @@ char *fma_to_json( const fma *f )
     "inferred_parts": JS_ARRAY( fma_to_json_brief, f->inferred_parts )
   );
 }
+
+lyph *nearest_fmad_parent( lyph *e, int *dist )
+{
+  lyph *parent;
+  int d = 1;
+
+  for ( parent = get_lyph_location( e ); parent; parent = get_lyph_location( e ) )
+  {
+    if ( parent->fma )
+    {
+      *dist = d;
+      return parent;
+    }
+    d++;
+  }
+
+  return NULL;
+}
+
+HANDLER( do_fmamap )
+{
+  FILE *fp = fopen( FMAMAP_FILE, "w" );
+  lyph *e, *parent;
+  char *txt;
+  int dist;
+
+  if ( !fp )
+    HND_ERR( "Could not open " FMAMAP_FILE " to write" );
+
+  for ( e = first_lyph; e; e = e->next )
+  {
+    fprintf( fp, "%s\t", trie_to_static(e->id) );
+
+    if ( e->fma )
+    {
+      fprintf( fp, "%s\t0\n", trie_to_static( e->fma ) );
+      continue;
+    }
+
+    parent = nearest_fmad_parent( e, &dist );
+
+    if ( parent )
+      fprintf( fp, "%s\t%d\n", trie_to_static( parent->fma ), dist );
+    else
+      fprintf( fp, "None\tNaN\n" );
+  }
+
+  fclose( fp );
+
+  txt = load_file( FMAMAP_FILE );
+
+  if ( !txt )
+    HND_ERR( "Could not read " FMAMAP_FILE );
+
+  send_response_with_type( req, "200", txt, "text/tab-separated-values" );
+
+  free( txt );
+}

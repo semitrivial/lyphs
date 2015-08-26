@@ -325,6 +325,7 @@ HANDLER( do_nifs );
 HANDLER( do_stats );
 HANDLER( do_bop );
 HANDLER( do_all_bops );
+HANDLER( do_fmamap );
 
 HANDLER( do_niflyph );
 HANDLER( do_nifconnection );

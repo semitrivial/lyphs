@@ -36,6 +36,7 @@
 #define FMA_FILE DATA_DIR "fma.parts"
 #define NIFLING_FILE DATA_DIR "nifs.dat"
 #define BOPS_FILE DATA_DIR "bops.dat"
+#define FMAMAP_FILE DATA_DIR "fmamap.tsv"
 
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
