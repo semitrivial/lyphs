@@ -1603,18 +1603,6 @@ HANDLER( do_fmamap )
 
     fprintf( fp, "%s\t", trie_to_static(e->id) );
 
-    if ( !e->name )
-      fprintf( fp, "None\t" );
-    else
-    {
-      char *name = trie_to_static( e->name );
-
-      if ( !*name )
-        fprintf( fp, "(blank)\t" );
-      else
-        fprintf( fp, "%s\t", name );
-    }
-
     if ( e->fma )
     {
       fprintf( fp, "%s\t0\n", trie_to_static( e->fma ) );
@@ -1622,9 +1610,21 @@ HANDLER( do_fmamap )
     }
 
     if ( parent )
-      fprintf( fp, "%s\t%d\n", trie_to_static( parent->fma ), dist );
+      fprintf( fp, "%s\t%d\t", trie_to_static( parent->fma ), dist );
     else
-      fprintf( fp, "None\tNaN\n" );
+      fprintf( fp, "None\tNaN\t" );
+
+    if ( !e->name )
+      fprintf( fp, "None\n" );
+    else
+    {
+      char *name = trie_to_static( e->name );
+
+      if ( !*name )
+        fprintf( fp, "(blank)\n" );
+      else
+        fprintf( fp, "%s\n", name );
+    }
   }
 
   fclose( fp );
