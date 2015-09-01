@@ -1705,7 +1705,7 @@ char *fma_to_scaijson( const fma *f )
     (
       "foundmatch": "yes",
       "lyphID": tmp,
-      "lyphName": e->id ? trie_to_static(e->id) : NULL,
+      "lyphName": e->name ? trie_to_static(e->name) : NULL,
       "distance": int_to_json( distance )
     );
 
