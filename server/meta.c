@@ -2369,6 +2369,8 @@ HANDLER( do_stats )
   int lyphs_in_correlations = 0;
   int clindices_in_correlations = 0;
   int pubmeds_in_correlations = 0;
+  int distinct_fmas_annoting_lyphs = 0;
+  fma *fma_by_str( const char *str );
 
   for ( e = first_lyph; e; e = e->next )
     e->flags = 0;
@@ -2446,6 +2448,23 @@ HANDLER( do_stats )
 
   ITERATE_FMAS( f->flags = 0 );
 
+  for ( e = first_lyph; e; e = e->next )
+  {
+    if ( e->fma )
+    {
+      char *id = trie_to_static( e->fma );
+
+      f = fma_by_str( id );
+      if ( f && !f->flags )
+      {
+        f->flags++;
+        distinct_fmas_annoting_lyphs++;
+      }
+    }
+  }
+
+  ITERATE_FMAS( f->flags = 0 );
+
   send_response( req, JSON
   (
     "lyphcnt": int_to_json( lyphcnt ),
@@ -2454,7 +2473,8 @@ HANDLER( do_stats )
     "correlations with no clindex": int_to_json( correlations_with_no_clindex ),
     "pubmeds in correlations": int_to_json( pubmeds_in_correlations ),
     "lyphs in correlations": int_to_json( lyphs_in_correlations ),
-    "clindices in correlations": int_to_json( clindices_in_correlations )
+    "clindices in correlations": int_to_json( clindices_in_correlations ),
+    "distinct fmas annotating lyphs": int_to_json( distinct_fmas_annoting_lyphs )
   ));
 }
 
