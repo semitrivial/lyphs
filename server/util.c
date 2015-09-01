@@ -615,3 +615,22 @@ int str_begins( const char *full, const char *init )
     iptr++;
   }
 }
+
+char *trim_spaces( char *x )
+{
+  char *end;
+
+  while ( *x == ' ' )
+    x++;
+
+  if ( !*x )
+    return x;
+
+  for ( end = &x[strlen(x)-1]; end > x; end-- )
+    if ( *end )
+      break;
+
+  end[1] = '\0';
+
+  return x;
+}

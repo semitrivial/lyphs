@@ -95,14 +95,24 @@ fma *fma_by_ul( unsigned long id )
 
 fma *fma_by_str( const char *str )
 {
+  char *cpy = strdup(str), *spaceless;
   unsigned long id;
 
-  if ( str_begins( str, "FMA_" ) )
-    str += strlen( "FMA_" );
-  else if ( str_begins( str, "fma:" ) )
-    str += strlen( "fma:" );
+  spaceless = trim_spaces(cpy);
 
-  id = strtoul( str, NULL, 10 );
+  if ( strlen(spaceless)>2 && *spaceless == '\"' && str[strlen(spaceless)-1] == '\"' )
+  {
+    spaceless[strlen(spaceless)-1] = '\0';
+    spaceless++;
+  }
+
+  if ( str_begins( spaceless, "FMA_" ) )
+    spaceless += strlen( "FMA_" );
+  else if ( str_begins( spaceless, "fma:" ) )
+    spaceless += strlen( "fma:" );
+
+  id = strtoul( spaceless, NULL, 10 );
+  free( cpy );
 
   if ( id < 1 )
     return NULL;
@@ -348,7 +358,7 @@ void parse_fma_file_for_parts( char *file )
   }
 }
 
-lyph *lyph_by_fma( fma *f )
+lyph *lyph_by_fma( const fma *f )
 {
   lyph *e;
   char buf[2048];
@@ -1637,4 +1647,99 @@ HANDLER( do_fmamap )
   send_response_with_type( req, "200", txt, "text/tab-separated-values" );
 
   free( txt );
+}
+
+lyph *lyph_by_fma_scai( const fma *f, int *dist )
+{
+  lyph *e;
+  fma **fptr;
+
+  e = lyph_by_fma( f );
+
+  if ( e )
+    return e;
+
+  if ( f->parents )
+  {
+    for ( fptr = f->parents; *fptr; fptr++ )
+    {
+      e = lyph_by_fma_scai( *fptr, dist );
+
+      if ( e )
+      {
+        (*dist)++;
+        return e;
+      }
+    }
+  }
+
+  if ( f->superclasses )
+  {
+    for ( fptr = f->superclasses; *fptr; fptr++ )
+    {
+      e = lyph_by_fma_scai( *fptr, dist );
+
+      if ( e )
+      {
+        (*dist)++;
+        return e;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+char *fma_to_scaijson( const fma *f )
+{
+  lyph *e;
+  int distance = 0;
+
+  e = lyph_by_fma_scai( f, &distance );
+
+  if ( e )
+  {
+    char *tmp = strdup( trie_to_static( e->id ) ), *json;
+
+    json = JSON
+    (
+      "foundmatch": "yes",
+      "lyphID": tmp,
+      "lyphName": e->id ? trie_to_static(e->id) : NULL,
+      "distance": int_to_json( distance )
+    );
+
+    free(tmp);
+    return json;
+  }
+  else
+    return JSON1( "foundmatch": "no" );
+}
+
+HANDLER( do_scaimap )
+{
+  fma **fmas;
+  char *fmastr;
+
+  TRY_PARAM( fmastr, "fmas", "You did not specify a list of fma terms" );
+
+  fmastr = trim_spaces( fmastr );
+
+  if ( *fmastr == '[' && fmastr[strlen(fmastr)-1] == ']' )
+  {
+    fmastr[strlen(fmastr)-1] = '\0';
+    fmastr++;
+  }
+
+  fmas = (fma **)PARSE_LIST( fmastr, fma_by_str, "fma", NULL );
+
+  if ( !fmas )
+    HND_ERR( "One of the indicated FMA IDs was not found in the FMA" );
+
+  send_response( req, JSON1
+  (
+    "results": JS_ARRAY( fma_to_scaijson, fmas )
+  ));
+
+  free( fmas );
 }

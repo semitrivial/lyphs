@@ -560,6 +560,7 @@ void maybe_update_top_id( int *top, const char *idstr );
 int cmp_possibly_null( const char *x, const char *y );
 int str_has_substring( const char *hay, const char *needle );
 int str_begins( const char *full, const char *init );
+char *trim_spaces( char *x );
 
 /*
  * lyph.c
