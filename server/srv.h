@@ -336,3 +336,4 @@ HANDLER( do_create_fmalyphs );
 HANDLER( do_import_lateralized_brain );
 HANDLER( do_makebop );
 HANDLER( do_scaimap );
+HANDLER( do_between );

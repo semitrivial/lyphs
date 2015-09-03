@@ -93,6 +93,7 @@ void init_command_table(void)
   add_handler( "nifs", do_nifs, CMD_READONLY );
   add_handler( "fmamap", do_fmamap, CMD_READONLY );
   add_handler( "scaimap", do_scaimap, CMD_READONLY );
+  add_handler( "between", do_between, CMD_READONLY );
 
   //add_handler( "niflyph", do_niflyph, CMD_READWRITE );
   //add_handler( "nifconnection", do_nifconnection, CMD_READWRITE );

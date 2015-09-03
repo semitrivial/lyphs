@@ -425,3 +425,72 @@ HANDLER( do_is_built_from_template )
   
   send_response( req, JSON1( "response": result ? "yes" : "no" ) );  
 }
+
+void calc_parents_tmp( void )
+{
+  lyph *e;
+
+  for ( e = first_lyph; e; e = e->next )
+    e->parent_tmp = get_relative_lyph_loc_buf( e, NULL );
+}
+
+HANDLER( do_between )
+{
+  lyph *root, **ends, *e, **eptr, **retval, **rptr;
+  char *rootstr, *endsstr;
+
+  TRY_PARAM( rootstr, "root", "You did not specify a 'root'" );
+  TRY_PARAM( endsstr, "ends", "You did not specify a list of 'ends'" );
+
+  root = lyph_by_id( rootstr );
+
+  if ( !root )
+    HND_ERR( "The indicated root was not recognized" );
+
+  ends = (lyph**) PARSE_LIST( endsstr, lyph_by_id, "lyph", NULL );
+
+  if ( !ends )
+    HND_ERR( "One of the indicated 'ends' was not recognized" );
+
+  calc_parents_tmp();
+
+  CREATE( retval, lyph *, lyphcnt + 1);
+
+  rptr = retval;
+
+  for ( e = first_lyph; e; e = e->next )
+    e->flags = 0;
+
+  for ( eptr = ends; *eptr; eptr++ )
+  {
+    lyph *up;
+
+    for ( up = *eptr; up; up = up->parent_tmp )
+      if ( up == root )
+        break;
+
+    if ( up )
+    {
+      for ( up = *eptr; up; up = up->parent_tmp )
+      {
+        if ( !up->flags )
+        {
+          up->flags = 1;
+          *rptr++ = up;
+        }
+
+        if ( up == root )
+          break;
+      }
+    }
+  }
+
+  *rptr = NULL;
+  free( ends );
+
+  for ( e = first_lyph; e; e = e->next )
+    e->flags = 0;
+
+  send_response( req, JS_ARRAY( lyph_to_json_brief, retval ) );
+  free( retval );
+}

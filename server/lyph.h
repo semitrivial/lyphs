@@ -218,6 +218,7 @@ struct LYPH
   char *pubmed;
   char *projection_strength;
   long long modified;
+  lyph *parent_tmp;
 };
 
 typedef enum
