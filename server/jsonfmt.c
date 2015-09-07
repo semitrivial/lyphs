@@ -761,3 +761,12 @@ char *int_to_json( int x )
 
   return json_enquote( buf );
 }
+
+char *char_to_json( char c )
+{
+  char buf[2];
+  buf[0] = c;
+  buf[1] = '\0';
+
+  return json_enquote( buf );
+}

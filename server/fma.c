@@ -1649,7 +1649,7 @@ HANDLER( do_fmamap )
   free( txt );
 }
 
-lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist )
+lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist, lyph ***siblings )
 {
   lyph *e;
   fma **fptr, **list;
@@ -1659,13 +1659,11 @@ lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist )
   if ( e )
     return e;
 
-  list = (direction == 'u')? f->parents : f->children;
-
-  if ( list )
+  if ( direction == 'u' && f->parents )
   {
-    for ( fptr = list; *fptr; fptr++ )
+    for ( fptr = f->parents; *fptr; fptr++ )
     {
-      e = lyph_by_fma_scai( *fptr, direction, dist );
+      e = lyph_by_fma_scai( *fptr, direction, dist, siblings );
 
       if ( e )
       {
@@ -1681,10 +1679,29 @@ lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist )
   {
     for ( fptr = list; *fptr; fptr++ )
     {
-      e = lyph_by_fma_scai( *fptr, direction, dist );
+      e = lyph_by_fma_scai( *fptr, direction, dist, siblings );
 
       if ( e )
       {
+        if ( direction == 'd' && (*dist) == 0 )
+        {
+          lyph **buf, **bptr, *sibling;
+
+          CREATE( buf, lyph *, lyphcnt + 1 );
+          bptr = buf;
+          *bptr++ = e;
+
+          for ( fptr = fptr + 1; *fptr; fptr++ )
+          {
+            sibling = lyph_by_fma( *fptr );
+
+            if ( sibling )
+              *bptr++ = sibling;
+          }
+          *bptr = NULL;
+          *siblings = buf;
+        }
+
         (*dist)++;
         return e;
       }
@@ -1694,35 +1711,49 @@ lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist )
   return NULL;
 }
 
+char *fma_onematch_to_scaijson( const lyph *e )
+{
+  return JSON
+  (
+    "lyphID": trie_to_json( e->id ),
+    "lyphName": e->name ? trie_to_json(e->name) : NULL
+  );
+}
+
 char *fma_to_scaijson( const fma *f )
 {
-  lyph *e;
+  lyph *e, **siblings;
   const char *direction = "down";
+  char *retval;
   int distance = 0;
 
-  e = lyph_by_fma_scai( f, direction[0], &distance );
+  e = lyph_by_fma_scai( f, direction[0], &distance, &siblings );
 
   if ( !e )
   {
     direction = "up";
-    e = lyph_by_fma_scai( f, direction[0], &distance );
+    e = lyph_by_fma_scai( f, direction[0], &distance, &siblings );
   }
 
   if ( e )
   {
-    char *tmp = strdup( trie_to_static( e->id ) ), *json;
+    if ( !siblings )
+    {
+      CREATE( siblings, lyph *, 2 );
+      siblings[0] = e;
+      siblings[1] = NULL;
+    }
 
-    json = JSON
+    retval = JSON
     (
       "foundmatch": "yes",
-      "lyphID": tmp,
-      "lyphName": e->name ? trie_to_static(e->name) : NULL,
       "distance": int_to_json( distance ),
-      "direction": direction
+      "direction": char_to_json( direction[0] ),
+      "lyphs": JS_ARRAY( fma_onematch_to_scaijson, siblings )
     );
 
-    free(tmp);
-    return json;
+    free( siblings );
+    return retval;
   }
   else
     return JSON1( "foundmatch": "no" );

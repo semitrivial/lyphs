@@ -26,6 +26,7 @@ char *json_array_worker( char * (*fnc) (void *), void **array );
 char *json_array_worker_r( char * (*fnc) (void *, void *), void **array, void *data );
 char *str_to_json( char *x );
 char *int_to_json( int x );
+char *char_to_json( char c );
 
 #define JS_ARRAY( fnc, array ) json_array_worker( (char * (*) (void*))fnc, (void**)array )
 #define JS_ARRAY_R( fnc, array, data ) json_array_worker_r((char * (*) (void*,void*))fnc, (void**)array, (void *)data )
