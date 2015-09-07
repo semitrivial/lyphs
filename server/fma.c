@@ -1649,21 +1649,23 @@ HANDLER( do_fmamap )
   free( txt );
 }
 
-lyph *lyph_by_fma_scai( const fma *f, int *dist )
+lyph *lyph_by_fma_scai( const fma *f, char direction, int *dist )
 {
   lyph *e;
-  fma **fptr;
+  fma **fptr, **list;
 
   e = lyph_by_fma( f );
 
   if ( e )
     return e;
 
-  if ( f->parents )
+  list = (direction == 'u')? f->parents : f->children;
+
+  if ( list )
   {
-    for ( fptr = f->parents; *fptr; fptr++ )
+    for ( fptr = list; *fptr; fptr++ )
     {
-      e = lyph_by_fma_scai( *fptr, dist );
+      e = lyph_by_fma_scai( *fptr, direction, dist );
 
       if ( e )
       {
@@ -1673,11 +1675,13 @@ lyph *lyph_by_fma_scai( const fma *f, int *dist )
     }
   }
 
-  if ( f->superclasses )
+  list = (direction == 'u')? f->superclasses : f->subclasses;
+
+  if ( list )
   {
-    for ( fptr = f->superclasses; *fptr; fptr++ )
+    for ( fptr = list; *fptr; fptr++ )
     {
-      e = lyph_by_fma_scai( *fptr, dist );
+      e = lyph_by_fma_scai( *fptr, direction, dist );
 
       if ( e )
       {
@@ -1693,9 +1697,16 @@ lyph *lyph_by_fma_scai( const fma *f, int *dist )
 char *fma_to_scaijson( const fma *f )
 {
   lyph *e;
+  const char *direction = "down";
   int distance = 0;
 
-  e = lyph_by_fma_scai( f, &distance );
+  e = lyph_by_fma_scai( f, direction[0], &distance );
+
+  if ( !e )
+  {
+    direction = "up";
+    e = lyph_by_fma_scai( f, direction[0], &distance );
+  }
 
   if ( e )
   {
@@ -1706,7 +1717,8 @@ char *fma_to_scaijson( const fma *f )
       "foundmatch": "yes",
       "lyphID": tmp,
       "lyphName": e->name ? trie_to_static(e->name) : NULL,
-      "distance": int_to_json( distance )
+      "distance": int_to_json( distance ),
+      "direction": direction
     );
 
     free(tmp);
