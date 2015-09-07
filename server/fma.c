@@ -1762,7 +1762,7 @@ char *fma_to_scaijson( const fma *f )
 HANDLER( do_scaimap )
 {
   fma **fmas;
-  char *fmastr;
+  char *fmastr, *err;
 
   TRY_PARAM( fmastr, "fmas", "You did not specify a list of fma terms" );
 
@@ -1774,10 +1774,15 @@ HANDLER( do_scaimap )
     fmastr++;
   }
 
-  fmas = (fma **)PARSE_LIST( fmastr, fma_by_str, "fma", NULL );
+  fmas = (fma **)PARSE_LIST( fmastr, fma_by_str, "fma", &err );
 
   if ( !fmas )
-    HND_ERR( "One of the indicated FMA IDs was not found in the FMA" );
+  {
+    if ( err )
+      HND_ERR_FREE( err );
+    else
+      HND_ERR( "One of the indicated FMA IDs was not found in the FMA" );
+  }
 
   send_response( req, JSON1
   (
