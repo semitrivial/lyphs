@@ -436,7 +436,7 @@ void calc_parents_tmp( void )
 
 HANDLER( do_between )
 {
-  lyph *root, **ends, *e, **eptr, **retval, **rptr;
+  lyph *root, **ends;
   char *rootstr, *endsstr;
 
   TRY_PARAM( rootstr, "root", "You did not specify a 'root'" );
@@ -451,6 +451,13 @@ HANDLER( do_between )
 
   if ( !ends )
     HND_ERR( "One of the indicated 'ends' was not recognized" );
+
+  between_worker( root, ends, req, 0 );
+}
+
+void between_worker( lyph *root, lyph **ends, http_request *req, int verbose )
+{
+  lyph *e, **eptr, **retval, **rptr;
 
   calc_parents_tmp();
 
@@ -491,6 +498,10 @@ HANDLER( do_between )
   for ( e = first_lyph; e; e = e->next )
     e->flags = 0;
 
-  send_response( req, JS_ARRAY( lyph_to_json_brief, retval ) );
+  if ( verbose )
+    send_response( req, JS_ARRAY( lyph_to_json, retval ) );
+  else
+    send_response( req, JS_ARRAY( lyph_to_json_brief, retval ) );
+
   free( retval );
 }

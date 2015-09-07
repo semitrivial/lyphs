@@ -229,6 +229,11 @@ void default_config_values( void );
 void send_ok( http_request *req );
 
 /*
+ * hier.c
+ */
+void between_worker( lyph *root, lyph **ends, http_request *req, int verbose );
+
+/*
  * tables.c
  */
 void init_command_table( void );

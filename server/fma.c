@@ -1720,7 +1720,7 @@ char *fma_onematch_to_scaijson( const lyph *e )
   );
 }
 
-char *fma_to_scaijson( const fma *f )
+char *fma_to_scaijson( const fma *f, lyph ***bptr )
 {
   lyph *e, **siblings = NULL;
   const char *direction = "down";
@@ -1744,6 +1744,17 @@ char *fma_to_scaijson( const fma *f )
       siblings[1] = NULL;
     }
 
+    if ( bptr )
+    {
+      lyph **sptr;
+
+      for ( sptr = siblings; *sptr; sptr++ )
+      {
+        **bptr = *sptr;
+        (*bptr)++;
+      }
+    }
+
     retval = JSON
     (
       "foundmatch": "yes",
@@ -1761,7 +1772,7 @@ char *fma_to_scaijson( const fma *f )
 
 HANDLER( do_scaimap )
 {
-  fma **fmas;
+  fma **fmas, **fptr;
   char *fmastr, *err;
 
   TRY_PARAM( fmastr, "fmas", "You did not specify a list of fma terms" );
@@ -1784,10 +1795,43 @@ HANDLER( do_scaimap )
       HND_ERR( "One of the indicated FMA IDs was not found in the FMA" );
   }
 
-  send_response( req, JSON1
-  (
-    "results": JS_ARRAY( fma_to_scaijson, fmas )
-  ));
+  if ( get_param( params, "pipe" ) )
+  {
+    lyph *root, **buf, **bptr;
+    char *rootstr = get_param( params, "root" );
 
-  free( fmas );
+    if ( !rootstr )
+    {
+      free( fmas );
+      HND_ERR( "You did not indicate a 'root' lyph ID" );
+    }
+
+    root = lyph_by_id( rootstr );
+
+    if ( !root )
+    {
+      free( fmas );
+      HND_ERR( "The indicated 'root' lyph was not recognized" );
+    }
+
+    CREATE( buf, lyph *, lyphcnt+1 );
+    bptr = buf;
+
+    for ( fptr = fmas; *fptr; fptr++ )
+      fma_to_scaijson( *fptr, &bptr );
+
+    *bptr = NULL;
+    free( fmas );
+
+    between_worker( root, buf, req, 1 );
+  }
+  else
+  {
+    send_response( req, JSON1
+    (
+      "results": JS_ARRAY_R( fma_to_scaijson, fmas, NULL )
+    ));
+
+    free( fmas );
+  }
 }
