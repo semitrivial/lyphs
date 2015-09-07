@@ -1748,7 +1748,7 @@ char *fma_to_scaijson( const fma *f )
     (
       "foundmatch": "yes",
       "distance": int_to_json( distance ),
-      "direction": char_to_json( direction[0] ),
+      "direction": distance ? char_to_json( direction[0] ) : js_suppress,
       "lyphs": JS_ARRAY( fma_onematch_to_scaijson, siblings )
     );
 
