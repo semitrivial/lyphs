@@ -1722,7 +1722,7 @@ char *fma_onematch_to_scaijson( const lyph *e )
 
 char *fma_to_scaijson( const fma *f )
 {
-  lyph *e, **siblings;
+  lyph *e, **siblings = NULL;
   const char *direction = "down";
   char *retval;
   int distance = 0;
