@@ -342,3 +342,4 @@ HANDLER( do_import_lateralized_brain );
 HANDLER( do_makebop );
 HANDLER( do_scaimap );
 HANDLER( do_between );
+HANDLER( do_correlation_links );

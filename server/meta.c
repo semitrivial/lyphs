@@ -2924,3 +2924,94 @@ int clindex_correlation_count( const clinical_index *ci )
 
   return cnt;
 }
+
+int correlation_is_linked( const correlation *x, const correlation *y )
+{
+  variable **v, **w;
+  int retval;
+
+  for ( v = x->vars; *v; v++ )
+    if ( (*v)->type == VARIABLE_LOCATED )
+      (*v)->loc->flags = 1;
+
+  for ( w = y->vars; *w; w++ )
+    if ( (*w)->loc->flags )
+      break;
+
+  if ( *w )
+    retval = 0;
+  else
+    retval = 1;
+
+  for ( v = x->vars; *v; v++ )
+    if ( (*v)->type == VARIABLE_LOCATED )
+      (*v)->loc->flags = 0;
+
+  return retval;
+}
+
+char *correlation_to_json_brief( const correlation *c )
+{
+  return int_to_json( c->id );
+}
+
+char *correlation_links_to_json( const correlation *c )
+{
+  return JSON
+  (
+    "id": int_to_json( c->id ),
+    "links": JS_ARRAY( correlation_to_json_brief, c->links )
+  );
+}
+
+HANDLER( do_correlation_links )
+{
+  correlation *c, *lnk, **buf, **bptr;
+  lyph *e;
+  int cnt = 0;
+
+  for ( e = first_lyph; e; e = e->next )
+    e->flags = 0;
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    c->links = NULL;
+    cnt++;
+  }
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    CREATE( buf, correlation *, cnt + 1 );
+    bptr = buf;
+
+    for ( lnk = first_correlation; lnk; lnk = lnk->next )
+    {
+      if ( lnk == c )
+        continue;
+
+      if ( correlation_is_linked( c, lnk ) )
+        *bptr++ = lnk;
+    }
+
+    *bptr = NULL;
+    c->links = buf;
+  }
+
+  CREATE( buf, correlation *, cnt + 1 );
+  bptr = buf;
+
+  for ( c = first_correlation; c; c = c->next )
+    *bptr++ = c;
+
+  *bptr = NULL;
+
+  send_response( req, JS_ARRAY( correlation_links_to_json, buf ) );
+
+  free( buf );
+
+  for ( c = first_correlation; c; c = c->next )
+  {
+    free( c->links );
+    c->links = NULL;
+  }
+}

@@ -295,6 +295,7 @@ struct CORRELATION
 {
   correlation *next;
   correlation *prev;
+  correlation **links;
   variable **vars;
   pubmed *pbmd;
   char *comment;
