@@ -82,6 +82,7 @@ typedef struct FMA fma;
 typedef struct NIFLING nifling;
 typedef struct DISPLAYED_NIFLINGS displayed_niflings;
 typedef struct SYSTEM_CONFIGS system_configs;
+typedef struct CORRELINK correlink;
 
 /*
  * Structures
@@ -278,6 +279,12 @@ struct PUBMED
   int flags;
 };
 
+struct CORRELINK
+{
+  correlation *c;
+  lyph *e;
+};
+
 struct VARIABLE
 {
   int type;
@@ -295,7 +302,7 @@ struct CORRELATION
 {
   correlation *next;
   correlation *prev;
-  correlation **links;
+  correlink **links;
   variable **vars;
   pubmed *pbmd;
   char *comment;

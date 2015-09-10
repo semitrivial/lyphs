@@ -2925,34 +2925,49 @@ int clindex_correlation_count( const clinical_index *ci )
   return cnt;
 }
 
-int correlation_is_linked( const correlation *x, const correlation *y )
+correlink **correlation_is_linked( correlation *x, correlation *y )
 {
   variable **v, **w;
-  int retval;
+  correlink **buf, **bptr;
+
+  CREATE( buf, correlink *, (lyphcnt * count_correlations()) + 1 );
+  bptr = buf;
 
   for ( v = x->vars; *v; v++ )
     if ( (*v)->type == VARIABLE_LOCATED )
       (*v)->loc->flags = 1;
 
   for ( w = y->vars; *w; w++ )
+  {
     if ( (*w)->type == VARIABLE_LOCATED && (*w)->loc->flags )
-      break;
-
-  if ( *w )
-    retval = 0;
-  else
-    retval = 1;
+    {
+      CREATE( *bptr, correlink, 1 );
+      (*bptr)->c = y;
+      (*bptr)->e = (*w)->loc;
+    }
+  }
 
   for ( v = x->vars; *v; v++ )
     if ( (*v)->type == VARIABLE_LOCATED )
       (*v)->loc->flags = 0;
 
-  return retval;
+  if ( bptr == buf )
+  {
+    free( buf );
+    return NULL;
+  }
+
+  *bptr = NULL;
+  return buf;
 }
 
-char *correlation_to_json_brief( const correlation *c )
+char *correlink_to_json( const correlink *cl )
 {
-  return int_to_json( c->id );
+  return JSON
+  (
+    "withCorrelation": int_to_json( cl->c->id ),
+    "viaLyph": trie_to_json( cl->e->id )
+  );
 }
 
 char *correlation_links_to_json( const correlation *c )
@@ -2961,13 +2976,14 @@ char *correlation_links_to_json( const correlation *c )
   (
     "id": int_to_json( c->id ),
     "linkcount": int_to_json( VOIDLEN( c->links ) ),
-    "links": JS_ARRAY( correlation_to_json_brief, c->links )
+    "links": JS_ARRAY( correlink_to_json, c->links )
   );
 }
 
 HANDLER( do_correlation_links )
 {
-  correlation *c, *lnk, **buf, **bptr;
+  correlation *c, *lnk, **cbuf, **cbptr;
+  correlink **buf, **bptr, **cl, **clptr;
   lyph *e;
   int cnt = 0;
 
@@ -2982,7 +2998,7 @@ HANDLER( do_correlation_links )
 
   for ( c = first_correlation; c; c = c->next )
   {
-    CREATE( buf, correlation *, cnt + 1 );
+    CREATE( buf, correlink *, (cnt*lyphcnt) + 1 );
     bptr = buf;
 
     for ( lnk = first_correlation; lnk; lnk = lnk->next )
@@ -2990,28 +3006,34 @@ HANDLER( do_correlation_links )
       if ( lnk == c )
         continue;
 
-      if ( correlation_is_linked( c, lnk ) )
-        *bptr++ = lnk;
+      if ( (cl=correlation_is_linked( c, lnk )) != NULL )
+      {
+        for ( clptr = cl; *clptr; clptr++ )
+          *bptr++ = *clptr;
+      }
     }
 
     *bptr = NULL;
     c->links = buf;
   }
 
-  CREATE( buf, correlation *, cnt + 1 );
-  bptr = buf;
+  CREATE( cbuf, correlation *, cnt + 1 );
+  cbptr = cbuf;
 
   for ( c = first_correlation; c; c = c->next )
-    *bptr++ = c;
+    *cbptr++ = c;
 
-  *bptr = NULL;
+  *cbptr = NULL;
 
-  send_response( req, JS_ARRAY( correlation_links_to_json, buf ) );
+  send_response( req, JS_ARRAY( correlation_links_to_json, cbuf ) );
 
-  free( buf );
+  free( cbuf );
 
   for ( c = first_correlation; c; c = c->next )
   {
+    for ( clptr = c->links; *clptr; clptr++ )
+      free( *clptr );
+
     free( c->links );
     c->links = NULL;
   }
