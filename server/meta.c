@@ -3011,6 +3011,8 @@ HANDLER( do_correlation_links )
       {
         for ( clptr = cl; *clptr; clptr++ )
           *bptr++ = *clptr;
+
+        free( cl );
       }
     }
 
