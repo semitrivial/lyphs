@@ -2925,12 +2925,12 @@ int clindex_correlation_count( const clinical_index *ci )
   return cnt;
 }
 
-correlink **correlation_is_linked( correlation *x, correlation *y )
+correlink **correlation_is_linked( correlation *x, correlation *y, int cnt )
 {
   variable **v, **w;
   correlink **buf, **bptr;
 
-  CREATE( buf, correlink *, (lyphcnt * count_correlations()) + 1 );
+  CREATE( buf, correlink *, (lyphcnt * cnt) + 1 );
   bptr = buf;
 
   for ( v = x->vars; *v; v++ )
@@ -2944,6 +2944,7 @@ correlink **correlation_is_linked( correlation *x, correlation *y )
       CREATE( *bptr, correlink, 1 );
       (*bptr)->c = y;
       (*bptr)->e = (*w)->loc;
+      bptr++;
     }
   }
 
@@ -3006,7 +3007,7 @@ HANDLER( do_correlation_links )
       if ( lnk == c )
         continue;
 
-      if ( (cl=correlation_is_linked( c, lnk )) != NULL )
+      if ( (cl=correlation_is_linked( c, lnk, cnt )) != NULL )
       {
         for ( clptr = cl; *clptr; clptr++ )
           *bptr++ = *clptr;
