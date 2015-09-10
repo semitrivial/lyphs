@@ -2960,6 +2960,7 @@ char *correlation_links_to_json( const correlation *c )
   return JSON
   (
     "id": int_to_json( c->id ),
+    "linkcount": int_to_json( VOIDLEN( c->links ) ),
     "links": JS_ARRAY( correlation_to_json_brief, c->links )
   );
 }
