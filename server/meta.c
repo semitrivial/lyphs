@@ -2978,15 +2978,15 @@ int count_distinct_correlation_links( correlink **buf )
 
   for ( ptr = buf; *ptr; ptr++ )
   {
-    if ( !(*ptr)->e->flags )
+    if ( !(*ptr)->c->flags )
     {
-      (*ptr)->e->flags = 1;
+      (*ptr)->c->flags = 1;
       cnt++;
     }
   }
 
   for ( ptr = buf; *ptr; ptr++ )
-    (*ptr)->e->flags = 0;
+    (*ptr)->c->flags = 0;
 
   return cnt;
 }
