@@ -2971,12 +2971,33 @@ char *correlink_to_json( const correlink *cl )
   );
 }
 
+int count_distinct_correlation_links( correlink **buf )
+{
+  correlink **ptr;
+  int cnt = 0;
+
+  for ( ptr = buf; *ptr; ptr++ )
+  {
+    if ( !(*ptr)->e->flags )
+    {
+      (*ptr)->e->flags = 1;
+      cnt++;
+    }
+  }
+
+  for ( ptr = buf; *ptr; ptr++ )
+    (*ptr)->e->flags = 0;
+
+  return cnt;
+}
+
 char *correlation_links_to_json( const correlation *c )
 {
   return JSON
   (
     "id": int_to_json( c->id ),
-    "linkcount": int_to_json( VOIDLEN( c->links ) ),
+    "linkcount": int_to_json( count_distinct_correlation_links( c->links ) ),
+    "edgecount": int_to_json( VOIDLEN( c->links ) ),
     "links": JS_ARRAY( correlink_to_json, c->links )
   );
 }
