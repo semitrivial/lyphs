@@ -2935,7 +2935,7 @@ int correlation_is_linked( const correlation *x, const correlation *y )
       (*v)->loc->flags = 1;
 
   for ( w = y->vars; *w; w++ )
-    if ( (*w)->loc->flags )
+    if ( (*w)->type == VARIABLE_LOCATED && (*w)->loc->flags )
       break;
 
   if ( *w )
