@@ -3002,6 +3002,33 @@ char *correlation_links_to_json( const correlation *c )
   );
 }
 
+int generate_correlation_links_dotfile( correlation **cbuf )
+{
+  FILE *fp = fopen( CORRELATION_LINKS_DOTFILE, "w" );
+  correlation **c;
+  correlink **cl;
+
+  if ( !fp )
+    return 0;
+
+  fprintf( fp, "digraph\n{\n" );
+
+  for ( c = cbuf; *c; c++ )
+    fprintf( fp, "  %d;\n", (*c)->id );
+
+  fprintf( fp, "  subgraph cluster_0\n  {\n" );
+
+  for ( c = cbuf; *c; c++ )
+  for ( cl = (*c)->links; *cl; cl++ )
+    fprintf( fp, "    %d -> %d[label=\"%s\"];\n", (*c)->id, (*cl)->c->id, trie_to_static((*cl)->e->id) );
+
+  fprintf( fp, "  }\n}\n" );
+
+  fclose( fp );
+
+  return 1;
+}
+
 HANDLER( do_correlation_links )
 {
   correlation *c, *lnk, **cbuf, **cbptr;
@@ -3049,7 +3076,22 @@ HANDLER( do_correlation_links )
 
   *cbptr = NULL;
 
-  send_response( req, JS_ARRAY( correlation_links_to_json, cbuf ) );
+  if ( !get_param( params, "dotfile" ) )
+    send_response( req, JS_ARRAY( correlation_links_to_json, cbuf ) );
+  else
+  {
+    char *dotfile;
+
+    if ( !generate_correlation_links_dotfile( cbuf )
+    ||   !(dotfile = load_file( CORRELATION_LINKS_DOTFILE )) )
+    {
+      free( cbuf );
+      HND_ERR( "Could not open " CORRELATION_LINKS_DOTFILE );
+    }
+
+    send_response( req, dotfile );
+    free( dotfile );
+  }
 
   free( cbuf );
 

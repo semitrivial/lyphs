@@ -37,6 +37,7 @@
 #define NIFLING_FILE DATA_DIR "nifs.dat"
 #define BOPS_FILE DATA_DIR "bops.dat"
 #define FMAMAP_FILE DATA_DIR "fmamap.tsv"
+#define CORRELATION_LINKS_DOTFILE DATA_DIR "correlink.dot"
 
 #define PARSE_CSV_DIR "/srv/lyph_uploads/"
 
