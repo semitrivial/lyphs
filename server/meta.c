@@ -3089,7 +3089,7 @@ HANDLER( do_correlation_links )
       HND_ERR( "Could not open " CORRELATION_LINKS_DOTFILE );
     }
 
-    send_response( req, dotfile );
+    send_response_with_type( req, "200", dotfile, "text/plain" );
     free( dotfile );
   }
 
