@@ -135,6 +135,7 @@ typedef enum
 struct LYPHPLATE_TO_JSON_DETAILS
 {
   int show_common_mats;
+  int full_layers;
 };
 
 #define LYPHPLATE_DOES_INVOLVE 1
@@ -585,6 +586,7 @@ char *lyphplate_to_json( lyphplate *L );
 char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det );
 char *lyphplate_to_shallow_json( lyphplate *L );
 char *layer_to_json( layer *lyr );
+char *layer_to_json_brief( layer *lyr );
 char *lyph_annot_to_json( lyph_annot *a );
 lyphview *lyphview_by_id( char *idstr );
 char *lyphnode_to_json_wrappee( lyphnode *n, char *x, char *y );

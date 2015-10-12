@@ -2334,7 +2334,7 @@ char *lyphplate_to_json( lyphplate *L )
 
 char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
 {
-  char *common_mats;
+  char *common_mats, *layers;
 
   if ( !det || !det->show_common_mats )
     common_mats = js_suppress;
@@ -2344,6 +2344,11 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
     common_mats = JS_ARRAY( lyphplate_to_json_brief, buf );
     free( buf );
   }
+
+  if ( !det || det->full_layers )
+    layers = JS_ARRAY( layer_to_json, L->layers );
+  else
+    layers = JS_ARRAY( layer_to_json_brief, L->layers );
 
   return JSON
   (
@@ -2367,6 +2372,14 @@ char *layer_to_json( layer *lyr )
     "name": lyr->name ? str_to_json( lyr->name ) : NULL,
     "materials": JS_ARRAY( lyphplate_to_json_brief, lyr->material ),
     "thickness": lyr->thickness == -1 ? "unspecified" : int_to_json( lyr->thickness )
+  );
+}
+
+char *layer_to_json_brief( layer *lyr )
+{
+  return JSON1
+  (
+    "id": trie_to_json( lyr->id )
   );
 }
 

@@ -3104,3 +3104,94 @@ HANDLER( do_correlation_links )
     c->links = NULL;
   }
 }
+
+HANDLER( do_dump )
+{
+  lyphplate **lpbuf = (lyphplate**)datas_to_array( lyphplate_ids );
+  layer **lyrbuf = (layer**)datas_to_array( layer_ids );
+  lyphnode **lyphnodebuf = (lyphnode**)datas_to_array( lyphnode_ids );
+  lyph **lyphbuf = (lyph**)datas_to_array( lyph_ids );
+  lyphview **v, **vptr, **viewsptr;
+  extern lyphview **views;
+  clinical_index **cibuf, **cibufptr, *ci;
+  pubmed **pubmedbuf, **pubmedbptr, *pbmd;
+  correlation **cbuf, **cbufptr, *c;
+  bop **bopbuf, **bopbptr, *bp;
+  extern lyphview obsolete_lyphview;
+  int cnt = 0;
+
+  cnt = 0;
+  for ( bp = first_bop; bp; bp = bp->next )
+    cnt++;
+
+  CREATE( bopbuf, bop *, cnt + 1 );
+  bopbptr = bopbuf;
+
+  for ( bp = first_bop; bp; bp = bp->next )
+    *bopbptr++ = bp;
+
+  *bopbptr = NULL;
+
+  cnt = 0;
+  for ( pbmd = first_pubmed; pbmd; pbmd = pbmd->next )
+    cnt++;
+
+  cnt = 0;
+  for ( c = first_correlation; c; c = c->next )
+    cnt++;
+
+  CREATE( cbuf, correlation *, cnt + 1 );
+  cbufptr = cbuf;
+
+  for ( c = first_correlation; c; c = c->next )
+    *cbufptr++ = c;
+
+  *cbufptr = NULL;
+
+  CREATE( pubmedbuf, pubmed *, cnt + 1 );
+  pubmedbptr = pubmedbuf;
+  for ( pbmd = first_pubmed; pbmd; pbmd = pbmd->next )
+    *pubmedbptr++ = pbmd;
+  *pubmedbptr = NULL;
+
+  cnt = 0;
+  for ( ci = first_clinical_index; ci; ci = ci->next )
+    cnt++;
+
+  CREATE( cibuf, clinical_index *, cnt + 1 );
+
+  for ( cibufptr = cibuf, ci = first_clinical_index; ci; ci = ci->next )
+    *cibufptr++ = ci;
+
+  *cibufptr = NULL;
+
+  CREATE( v, lyphview *, VOIDLEN( &views[1] ) + 1 );
+  vptr = v;
+
+  for ( viewsptr = &views[1]; *viewsptr; viewsptr++ )
+    if ( *viewsptr != &obsolete_lyphview )
+      *vptr++ = *viewsptr;
+
+  *vptr = NULL;
+
+  send_response( req, JSON
+  (
+    "lyphplates": JS_ARRAY( lyphplate_to_json, lpbuf ),
+    "layers": JS_ARRAY( layer_to_json, lyrbuf ),
+    "lyphnodes": JS_ARRAY( lyphnode_to_json, lyphnodebuf ),
+    "lyphs": JS_ARRAY( lyph_to_json, lyphbuf ),
+    "views": JS_ARRAY( lyphview_to_json, v ),
+    "clinical indices": JS_ARRAY( clinical_index_to_json_full, cibuf ),
+    "pubmeds": JS_ARRAY( pubmed_to_json_full, pubmedbuf ),
+    "correlations": JS_ARRAY( correlation_to_json, cbuf ),
+    "bops": JS_ARRAY( bop_to_json, bopbuf )
+  ) );
+
+  free( lpbuf );
+  free( lyrbuf );
+  free( lyphnodebuf );
+  free( v );
+  free( cibuf );
+  free( cbuf );
+  free( bopbuf );
+}

@@ -343,3 +343,4 @@ HANDLER( do_makebop );
 HANDLER( do_scaimap );
 HANDLER( do_between );
 HANDLER( do_correlation_links );
+HANDLER( do_dump );
