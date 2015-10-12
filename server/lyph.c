@@ -2334,7 +2334,7 @@ char *lyphplate_to_json( lyphplate *L )
 
 char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
 {
-  char *common_mats, *layers;
+  char *common_mats;
 
   if ( !det || !det->show_common_mats )
     common_mats = js_suppress;
@@ -2344,11 +2344,6 @@ char *lyphplate_to_json_r( lyphplate *L, lyphplate_to_json_details *det )
     common_mats = JS_ARRAY( lyphplate_to_json_brief, buf );
     free( buf );
   }
-
-  if ( !det || det->full_layers )
-    layers = JS_ARRAY( layer_to_json, L->layers );
-  else
-    layers = JS_ARRAY( layer_to_json_brief, L->layers );
 
   return JSON
   (
